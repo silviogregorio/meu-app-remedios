@@ -551,14 +551,14 @@ const Landing = () => {
 
 const FeatureCard = ({ icon, title, description, delay }) => (
     <div
-        className="bg-slate-50 p-8 rounded-2xl border border-slate-100 hover:shadow-xl hover:bg-white transition-all duration-300 group animate-float"
+        className="bg-slate-50 p-6 md:p-8 rounded-2xl border border-slate-100 hover:shadow-xl hover:bg-white transition-all duration-300 group animate-float w-full"
         style={{ animationDelay: delay }}
     >
         <div className="w-14 h-14 bg-white rounded-xl shadow-sm flex items-center justify-center mb-6 border border-slate-100 group-hover:scale-110 transition-transform duration-300">
             {icon}
         </div>
-        <h3 className="text-xl font-bold text-slate-900 mb-3">{title}</h3>
-        <p className="text-slate-600 leading-relaxed">{description}</p>
+        <h3 className="text-xl font-bold text-slate-900 mb-3 break-words">{title}</h3>
+        <p className="text-slate-600 leading-relaxed text-sm md:text-base">{description}</p>
     </div>
 );
 
