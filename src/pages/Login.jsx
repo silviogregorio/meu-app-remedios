@@ -24,7 +24,7 @@ const Login = () => {
         setLoading(true);
         setError('');
 
-        const { error: signInError } = await signIn(email, password);
+        const { error: signInError } = await signIn(email.trim(), password.trim());
 
         if (signInError) {
             setError(signInError.message || 'Email ou senha inválidos');

@@ -27,7 +27,7 @@ const Register = () => {
         e.preventDefault();
         setError('');
 
-        if (formData.password !== formData.confirmPassword) {
+        if (formData.password.trim() !== formData.confirmPassword.trim()) {
             setError('As senhas não coincidem');
             return;
         }
@@ -40,9 +40,9 @@ const Register = () => {
         setLoading(true);
 
         const { error: signUpError } = await signUp(
-            formData.email,
-            formData.password,
-            formData.fullName
+            formData.email.trim(),
+            formData.password.trim(),
+            formData.fullName.trim()
         );
 
         if (signUpError) {
