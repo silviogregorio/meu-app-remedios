@@ -1,0 +1,118 @@
+import React, { useState } from 'react';
+import { useApp } from '../context/AppContext';
+import { useNavigate } from 'react-router-dom';
+import Card, { CardContent } from '../components/ui/Card';
+import Button from '../components/ui/Button';
+import Input from '../components/ui/Input';
+import Modal from '../components/ui/Modal';
+import { User, Settings, LogOut, Bell, LogIn, Database, Trash2 } from 'lucide-react';
+
+const Profile = () => {
+    const { user, logout, showToast, fetchAllData, updateProfile, accountShares, shareAccount, unshareAccount } = useApp();
+    const navigate = useNavigate();
+
+    const [isEditing, setIsEditing] = useState(false);
+
+    const [editForm, setEditForm] = useState({
+        name: user?.user_metadata?.full_name || ''
+    });
+
+    const handleUpdateProfile = async () => {
+        if (!editForm.name.trim()) {
+            showToast('Nome é obrigatório', 'error');
+            return;
+        }
+
+        await updateProfile(editForm);
+        setIsEditing(false);
+    };
+
+    if (!user) {
+        return (
+            <div className="flex flex-col items-center justify-center h-[60vh] gap-4 text-center px-4">
+                <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center text-gray-400 mb-4">
+                    <User size={40} />
+                </div>
+                <h2 className="text-xl font-bold text-[#0f172a] dark:text-white">Faça Login</h2>
+                <p className="text-[#64748b] dark:text-slate-400">Acesse sua conta para gerenciar seus dados e configurações.</p>
+                <Button onClick={() => navigate('/login')} className="mt-4 w-full max-w-xs">
+                    <LogIn size={20} className="mr-2" />
+                    Entrar
+                </Button>
+            </div>
+        );
+    }
+
+    return (
+        <div className="flex flex-col gap-6 pb-20">
+            <div className="flex flex-col items-center gap-4 py-6">
+                {user.user_metadata?.avatar_url ? (
+                    <img
+                        src={user.user_metadata.avatar_url}
+                        alt={user.user_metadata?.full_name || 'User'}
+                        className="w-24 h-24 rounded-full border-4 border-white shadow-lg"
+                    />
+                ) : (
+                    <div className="w-24 h-24 rounded-full bg-primary/10 text-primary flex items-center justify-center text-2xl font-bold border-4 border-white shadow-lg">
+                        {user.user_metadata?.full_name ? user.user_metadata.full_name[0].toUpperCase() : 'U'}
+                    </div>
+                )}
+                <div className="text-center">
+                    <h2 className="text-xl font-bold text-[#0f172a] dark:text-white">{user.user_metadata?.full_name || 'Usuário'}</h2>
+                    <p className="text-[#64748b] dark:text-slate-400">{user.email}</p>
+                </div>
+            </div>
+
+            <div className="flex flex-col gap-4">
+                <Card>
+                    <CardContent className="p-0">
+                        <button
+                            onClick={() => setIsEditing(true)}
+                            className="w-full flex items-center gap-4 p-4 border-b border-[#e2e8f0] dark:border-slate-800 hover:bg-[#f8fafc] dark:hover:bg-slate-800/50 text-left transition-colors"
+                        >
+                            <div className="w-10 h-10 rounded-full bg-[#f1f5f9] dark:bg-slate-800 flex items-center justify-center text-[#64748b] dark:text-slate-400">
+                                <User size={20} />
+                            </div>
+                            <div className="flex-1">
+                                <h3 className="font-medium text-[#0f172a] dark:text-white">Dados Pessoais</h3>
+                                <p className="text-sm text-[#64748b] dark:text-slate-400">Alterar nome, email</p>
+                            </div>
+                        </button>
+
+                    </CardContent>
+                </Card>
+
+                <Button variant="danger" onClick={async () => { await logout(); window.location.href = '/'; }} className="mt-4">
+                    <LogOut size={20} className="mr-2" />
+                    Sair do App
+                </Button>
+            </div>
+
+            <Modal
+                isOpen={isEditing}
+                onClose={() => setIsEditing(false)}
+                title="Editar Perfil"
+            >
+                <div className="flex flex-col gap-4">
+                    <Input
+                        label="Nome Completo"
+                        value={editForm.name}
+                        onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                        placeholder="Seu nome"
+                    />
+
+                    <div className="flex gap-3 mt-2">
+                        <Button variant="ghost" onClick={() => setIsEditing(false)} className="flex-1">
+                            Cancelar
+                        </Button>
+                        <Button onClick={handleUpdateProfile} className="flex-1">
+                            Salvar Alterações
+                        </Button>
+                    </div>
+                </div>
+            </Modal>
+        </div>
+    );
+};
+
+export default Profile;

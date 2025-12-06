@@ -1,0 +1,58 @@
+import React from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider } from './context/AuthContext';
+import { AppProvider } from './context/AppContext';
+import Layout from './components/layout/Layout';
+import ProtectedRoute from './components/ProtectedRoute';
+import ErrorBoundary from './components/ErrorBoundary';
+
+// Pages
+import Home from './pages/Home';
+import Patients from './pages/Patients';
+import Medications from './pages/Medications';
+import Prescriptions from './pages/Prescriptions';
+import Reports from './pages/Reports';
+import Profile from './pages/Profile';
+import Login from './pages/Login';
+import Register from './pages/Register';
+import Share from './pages/Share';
+
+import Landing from './pages/Landing';
+import AdminSponsors from './pages/AdminSponsors';
+
+import NotificationManager from './components/NotificationManager';
+import { ThemeProvider } from './context/ThemeContext';
+
+function App() {
+  return (
+    <ErrorBoundary>
+      <AuthProvider>
+        <ThemeProvider>
+          <AppProvider>
+            <NotificationManager />
+            <BrowserRouter>
+              <Routes>
+                <Route path="/" element={<Landing />} />
+                <Route element={<Layout />}>
+                  <Route path="/app" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+                  <Route path="/patients" element={<ProtectedRoute><Patients /></ProtectedRoute>} />
+                  <Route path="/medications" element={<ProtectedRoute><Medications /></ProtectedRoute>} />
+                  <Route path="/prescriptions" element={<ProtectedRoute><Prescriptions /></ProtectedRoute>} />
+                  <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
+                  <Route path="/share" element={<ProtectedRoute><Share /></ProtectedRoute>} />
+                  <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+                  <Route path="/admin/sponsors" element={<ProtectedRoute><AdminSponsors /></ProtectedRoute>} />
+                </Route>
+                <Route path="/login" element={<Login />} />
+                <Route path="/register" element={<Register />} />
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+            </BrowserRouter>
+          </AppProvider>
+        </ThemeProvider>
+      </AuthProvider>
+    </ErrorBoundary>
+  );
+}
+
+export default App;

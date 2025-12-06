@@ -1,0 +1,515 @@
+import React, { useState } from 'react';
+import { useApp } from '../context/AppContext';
+import Card, { CardHeader, CardContent, CardFooter } from '../components/ui/Card';
+import Button from '../components/ui/Button';
+import Input from '../components/ui/Input';
+import Modal from '../components/ui/Modal';
+import ShareModal from '../components/ShareModal';
+import Pagination from '../components/ui/Pagination';
+import { Plus, MapPin, User, Edit2, Trash2, X, Search, ChevronRight, Calendar, Phone, Share2, Users } from 'lucide-react';
+import { api } from '../services/api';
+import { isOwner } from '../utils/permissions';
+
+const ITEMS_PER_PAGE = 6;
+
+// Helper to format CEP
+const formatCep = (value) => {
+    const cleaned = value.replace(/\D/g, '');
+    if (cleaned.length <= 5) return cleaned;
+    return `${cleaned.slice(0, 5)}-${cleaned.slice(5, 8)}`;
+};
+
+// Helper to format Phone
+const formatPhone = (value) => {
+    const cleaned = value.replace(/\D/g, '');
+    if (cleaned.length <= 2) return cleaned;
+    if (cleaned.length <= 7) return `(${cleaned.slice(0, 2)}) ${cleaned.slice(2)}`;
+    if (cleaned.length <= 11) return `(${cleaned.slice(0, 2)}) ${cleaned.slice(2, 7)}-${cleaned.slice(7)}`;
+    return `(${cleaned.slice(0, 2)}) ${cleaned.slice(2, 7)}-${cleaned.slice(7, 11)}`;
+};
+
+// Helper to calculate age
+const calculateAge = (birthDate) => {
+    if (!birthDate) return null;
+    const birth = new Date(birthDate);
+    const today = new Date();
+
+    let years = today.getFullYear() - birth.getFullYear();
+    let months = today.getMonth() - birth.getMonth();
+    let days = today.getDate() - birth.getDate();
+
+    if (days < 0) {
+        months--;
+        const lastMonth = new Date(today.getFullYear(), today.getMonth(), 0);
+        days += lastMonth.getDate();
+    }
+
+    if (months < 0) {
+        years--;
+        months += 12;
+    }
+
+    return { years, months, days };
+};
+
+const Patients = () => {
+    const { patients, userPatients, addPatient, updatePatient, deletePatient, sharePatient, unsharePatient, showToast, user } = useApp();
+    const [showForm, setShowForm] = useState(false);
+    const [editingId, setEditingId] = useState(null);
+    const [deleteId, setDeleteId] = useState(null);
+    const [sharePatientId, setSharePatientId] = useState(null);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
+
+    const [formData, setFormData] = useState({
+        name: '',
+        birthDate: '',
+        phone: '',
+        condition: '',
+        cep: '',
+        street: '',
+        number: '',
+        complement: '',
+        neighborhood: '',
+        city: '',
+        state: '',
+        observations: ''
+    });
+    const [loadingCep, setLoadingCep] = useState(false);
+
+    // Filter Logic
+    const filteredPatients = patients.filter(p =>
+        p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        p.condition?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    // Pagination Logic
+    const totalPages = Math.ceil(filteredPatients.length / ITEMS_PER_PAGE);
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const paginatedPatients = filteredPatients.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+
+    // Reset page on search
+    React.useEffect(() => {
+        setCurrentPage(1);
+    }, [searchTerm]);
+
+    const handleEdit = (patient) => {
+        setFormData(patient);
+        setEditingId(patient.id);
+        setShowForm(true);
+    };
+
+    const handleDeleteClick = (id) => {
+        setDeleteId(id);
+    };
+
+    const confirmDelete = () => {
+        if (deleteId) {
+            deletePatient(deleteId);
+            setDeleteId(null);
+            // Adjust page if deleting last item on page
+            if (paginatedPatients.length === 1 && currentPage > 1) {
+                setCurrentPage(prev => prev - 1);
+            }
+        }
+    };
+
+    const handleCancel = () => {
+        setShowForm(false);
+        setEditingId(null);
+        setFormData({
+            name: '',
+            birthDate: '',
+            phone: '',
+            condition: '',
+            cep: '',
+            street: '',
+            number: '',
+            complement: '',
+            neighborhood: '',
+            city: '',
+            state: '',
+            observations: ''
+        });
+    };
+
+    const handlePhoneChange = (e) => {
+        const formatted = formatPhone(e.target.value);
+        setFormData({ ...formData, phone: formatted });
+    };
+
+    const handleCepChange = (e) => {
+        const formatted = formatCep(e.target.value);
+        setFormData({ ...formData, cep: formatted });
+    };
+
+    const handleCepBlur = async () => {
+        const cleanCep = formData.cep.replace(/\D/g, '');
+        if (cleanCep.length === 8) {
+            setLoadingCep(true);
+            try {
+                const address = await api.fetchAddressByCep(cleanCep);
+                setFormData(prev => ({
+                    ...prev,
+                    street: address.street || '',
+                    neighborhood: address.neighborhood || '',
+                    city: address.city || '',
+                    state: address.state || ''
+                }));
+                showToast('✓ Endereço encontrado com sucesso!', 'success');
+            } catch (error) {
+                showToast('CEP não encontrado. Verifique e tente novamente.', 'error');
+            } finally {
+                setLoadingCep(false);
+            }
+        }
+    };
+
+    const validateForm = () => {
+        const errors = [];
+
+        // Validar nome
+        if (!formData.name.trim()) {
+            errors.push('Nome é obrigatório');
+        }
+
+        // Validar data de nascimento
+        if (!formData.birthDate) {
+            errors.push('Data de nascimento é obrigatória');
+        } else {
+            const birthDate = new Date(formData.birthDate);
+            const today = new Date();
+            const age = today.getFullYear() - birthDate.getFullYear();
+
+            if (birthDate > today) {
+                errors.push('Data de nascimento não pode ser futura');
+            }
+            if (age > 150) {
+                errors.push('Data de nascimento inválida');
+            }
+        }
+
+        // Validar telefone (se preenchido)
+        if (formData.phone) {
+            const digits = formData.phone.replace(/\D/g, '');
+            if (digits.length < 10) {
+                errors.push('Telefone deve ter pelo menos 10 dígitos');
+            }
+        }
+
+        return errors;
+    };
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+
+        if (!user) {
+            showToast('Você precisa fazer login primeiro!', 'error');
+            return;
+        }
+
+        const errors = validateForm();
+        if (errors.length > 0) {
+            showToast(errors[0], 'error');
+            return;
+        }
+
+        if (editingId) {
+            updatePatient(editingId, formData);
+        } else {
+            addPatient(formData);
+        }
+        handleCancel();
+    };
+
+    const formatAge = (birthDate) => {
+        const age = calculateAge(birthDate);
+        if (!age) return '';
+
+        const parts = [];
+        if (age.years > 0) parts.push(`${age.years} ano${age.years !== 1 ? 's' : ''}`);
+        if (age.months > 0) parts.push(`${age.months} mês${age.months !== 1 ? 'es' : ''}`);
+        if (age.days > 0) parts.push(`${age.days} dia${age.days !== 1 ? 's' : ''}`);
+
+        return parts.join(', ');
+    };
+
+    return (
+        <div className="flex flex-col gap-8 pb-24 animate-in fade-in duration-500">
+            {/* Header Section */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h2 className="text-3xl font-bold text-slate-900 tracking-tight">Pacientes</h2>
+                    <p className="text-slate-500 mt-1">Gerencie o cadastro e histórico dos seus pacientes.</p>
+                </div>
+                {!showForm && (
+                    <Button onClick={() => setShowForm(true)} className="shadow-xl shadow-primary/20">
+                        <Plus size={20} className="mr-2" />
+                        Novo Paciente
+                    </Button>
+                )}
+            </div>
+
+            {/* Search Bar */}
+            {!showForm && patients.length > 0 && (
+                <div className="relative">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+                    <input
+                        type="text"
+                        placeholder="Buscar por nome ou condição..."
+                        className="w-full pl-12 pr-4 py-3 rounded-2xl border-none bg-white shadow-soft focus:ring-2 focus:ring-primary/20 transition-all"
+                        value={searchTerm}
+                        onChange={e => setSearchTerm(e.target.value)}
+                    />
+                </div>
+            )}
+
+            {/* Form Section */}
+            {showForm && (
+                <Card className="border-l-4 border-l-primary shadow-2xl ring-1 ring-black/5">
+                    <CardHeader className="flex justify-between items-center">
+                        <div>
+                            <h3 className="font-bold text-xl text-slate-900">{editingId ? 'Editar Paciente' : 'Novo Paciente'}</h3>
+                            <p className="text-sm text-slate-500">Preencha os dados abaixo</p>
+                        </div>
+                        <button onClick={handleCancel} className="text-slate-400 hover:text-slate-600 p-2 rounded-full hover:bg-slate-100 transition-colors">
+                            <X size={24} />
+                        </button>
+                    </CardHeader>
+                    <CardContent>
+                        <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+                            <Input
+                                label="Nome Completo"
+                                placeholder="Ex: Maria Silva"
+                                value={formData.name}
+                                onChange={e => setFormData({ ...formData, name: e.target.value })}
+                                required
+                            />
+                            <div className="flex gap-6">
+                                <Input
+                                    label="Data de Nascimento"
+                                    type="date"
+                                    containerClassName="w-1/2"
+                                    value={formData.birthDate}
+                                    onChange={e => setFormData({ ...formData, birthDate: e.target.value })}
+                                    required
+                                />
+                            </div>
+
+                            <div className="flex gap-6">
+                                <Input
+                                    label="Telefone"
+                                    placeholder="(00) 00000-0000"
+                                    containerClassName="w-1/2"
+                                    value={formData.phone}
+                                    onChange={handlePhoneChange}
+                                    maxLength={15}
+                                />
+                                <Input
+                                    label="Condição Principal"
+                                    placeholder="Ex: Hipertensão"
+                                    containerClassName="w-1/2"
+                                    value={formData.condition}
+                                    onChange={e => setFormData({ ...formData, condition: e.target.value })}
+                                />
+                            </div>
+
+
+                            {/* CEP */}
+                            <Input
+                                label={loadingCep ? "CEP (buscando...)" : "CEP"}
+                                placeholder="00000-000"
+                                value={formData.cep}
+                                onChange={handleCepChange}
+                                onBlur={handleCepBlur}
+                                maxLength={9}
+                            />
+
+                            {/* Address Fields */}
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                <Input
+                                    label="Logradouro"
+                                    placeholder="Rua, Avenida..."
+                                    containerClassName="md:col-span-3"
+                                    value={formData.street}
+                                    onChange={e => setFormData({ ...formData, street: e.target.value })}
+                                    disabled={loadingCep}
+                                />
+                                <Input
+                                    label="Número"
+                                    placeholder="123"
+                                    containerClassName="md:col-span-1"
+                                    value={formData.number}
+                                    onChange={e => setFormData({ ...formData, number: e.target.value })}
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <Input
+                                    label="Complemento"
+                                    placeholder="Apto, Bloco..."
+                                    containerClassName="md:col-span-1"
+                                    value={formData.complement}
+                                    onChange={e => setFormData({ ...formData, complement: e.target.value })}
+                                />
+                                <Input
+                                    label="Bairro"
+                                    placeholder="Centro"
+                                    containerClassName="md:col-span-2"
+                                    value={formData.neighborhood}
+                                    onChange={e => setFormData({ ...formData, neighborhood: e.target.value })}
+                                    disabled={loadingCep}
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                <Input
+                                    label="Cidade"
+                                    placeholder="São Paulo"
+                                    containerClassName="md:col-span-3"
+                                    value={formData.city}
+                                    onChange={e => setFormData({ ...formData, city: e.target.value })}
+                                    disabled={loadingCep}
+                                />
+                                <Input
+                                    label="UF"
+                                    placeholder="SP"
+                                    containerClassName="md:col-span-1"
+                                    maxLength={2}
+                                    value={formData.state}
+                                    onChange={e => setFormData({ ...formData, state: e.target.value.toUpperCase() })}
+                                    disabled={loadingCep}
+                                />
+                            </div>
+
+                            <div className="flex flex-col gap-1.5">
+                                <label className="text-sm font-semibold text-slate-700 ml-1">Observações</label>
+                                <textarea
+                                    className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-200 resize-none"
+                                    placeholder="Informações adicionais sobre o paciente..."
+                                    rows={3}
+                                    value={formData.observations || ''}
+                                    onChange={e => setFormData({ ...formData, observations: e.target.value })}
+                                />
+                            </div>
+                            <div className="flex gap-4 mt-4 pt-6 border-t border-slate-50">
+                                <Button type="button" variant="ghost" onClick={handleCancel} className="flex-1">
+                                    Cancelar
+                                </Button>
+                                <Button type="submit" className="flex-1">
+                                    {editingId ? 'Salvar Alterações' : 'Cadastrar Paciente'}
+                                </Button>
+                            </div>
+                        </form>
+                    </CardContent>
+                </Card>
+            )}
+
+            {/* List Section */}
+            {patients.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-center bg-white rounded-3xl border border-dashed border-slate-200">
+                    <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center text-slate-300 mb-6">
+                        <User size={40} />
+                    </div>
+                    <h3 className="text-xl font-bold text-slate-900">Nenhum paciente cadastrado</h3>
+                    <p className="text-slate-500 max-w-xs mx-auto mt-2 mb-6">Comece adicionando um paciente para gerenciar suas receitas e medicamentos.</p>
+                    <Button variant="outline" onClick={() => setShowForm(true)}>
+                        Adicionar Primeiro Paciente
+                    </Button>
+                </div>
+            ) : (
+                <>
+                    <div className="grid gap-4">
+                        {paginatedPatients.map(patient => {
+                            const age = formatAge(patient.birthDate);
+                            const fullAddress = [
+                                patient.street,
+                                patient.number,
+                                patient.neighborhood,
+                                patient.city,
+                                patient.state
+                            ].filter(Boolean).join(', ');
+
+                            return (
+                                <Card key={patient.id} className="group hover:border-primary/30">
+                                    <div className="flex flex-col md:flex-row md:items-center p-6 gap-6">
+                                        {/* Avatar/Icon */}
+                                        <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shrink-0 shadow-sm group-hover:scale-110 transition-transform duration-300">
+                                            <User size={32} />
+                                        </div>
+
+                                        {/* Info */}
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center justify-between mb-1">
+                                                <h3 className="font-bold text-xl text-slate-900 truncate">{patient.name}</h3>
+                                                <ChevronRight size={20} className="text-slate-300 md:hidden" />
+                                            </div>
+
+                                            <div className="flex flex-wrap items-center gap-3 text-sm text-slate-500 mb-3">
+                                                {age && (
+                                                    <>
+                                                        <span className="bg-slate-100 px-2.5 py-0.5 rounded-md font-medium text-slate-600 flex items-center gap-1">
+                                                            <Calendar size={14} />
+                                                            {age}
+                                                        </span>
+                                                    </>
+                                                )}
+                                                {patient.condition && (
+                                                    <>
+                                                        <span className="w-1.5 h-1.5 bg-slate-300 rounded-full"></span>
+                                                        <span className="font-medium text-primary">{patient.condition}</span>
+                                                    </>
+                                                )}
+                                            </div>
+
+                                            {fullAddress && (
+                                                <div className="flex items-center gap-2 text-sm text-slate-400 truncate">
+                                                    <MapPin size={16} className="shrink-0" />
+                                                    <span className="truncate">{fullAddress}</span>
+                                                </div>
+                                            )}
+
+                                            {patient.phone && (
+                                                <div className="flex items-center gap-2 text-sm text-slate-400 mt-1">
+                                                    <Phone size={16} className="shrink-0" />
+                                                    <span>{patient.phone}</span>
+                                                </div>
+                    {/* Pagination */}
+                                            <Pagination
+                                                currentPage={currentPage}
+                                                totalPages={totalPages}
+                                                onPageChange={setCurrentPage}
+                                            />
+                                        </>
+            )}
+
+                                        {/* Delete Modal */}
+                                        <Modal
+                                            isOpen={!!deleteId}
+                                            onClose={() => setDeleteId(null)}
+                                            title="Excluir Paciente"
+                                            footer={
+                                                <>
+                                                    <Button variant="ghost" onClick={() => setDeleteId(null)}>Cancelar</Button>
+                                                    <Button variant="danger" onClick={confirmDelete}>Confirmar Exclusão</Button>
+                                                </>
+                                            }
+                                        >
+                                            <div className="text-center py-4">
+                                                <div className="w-16 h-16 bg-rose-100 rounded-full flex items-center justify-center text-rose-500 mx-auto mb-4">
+                                                    <Trash2 size={32} />
+                                                </div>
+                                                <p className="text-slate-600 text-lg">
+                                                    Tem certeza que deseja excluir este paciente?
+                                                </p>
+                                                <p className="text-slate-400 text-sm mt-2">
+                                                    Essa ação não pode ser desfeita e removerá todo o histórico.
+                                                </p>
+                                            </div>
+                                        </Modal>
+                                    </div>
+                                    );
+};
+
+                                    export default Patients;
+
