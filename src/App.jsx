@@ -10,7 +10,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import Home from './pages/Home';
 import Patients from './pages/Patients';
 import Medications from './pages/Medications';
-import Prescriptions from './pages/Prescriptions';
+import Prescriptions from './pages/Prescriptions.jsx';
 import Reports from './pages/Reports';
 import Profile from './pages/Profile';
 import Login from './pages/Login';
