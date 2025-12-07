@@ -1,0 +1,114 @@
+Acesse seu projeto no Vercel.
+Vá em Settings > Environment Variables.
+Adicione as seguintes variáveis (mesmas do seu arquivo .env local):
+SMTP_HOST: smtp.gmail.com
+SMTP_PORT: 587
+SMTP_USER: (seu email)
+SMTP_PASS: (sua senha de app)
+Após salvar, o envio de convites e contato de
+
+
+Ops! Algo deu errado.
+Ocorreu um erro inesperado na aplicação. Tente recarregar a página.
+
+
+Jorgerios100@gmail.com
+
+https://wa.me/5517991426306
+
+https://sigremedios.vercel.app/
+
+
+Solução de exclusividade de cidade:
+Isso é PERFEITO. É o modelo de "Exclusividade Territorial". É muito valioso porque você cria escassez.
+
+Como tratar isso tecnicamente (O segredo está no CEP/Cidade):
+
+Cadastro da Farmácia:
+No banco de dados, você define a farmácia X como "Dona" da cidade "São José do Rio Preto".
+Campo na tabela sponsors: exclusive_city_id (ex: ID da cidade no IBGE).
+Experiência do Usuário:
+Quando o usuário baixa o app e coloca o endereço (ou CEP), o sistema verifica: "Quem é o dono dessa cidade?"
+Se for São José do Rio Preto -> O app assume automaticamente a identidade da Farmácia X.
+Nenhuma outra farmácia aparece para ele. Bloqueio total da concorrência naquela região.
+Vantagem Matadora: Você chega na farmácia e diz: "Quer ser a ÚNICA farmácia no celular de todos os 50 mil habitantes? Se você não fechar agora, seu concorrente fecha amanhã e você fica fora." Isso vende muito rápido.
+
+Tecnicamente é simples: só precisamos garantir que a tabela de patrocinadores tenha essa coluna de "Cidade Exclusiva" e filtrar no Landing.jsx e no Home.jsx baseando-se no cadastro do usuário. 🎯
+
+Cada cidade tem apenas UM código IBGE único (de 7 dígitos). Não importa o tamanho dela.
+
+São Paulo (Cidade): 3550308
+São José do Rio Preto: 3549805
+Rio de Janeiro: 3304557
+(O "35" no começo indica o estado de SP, os outros números identificam a cidade).
+
+O fluxo mágico seria:
+O usuário digita o CEP no cadastro (ex: 01001-000).
+Nosso sistema consulta uma API gratuita (tipo viacep.com.br) nos bastidores.
+A API nos devolve: "Esse CEP é de São Paulo, código IBGE 3550308".
+O sistema olha no Banco de Dados: "Quem é o dono do código 3550308?"
+Se for a Drogasil, o app "veste" a camisa da Drogasil.
+Se for Ninguém, o app fica padrão (SiG).
+É à prova de falhas. Não tem como confundir cidades com nomes iguais (ex: tem "Bom Jesus" em vários estados, mas cada um tem um número IBGE diferente).
+
+Quer que eu deixe anotado no nosso plano futuro essa integração de CEP/IBGE?
+
+Exato! A lógica seria assim:
+
+Tela de Instalação/Cadastro Inicial:
+Aqui é "Zona Neutra". Aparece a sua marca (SiG Remédios). Limpo, sem propaganda de ninguém.
+Porque nesse momento a gente ainda não sabe onde ele mora.
+Momento da Mágica:
+Assim que ele preenche o CEP e confirma o cadastro -> BOOM! 💥
+O app recarrega e já abre "vestido" com as cores da farmácia da cidade dele (se tiver uma exclusiva).
+Exceção Inteligente (Link Direto):
+
+Se a farmácia fizer uma campanha no Facebook dela com um link tipo sigremedios.com/cadastro?city=3550308, aí sim, o usuário já pode cair na tela de cadastro vendo o logo da farmácia desde o primeiro segundo.
+Isso dá poder para a farmácia fazer o marketing dela, mas garante que o usuário "orgânico" (que veio sozinho) tenha uma experiência limpa até se identificar.
+
+--------------------------------------------------------------------------------------------------------
+
+Entendi perfeitamente agora. O foco é utilidade e fidelização pela marca, não e-commerce.
+
+Nesse caso, a solução de Banco de Dados Centralizado é ainda mais perfeita e segura para o seu modelo de negócio.
+
+Como funcionaria na prática (Simples e Seguro):
+O Banco de Dados é SEU (SiG):
+Todos os usuários, remédios e históricos ficam nos servidores do Seu App.
+Nada fica no servidor da farmácia. Isso resolve o problema de fragmentação e backup.
+A "Máscara" (Personalização):
+No cadastro do usuário, podemos ter um campo: Código da Farmácia (ou via QR Code na loja).
+Se o usuário se cadastrou na Farmácia A, o app abre com o logo e as cores da Farmácia A.
+Se ele mudar de cidade e for na Farmácia B, ele pode alterar nas configurações o "Patrocinador". As cores mudam, mas os remédios dele continuam intactos.
+Por que isso é seguro para você?
+Controle Total: Se a farmácia parar de pagar a mensalidade para você, você "desliga" a personalização dela. O usuário continua usando o app (agora com a sua marca padrão, SiG), mas a farmácia perde a vitrine.
+Sem Conflito: O cliente nunca perde os dados. Ele é dono da própria saúde. A farmácia é apenas quem está "oferecendo" a ferramenta naquele momento.
+Isso mata o problema de "banco de dados dividido" e mantém o poder na sua mão, não na mão das farmácias. Faz sentido?
+
+
+
+
+--------------------------------------------------------------------------------------------------------
+
+outra solução que não vem ao caso por enquanto:
+Essa é a "Pergunta de 1 Milhão de Dólares" no mundo do software (SaaS)! O que você descreveu é o dilema entre White Label (App da Farmácia X) e Plataforma Única (Seu App "Uber" das Farmácias).
+
+O problema que você levantou é real: se cada farmácia tiver um banco de dados separado, o paciente João terá que criar 8 contas diferentes e terá seus remédios espalhados. Isso destrói a experiência dele.
+
+A Solução: Arquitetura "Multi-Tenant" Centralizada
+O ideal para o seu caso é um modelo híbrido, tipo o iFood ou Gympass.
+
+Banco de Dados Único (Centralizado):
+O paciente João tem UMA conta no sistema "SiG Saúde" (ou o nome que você der).
+O histórico de remédios dele é DELE, não da farmácia. Ele carrega para onde for.
+O "Pulo do Gato": Associação e Branding (Tema):
+Quando a Farmácia A vende o acesso, ela dá um link especial: app.sig.com/farmacia-A.
+Quando o João entra por esse link (ou scaneia o QR Code da Farmácia A), o app muda de cor, aparece a logo da Farmácia A no topo, e as ofertas na tela principal são da Farmácia A.
+Se amanhã ele for na Farmácia B e scanear o QR Code dela, o app muda para o tema da Farmácia B, mas os remédios dele continuam todos lá!
+Vantagens desse modelo:
+Para o Paciente: 1 Login, 1 Histórico, liberdade total.
+Para a Farmácia: Fidelização. Ela pode pagar para aparecer "em destaque" ou enviar promoções dentro do app para os pacientes que se "vincularam" a ela.
+Para VOCÊ (Dono do Software): Você tem os dados de 50 mil habitantes. Isso vale muito. Você vira uma plataforma de saúde da cidade, não apenas um "vendedor de sisteminha".
+Faz sentido para você esse modelo "Plataforma"? Podemos estruturar o banco para suportar isso (tabela pharmacies, tabela user_pharmacy_link, etc).
+
+
