@@ -576,7 +576,7 @@ const Landing = () => {
                         <a href="#" className="hover:text-white transition-colors">Termos</a>
                     </div>
                     <div className="text-white/60">
-                        © {new Date().getFullYear()} Todos os direitos reservados.
+                        © {new Date().getFullYear()} Todos os direitos reservados. (v1.0.1)
                     </div>
                 </div>
             </footer>
