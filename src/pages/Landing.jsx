@@ -10,9 +10,14 @@ const Landing = () => {
     const [sendingContact, setSendingContact] = useState(false);
     const [contactStatus, setContactStatus] = useState(null); // { type: 'success' | 'error', message: '' }
     const [sponsors, setSponsors] = useState([]);
-    const [installPrompt, setInstallPrompt] = useState(null);
+    const [isInstalled, setIsInstalled] = useState(false);
 
     useEffect(() => {
+        // Check if already installed
+        if (window.matchMedia('(display-mode: standalone)').matches) {
+            setIsInstalled(true);
+        }
+
         const handler = (e) => {
             e.preventDefault();
             setInstallPrompt(e);
@@ -22,11 +27,15 @@ const Landing = () => {
     }, []);
 
     const handleInstallClick = async () => {
-        if (!installPrompt) return;
-        installPrompt.prompt();
-        const { outcome } = await installPrompt.userChoice;
-        if (outcome === 'accepted') {
-            setInstallPrompt(null);
+        if (installPrompt) {
+            installPrompt.prompt();
+            const { outcome } = await installPrompt.userChoice;
+            if (outcome === 'accepted') {
+                setInstallPrompt(null);
+            }
+        } else {
+            // Fallback for browsers that don't support automatic prompt (iOS, some Desktop)
+            alert("Para instalar este aplicativo:\n\n1. Clique no menu do navegador (três pontos ou botão de compartilhar).\n2. Selecione 'Adicionar à Tela Inicial' ou 'Instalar Aplicativo'.");
         }
     };
 
@@ -159,7 +168,7 @@ const Landing = () => {
                         <a href="#contact" className="text-sm font-medium text-slate-600 hover:text-blue-600 transition-colors">Contato</a>
                     </div>
                     <div className="flex gap-4">
-                        {installPrompt && (
+                        {!isInstalled && (
                             <button
                                 onClick={handleInstallClick}
                                 className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white font-medium rounded-lg transition-colors shadow-lg shadow-teal-600/20 flex items-center gap-2 animate-pulse"
