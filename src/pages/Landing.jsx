@@ -168,15 +168,13 @@ const Landing = () => {
                         <a href="#contact" className="text-sm font-medium text-slate-600 hover:text-blue-600 transition-colors">Contato</a>
                     </div>
                     <div className="flex gap-4">
-                        {!isInstalled && (
-                            <button
-                                onClick={handleInstallClick}
-                                className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white font-medium rounded-lg transition-colors shadow-lg shadow-teal-600/20 flex items-center gap-2 animate-pulse"
-                            >
-                                <Smartphone size={18} />
-                                Instalar App
-                            </button>
-                        )}
+                        <button
+                            onClick={handleInstallClick}
+                            className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white font-medium rounded-lg transition-colors shadow-lg shadow-teal-600/20 flex items-center gap-2 animate-pulse"
+                        >
+                            <Smartphone size={18} />
+                            Instalar App
+                        </button>
                         <button
                             onClick={() => navigate('/login')}
                             className="px-4 py-2 text-slate-600 hover:text-blue-600 font-medium transition-colors"
