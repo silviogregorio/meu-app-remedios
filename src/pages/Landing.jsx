@@ -10,6 +10,25 @@ const Landing = () => {
     const [sendingContact, setSendingContact] = useState(false);
     const [contactStatus, setContactStatus] = useState(null); // { type: 'success' | 'error', message: '' }
     const [sponsors, setSponsors] = useState([]);
+    const [installPrompt, setInstallPrompt] = useState(null);
+
+    useEffect(() => {
+        const handler = (e) => {
+            e.preventDefault();
+            setInstallPrompt(e);
+        };
+        window.addEventListener('beforeinstallprompt', handler);
+        return () => window.removeEventListener('beforeinstallprompt', handler);
+    }, []);
+
+    const handleInstallClick = async () => {
+        if (!installPrompt) return;
+        installPrompt.prompt();
+        const { outcome } = await installPrompt.userChoice;
+        if (outcome === 'accepted') {
+            setInstallPrompt(null);
+        }
+    };
 
     useEffect(() => {
         const fetchSponsors = async () => {
@@ -140,6 +159,15 @@ const Landing = () => {
                         <a href="#contact" className="text-sm font-medium text-slate-600 hover:text-blue-600 transition-colors">Contato</a>
                     </div>
                     <div className="flex gap-4">
+                        {installPrompt && (
+                            <button
+                                onClick={handleInstallClick}
+                                className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white font-medium rounded-lg transition-colors shadow-lg shadow-teal-600/20 flex items-center gap-2 animate-pulse"
+                            >
+                                <Smartphone size={18} />
+                                Instalar App
+                            </button>
+                        )}
                         <button
                             onClick={() => navigate('/login')}
                             className="px-4 py-2 text-slate-600 hover:text-blue-600 font-medium transition-colors"
