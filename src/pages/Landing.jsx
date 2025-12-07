@@ -571,9 +571,9 @@ const Landing = () => {
                         <span className="font-bold text-lg">SiG Remédios</span>
                     </div>
                     <div className="flex gap-8">
-                        <a href="#" className="hover:text-white transition-colors">Sobre</a>
-                        <a href="#" className="hover:text-white transition-colors">Privacidade</a>
-                        <a href="#" className="hover:text-white transition-colors">Termos</a>
+                        <a href="#" className="text-slate-400 hover:text-white transition-colors">Sobre</a>
+                        <a href="#" className="text-slate-400 hover:text-white transition-colors">Privacidade</a>
+                        <a href="#" className="text-slate-400 hover:text-white transition-colors">Termos</a>
                     </div>
                     <div className="text-white/60">
                         © {new Date().getFullYear()} Todos os direitos reservados. (v1.0.1)
