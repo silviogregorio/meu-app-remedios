@@ -482,40 +482,46 @@ const Patients = () => {
                                             )}
                                         </div>
 
-                                        {isOwner ? (
-                                            <>
+                                        <div className="flex flex-col md:flex-row gap-2 mt-4 md:mt-0 md:ml-auto">
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className={`justify-start ${!isOwner ? 'opacity-60 grayscale' : 'text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50'}`}
+                                                onClick={() => {
+                                                    if (isOwner) {
+                                                        handleShareClick(patient);
+                                                    } else {
+                                                        showToast(`Acesso Negado. Você (${user?.id?.slice(0, 5)}...) não é o dono (${patient.userId?.slice(0, 5)}...)`, 'error');
+                                                    }
+                                                }}
+                                            >
+                                                <Share2 size={18} className="mr-2" /> Compartilhar
+                                            </Button>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className={`justify-start ${!isOwner ? 'opacity-60 grayscale' : 'text-slate-600 hover:text-primary'}`}
+                                                onClick={() => {
+                                                    if (isOwner) {
+                                                        handleEdit(patient);
+                                                    } else {
+                                                        showToast(`Apenas o dono pode editar este paciente.`, 'error');
+                                                    }
+                                                }}
+                                            >
+                                                <Edit2 size={18} className="mr-2" /> Editar
+                                            </Button>
+                                            {isOwner && (
                                                 <Button
                                                     variant="ghost"
                                                     size="sm"
-                                                    className="flex-1 md:flex-none justify-start text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50"
-                                                    onClick={() => handleShareClick(patient)}
-                                                >
-                                                    <Share2 size={18} className="mr-2" /> Compartilhar
-                                                </Button>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    className="flex-1 md:flex-none justify-start text-slate-600 hover:text-primary"
-                                                    onClick={() => handleEdit(patient)}
-                                                >
-                                                    <Edit2 size={18} className="mr-2" /> Editar
-                                                </Button>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    className="flex-1 md:flex-none justify-start text-rose-500 hover:bg-rose-50 hover:text-rose-600"
+                                                    className="justify-start text-rose-500 hover:bg-rose-50 hover:text-rose-600"
                                                     onClick={() => handleDeleteClick(patient.id)}
                                                 >
                                                     <Trash2 size={18} className="mr-2" /> Excluir
                                                 </Button>
-                                            </>
-                                        ) : (
-                                            <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 rounded-lg text-slate-500 text-sm font-medium">
-                                                <User size={16} />
-                                                Modo Leitura
-                                            </div>
-                                        )}
-                                    </div>
+                                            )}
+                                        </div>                                                    </div>
                                 </Card>
                             );
                         })}
