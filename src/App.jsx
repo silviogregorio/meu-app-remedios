@@ -23,12 +23,15 @@ import AdminSponsors from './pages/AdminSponsors';
 import NotificationManager from './components/NotificationManager';
 import { ThemeProvider } from './context/ThemeContext';
 
+import ReloadPrompt from './components/ReloadPrompt';
+
 function App() {
   return (
     <ErrorBoundary>
       <AuthProvider>
         <ThemeProvider>
           <AppProvider>
+            <ReloadPrompt />
             <NotificationManager />
             <BrowserRouter>
               <Routes>
