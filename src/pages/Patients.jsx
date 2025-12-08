@@ -424,6 +424,12 @@ const Patients = () => {
                                 patient.state
                             ].filter(Boolean).join(', ');
 
+                            // Robust ownership check (String coercion + fallback to snake_case)
+                            const isOwner = user?.id && (
+                                String(patient.userId) === String(user.id) ||
+                                String(patient.user_id) === String(user.id)
+                            );
+
                             return (
                                 <Card key={patient.id} className="group hover:border-primary/30">
                                     <div className="flex flex-col md:flex-row md:items-center p-6 gap-6">
@@ -476,7 +482,7 @@ const Patients = () => {
                                             )}
                                         </div>
 
-                                        {patient.userId === user?.id ? (
+                                        {isOwner ? (
                                             <>
                                                 <Button
                                                     variant="ghost"
@@ -504,23 +510,14 @@ const Patients = () => {
                                                 </Button>
                                             </>
                                         ) : (
-                                            <div className="flex flex-col items-end gap-2">
-                                                <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 rounded-lg text-slate-500 text-sm font-medium">
-                                                    <User size={16} />
-                                                    Modo Leitura
-                                                </div>
-                                                {/* SYSTEM ANALYST DEBUG - TEMPORARY */}
-                                                <div className="text-[10px] bg-red-100 text-red-800 p-1 border border-red-200 rounded max-w-[200px] break-all">
-                                                    <strong>DEBUG DIAGNOSTIC:</strong><br />
-                                                    Owner: {String(patient.userId)}<br />
-                                                    Me: {String(user?.id)}<br />
-                                                    Match: {patient.userId === user?.id ? "TRUE" : "FALSE"}
-                                                </div>
+                                            <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 rounded-lg text-slate-500 text-sm font-medium">
+                                                <User size={16} />
+                                                Modo Leitura
                                             </div>
                                         )}
                                     </div>
                                 </Card>
-                            )
+                            );
                         })}
                     </div>
 
