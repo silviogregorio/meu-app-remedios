@@ -159,7 +159,7 @@ const Landing = () => {
                 <div className="flex items-center justify-between px-6 py-4 max-w-7xl mx-auto">
                     <div className="flex items-center gap-2">
                         <img src="/assets/logo.png" alt="SiG Remédios Logo" className="w-10 h-10 object-contain animate-heartbeat rounded-lg" />
-                        <span className="text-xl font-bold text-slate-900">SiG Remédios</span>
+                        <span className="text-xl font-bold text-slate-900 hidden sm:block">SiG Remédios</span>
                     </div>
 
                     <div className="hidden md:flex items-center gap-8">
@@ -167,13 +167,14 @@ const Landing = () => {
                         <a href="#about" className="text-sm font-medium text-slate-600 hover:text-blue-600 transition-colors">Sobre</a>
                         <a href="#contact" className="text-sm font-medium text-slate-600 hover:text-blue-600 transition-colors">Contato</a>
                     </div>
-                    <div className="flex gap-4">
+                    <div className="flex items-center gap-2 md:gap-4">
                         <button
                             onClick={handleInstallClick}
-                            className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white font-medium rounded-lg transition-colors shadow-lg shadow-teal-600/20 flex items-center gap-2 animate-pulse"
+                            className="p-2 md:px-4 md:py-2 bg-teal-600 hover:bg-teal-700 text-white font-medium rounded-lg transition-colors shadow-lg shadow-teal-600/20 flex items-center gap-2 animate-pulse"
+                            title="Instalar Aplicativo"
                         >
                             <Smartphone size={18} />
-                            Instalar App
+                            <span className="hidden md:inline">Instalar App</span>
                         </button>
                         <button
                             onClick={() => navigate('/login')}
@@ -203,8 +204,7 @@ const Landing = () => {
                         nunca foi tão <span className="text-blue-600">simples</span>.
                     </h1>
                     <p className="text-lg md:text-xl text-slate-600 max-w-xl leading-relaxed">
-                        Organize medicamentos, receba lembretes e compartilhe cuidados com quem você ama.
-                        Uma plataforma completa para gestão de saúde familiar.
+                        Tenha controle total sobre medicamentos, horários e estoque. Receba alertas inteligentes para nunca esquecer uma dose. Tudo isso de forma 100% gratuita.
                     </p>
                     <div className="flex flex-col sm:flex-row gap-4 pt-4">
                         <button

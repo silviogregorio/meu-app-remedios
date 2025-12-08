@@ -170,21 +170,16 @@ export const AppProvider = ({ children }) => {
             .on('postgres_changes', { event: '*', schema: 'public', table: 'consumption_log' }, () => fetchAllData(true))
             .on('postgres_changes', { event: '*', schema: 'public', table: 'patient_shares', filter: `shared_with_email=eq.${user.email}` }, fetchPendingShares)
             .subscribe((status) => {
-                if (status === 'SUBSCRIBED') {
-                    console.log('🔌 Realtime conectado com sucesso.');
-                }
+                // Status do canal sem logs barulhentos
                 if (status === 'CHANNEL_ERROR') {
-                    console.error('❌ Erro no canal Realtime. Verificando conexão...');
-                }
-                if (status === 'TIMED_OUT') {
-                    console.error('⌛ Realtime timed out. Tentando reconectar...');
+                    // console.error('❌ Erro no canal Realtime...');
                 }
             });
 
         return () => {
             supabase.removeChannel(channel);
         };
-    }, [user]);
+    }, [user?.id]);
 
     // --- Operações CRUD ---
 
@@ -195,6 +190,7 @@ export const AppProvider = ({ children }) => {
             const dbData = {
                 user_id: user.id,
                 name: patientData.name,
+                email: patientData.email,
                 birth_date: patientData.birthDate,
                 phone: patientData.phone,
                 condition: patientData.condition,
@@ -224,10 +220,40 @@ export const AppProvider = ({ children }) => {
         }
     };
 
+    // Compartilhar Paciente (Portal da Família)
+    const sharePatient = async (patientId, emailToShare) => {
+        if (!user) return;
+        try {
+            // Verificar limites ou regras aqui se necessário
+            const { error } = await supabase
+                .from('patient_shares')
+                .insert([{
+                    owner_id: user.id,
+                    patient_id: patientId,
+                    shared_with_email: emailToShare,
+                    permission: 'view',
+                    status: 'pending'
+                }]);
+
+            if (error) {
+                if (error.code === '23505') { // Unique violation
+                    showToast('Este paciente já foi compartilhado com este email.', 'info');
+                    return;
+                }
+                throw error;
+            }
+            showToast(`Convite enviado para ${emailToShare}!`);
+        } catch (error) {
+            console.error('Erro ao compartilhar paciente:', error);
+            showToast('Erro ao enviar convite.', 'error');
+        }
+    };
+
     const updatePatient = async (id, updatedData) => {
         try {
             const dbData = {};
             if (updatedData.name) dbData.name = updatedData.name;
+            if (updatedData.email !== undefined) dbData.email = updatedData.email;
             if (updatedData.birthDate) dbData.birth_date = updatedData.birthDate;
             if (updatedData.phone) dbData.phone = updatedData.phone;
             if (updatedData.condition) dbData.condition = updatedData.condition;

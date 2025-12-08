@@ -302,7 +302,7 @@ const Prescriptions = () => {
                                     required
                                 >
                                     <option value="">Selecione um paciente</option>
-                                    {patients.map(patient => (
+                                    {patients.filter(p => p.userId === user?.id).map(patient => (
                                         <option key={patient.id} value={patient.id}>{patient.name}</option>
                                     ))}
                                 </select>
@@ -477,22 +477,31 @@ const Prescriptions = () => {
 
                                         {/* Actions */}
                                         <div className="flex md:flex-col gap-2 border-t md:border-t-0 md:border-l border-slate-50 pt-4 md:pt-0 md:pl-6 mt-2 md:mt-0 justify-end">
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                className="flex-1 md:flex-none justify-start text-slate-600 hover:text-primary"
-                                                onClick={() => handleEdit(prescription)}
-                                            >
-                                                <Edit2 size={18} className="mr-2" /> Editar
-                                            </Button>
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                className="flex-1 md:flex-none justify-start text-rose-500 hover:bg-rose-50 hover:text-rose-600"
-                                                onClick={() => handleDeleteClick(prescription.id)}
-                                            >
-                                                <Trash2 size={18} className="mr-2" /> Excluir
-                                            </Button>
+                                            {patients.find(p => p.id === prescription.patientId)?.userId === user?.id ? (
+                                                <>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="flex-1 md:flex-none justify-start text-slate-600 hover:text-primary"
+                                                        onClick={() => handleEdit(prescription)}
+                                                    >
+                                                        <Edit2 size={18} className="mr-2" /> Editar
+                                                    </Button>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="flex-1 md:flex-none justify-start text-rose-500 hover:bg-rose-50 hover:text-rose-600"
+                                                        onClick={() => handleDeleteClick(prescription.id)}
+                                                    >
+                                                        <Trash2 size={18} className="mr-2" /> Excluir
+                                                    </Button>
+                                                </>
+                                            ) : (
+                                                <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 rounded-lg text-slate-500 text-sm font-medium">
+                                                    <User size={16} />
+                                                    Modo Leitura
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 </Card>

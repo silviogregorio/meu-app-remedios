@@ -1,10 +1,10 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { Home, Users, Pill, FileText, User, X, LogOut, ClipboardList, Share2, Briefcase } from 'lucide-react';
+import { Home, Users, Pill, FileText, User, X, LogOut, ClipboardList, Share2, Briefcase, Pin, PinOff } from 'lucide-react';
 import clsx from 'clsx';
 import { useApp } from '../../context/AppContext';
 
-const Sidebar = ({ isOpen, onClose }) => {
+const Sidebar = ({ isOpen, onClose, isPinned, onTogglePin }) => {
     const { logout, user } = useApp();
 
     const navItems = [
@@ -27,7 +27,8 @@ const Sidebar = ({ isOpen, onClose }) => {
             <div
                 className={clsx(
                     "fixed inset-0 bg-black/50 z-40 transition-opacity duration-300",
-                    isOpen ? "opacity-100" : "opacity-0 pointer-events-none"
+                    isOpen ? "opacity-100" : "opacity-0 pointer-events-none",
+                    isPinned && "md:hidden" // Hide overlay on desktop if pinned
                 )}
                 onClick={onClose}
             />
@@ -36,14 +37,30 @@ const Sidebar = ({ isOpen, onClose }) => {
             <aside
                 className={clsx(
                     "fixed top-0 left-0 h-full w-64 bg-white dark:bg-slate-900 shadow-2xl z-50 transform transition-transform duration-300 ease-in-out border-r border-transparent dark:border-slate-800",
-                    isOpen ? "translate-x-0" : "-translate-x-full"
+                    isOpen ? "translate-x-0" : (isPinned ? "md:translate-x-0 -translate-x-full" : "-translate-x-full")
                 )}
             >
                 <div className="flex items-center justify-between p-4 border-b border-gray-100 dark:border-slate-800">
                     <h2 className="text-xl font-bold text-[#10b981]">SiG Remédios</h2>
-                    <button onClick={onClose} className="p-2 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-full transition-colors">
-                        <X size={20} className="text-gray-500 dark:text-slate-400" />
-                    </button>
+                    <div className="flex items-center gap-1">
+                        {/* Pin Button (Desktop Only) */}
+                        <button
+                            onClick={onTogglePin}
+                            className={clsx(
+                                "hidden md:flex p-2 rounded-full transition-colors",
+                                isPinned
+                                    ? "bg-teal-50 text-teal-600 dark:bg-teal-900/20 dark:text-teal-400"
+                                    : "text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-800"
+                            )}
+                            title={isPinned ? "Desafixar Menu" : "Fixar Menu"}
+                        >
+                            {isPinned ? <PinOff size={18} /> : <Pin size={18} />}
+                        </button>
+
+                        <button onClick={onClose} className="p-2 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-full transition-colors md:hidden">
+                            <X size={20} className="text-gray-500 dark:text-slate-400" />
+                        </button>
+                    </div>
                 </div>
 
                 <nav className="flex flex-col p-4 gap-2">

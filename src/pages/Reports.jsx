@@ -5,7 +5,7 @@ import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Modal from '../components/ui/Modal';
 import Pagination from '../components/ui/Pagination';
-import { FileText, Printer, Calendar, CheckCircle, Clock, Mail, MessageCircle, Download } from 'lucide-react';
+import { FileText, Printer, Calendar, CheckCircle, Clock, Mail, MessageCircle, Download, Gift } from 'lucide-react';
 import { formatDate, formatTime, formatDateTime } from '../utils/dateFormatter';
 import { generatePDFReport } from '../utils/pdfGenerator';
 import { supabase } from '../lib/supabase';
@@ -38,6 +38,14 @@ const Reports = () => {
 
     const defaultDates = getDefaultDates();
 
+    const [activeTab, setActiveTab] = useState('history'); // 'history' | 'birthdays'
+
+    // Default to today
+    const [selectedDay, setSelectedDay] = useState(new Date().getDate());
+    const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
+
+    const [birthdayData, setBirthdayData] = useState([]);
+
     const [filters, setFilters] = useState({
         patientId: 'all',
         startDate: defaultDates.startDate,
@@ -54,9 +62,65 @@ const Reports = () => {
     const [sendingEmail, setSendingEmail] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
 
+    const [emailType, setEmailType] = useState('report'); // 'report' | 'birthday'
+    const [birthdayPatient, setBirthdayPatient] = useState(null);
+
+    const openBirthdayEmailModal = (patient) => {
+        setBirthdayPatient(patient);
+        setEmailType('birthday');
+        setEmailData({ to: patient.email || '', observations: '' });
+        setShowEmailModal(true);
+    };
+
     React.useEffect(() => {
         setCurrentPage(1);
-    }, [filters.status]);
+    }, [filters.status, activeTab, selectedDay, selectedMonth]);
+
+    // Lógica de Aniversariantes
+    React.useEffect(() => {
+        if (activeTab === 'birthdays') {
+            const birthdays = patients.filter(patient => {
+                if (!patient.birthDate) return false;
+                const [pYear, pMonth, pDay] = patient.birthDate.split('-').map(Number);
+                // Compara apenas Mês e Dia
+                return pMonth === selectedMonth && pDay === selectedDay;
+            }).map(patient => {
+                const birth = new Date(patient.birthDate);
+                const today = new Date(); // Usar a data selecionada ou hoje para calcular idade? Geralmente hoje.
+
+                // Cálculo detalhado da idade
+                let years = today.getFullYear() - birth.getFullYear();
+                let months = today.getMonth() - birth.getMonth();
+                let days = today.getDate() - birth.getDate();
+
+                if (days < 0) {
+                    months--;
+                    // Dias do mês anterior
+                    const lastMonth = new Date(today.getFullYear(), today.getMonth(), 0);
+                    days += lastMonth.getDate();
+                }
+
+                if (months < 0) {
+                    years--;
+                    months += 12;
+                }
+
+                const parts = [];
+                if (years > 0) parts.push(`${years} ano${years > 1 ? 's' : ''}`);
+                if (months > 0) parts.push(`${months} mês${months > 1 ? 'es' : ''}`);
+                if (days > 0) parts.push(`${days} dia${days > 1 ? 's' : ''}`);
+
+                const detailedAge = parts.length > 0 ? parts.join(', ') : 'Hoje!';
+
+                return {
+                    ...patient,
+                    age: years,
+                    detailedAge
+                };
+            });
+            setBirthdayData(birthdays);
+        }
+    }, [activeTab, selectedDay, selectedMonth, patients]);
 
     const generateReport = () => {
         if (!filters.startDate || !filters.endDate) {
@@ -324,6 +388,8 @@ const Reports = () => {
     };
 
     const handleEmail = () => {
+        setEmailType('report');
+        setEmailData({ to: '', observations: '' });
         setShowEmailModal(true);
     };
 
@@ -336,17 +402,67 @@ const Reports = () => {
         setSendingEmail(true);
 
         try {
-            const html = generateReportHtml();
-            const text = generateReportText(); // Fallback text
-            const subject = `Relatório de Medicamentos - ${formatDate(reportData.filters.startDate)}`;
+            let html, text, subject;
+
+            if (emailType === 'birthday' && birthdayPatient) {
+                subject = `Feliz Aniversário, ${birthdayPatient.name}! 🎉`;
+                text = `Parabéns ${birthdayPatient.name}! Desejamos muitas felicidades.`;
+                html = `
+                    <!DOCTYPE html>
+                    <html>
+                    <body style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background-color: #f0fdfa;">
+                        <div style="max-width: 600px; margin: 20px auto; background: white; border-radius: 24px; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.1); border: 1px solid #ccfbf1;">
+                            
+                            <!-- Header com Gradiente da Marca -->
+                            <div style="background: linear-gradient(135deg, #0f766e 0%, #0d9488 100%); padding: 40px 20px; text-align: center; color: white;">
+                                <h1 style="margin: 0; font-size: 32px; font-weight: 800; letter-spacing: -0.5px;">Feliz Aniversário! 🎂</h1>
+                                <p style="font-size: 24px; margin-top: 8px; font-weight: 500; opacity: 0.95;">${birthdayPatient.name}</p>
+                            </div>
+                            
+                            <div style="padding: 40px 30px; text-align: center;">
+                                <p style="font-size: 18px; color: #334155; line-height: 1.6; margin-bottom: 30px;">
+                                    Hoje é um dia muito especial! 🎉<br>
+                                    Desejamos que seu novo ciclo seja repleto de <strong>saúde</strong>, <strong>paz</strong> e <strong>alegria</strong>.
+                                </p>
+                                
+                                <!-- Imagem Festiva (Logo do App - Garantia Total) -->
+                                <div style="margin: 30px 0; background-color: #f0fdfa; border-radius: 50%; width: 200px; height: 200px; display: inline-block; box-shadow: 0 4px 12px rgba(0,0,0,0.1); padding: 20px;">
+                                    <a href="https://sigremedios.vercel.app/" target="_blank">
+                                        <img src="https://sigremedios.vercel.app/pwa-512x512.png" alt="Feliz Aniversário" style="width: 100%; height: 100%; object-fit: contain;" />
+                                    </a>
+                                </div>
+
+                                <p style="font-size: 16px; color: #64748b; font-style: italic;">
+                                    "Celebre a vida e todos os momentos bons!" ✨
+                                </p>
+                            </div>
+
+                            <!-- Footer com Logo e Link -->
+                            <div style="background: #f8fafc; padding: 30px; text-align: center; border-top: 1px solid #e2e8f0;">
+                                <p style="color: #0f766e; font-weight: 700; margin: 0 0 10px 0; font-size: 16px;">Com carinho, Equipe SiG Remédios ❤️</p>
+                                
+                                ${emailData.observations ? `<p style="margin-bottom: 20px; color: #64748b; font-size: 14px; background: #fff; padding: 10px; border-radius: 8px; border: 1px solid #cbd5e1; display: inline-block;">${emailData.observations}</p><br>` : ''}
+
+                                <div style="margin-top: 20px;">
+                                    <span style="color: #94a3b8; font-size: 12px;">Cuide da sua saúde com facilidade.</span>
+                                </div>
+                            </div>
+                        </div>
+                    </body>
+                    </html>
+                `;
+            } else {
+                html = generateReportHtml();
+                text = generateReportText(); // Fallback text
+                subject = `Relatório de Medicamentos - ${formatDate(reportData?.filters?.startDate || new Date())}`;
+            }
 
             const { data, error } = await supabase.functions.invoke('send-email', {
                 body: {
                     to: emailData.to,
                     subject: subject,
                     text: text,
-                    html: html,
-                    observations: emailData.observations
+                    html: html
                 }
             });
 
@@ -380,67 +496,204 @@ const Reports = () => {
                     <p className="text-slate-500 dark:text-slate-400 mt-1">Visualize e imprima relatórios de medicações.</p>
                 </div>
 
-                <Card className="no-print">
-                    <CardHeader>
-                        <h3 className="font-bold text-xl text-slate-900 dark:text-white">Filtros do Relatório</h3>
-                        <p className="text-sm text-slate-500 dark:text-slate-400">Selecione o paciente, período e status desejado</p>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="flex flex-col gap-6">
-                            <div className="flex flex-col md:flex-row gap-4">
-                                <div className="flex flex-col gap-1.5 flex-1">
-                                    <label className="text-sm font-semibold text-slate-700 ml-1">Paciente</label>
+                {/* Tabs Navigation */}
+                <div className="flex gap-4 border-b border-slate-200 dark:border-slate-800 no-print">
+                    <button
+                        onClick={() => setActiveTab('history')}
+                        className={`pb-4 px-2 font-medium text-sm transition-colors relative ${activeTab === 'history'
+                            ? 'text-primary'
+                            : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+                            }`}
+                    >
+                        Histórico de Consumo
+                        {activeTab === 'history' && (
+                            <span className="absolute bottom-0 left-0 w-full h-0.5 bg-primary rounded-full" />
+                        )}
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('birthdays')}
+                        className={`pb-4 px-2 font-medium text-sm transition-colors relative ${activeTab === 'birthdays'
+                            ? 'text-primary'
+                            : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+                            }`}
+                    >
+                        Aniversariantes
+                        {activeTab === 'birthdays' && (
+                            <span className="absolute bottom-0 left-0 w-full h-0.5 bg-primary rounded-full" />
+                        )}
+                    </button>
+                </div>
+
+                {activeTab === 'history' ? (
+                    <Card className="no-print">
+                        <CardHeader>
+                            <h3 className="font-bold text-xl text-slate-900 dark:text-white">Filtros do Relatório</h3>
+                            <p className="text-sm text-slate-500 dark:text-slate-400">Selecione o paciente, período e status desejado</p>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="flex flex-col gap-6">
+                                <div className="flex flex-col md:flex-row gap-4">
+                                    <div className="flex flex-col gap-1.5 flex-1">
+                                        <label className="text-sm font-semibold text-slate-700 ml-1">Paciente</label>
+                                        <select
+                                            value={filters.patientId}
+                                            onChange={(e) => setFilters({ ...filters, patientId: e.target.value })}
+                                            className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-slate-900 focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-200"
+                                        >
+                                            <option value="all">Todos os Pacientes</option>
+                                            {patients.map(patient => (
+                                                <option key={patient.id} value={patient.id}>{patient.name}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div className="flex flex-col md:flex-row gap-4">
+                                    <Input
+                                        label="Data Inicial"
+                                        type="date"
+                                        value={filters.startDate}
+                                        onChange={(e) => setFilters({ ...filters, startDate: e.target.value })}
+                                        containerClassName="flex-1"
+                                    />
+                                    <Input
+                                        label="Data Final"
+                                        type="date"
+                                        value={filters.endDate}
+                                        onChange={(e) => setFilters({ ...filters, endDate: e.target.value })}
+                                        containerClassName="flex-1"
+                                    />
+                                </div>
+
+                                <div className="flex flex-col gap-1.5">
+                                    <label className="text-sm font-semibold text-slate-700 ml-1">Status</label>
                                     <select
-                                        value={filters.patientId}
-                                        onChange={(e) => setFilters({ ...filters, patientId: e.target.value })}
+                                        value={filters.status}
+                                        onChange={(e) => setFilters({ ...filters, status: e.target.value })}
                                         className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-slate-900 focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-200"
                                     >
-                                        <option value="all">Todos os Pacientes</option>
-                                        {patients.map(patient => (
-                                            <option key={patient.id} value={patient.id}>{patient.name}</option>
-                                        ))}
+                                        <option value="all">Todos os Status</option>
+                                        <option value="taken">Tomadas</option>
+                                        <option value="pending">Pendentes</option>
                                     </select>
                                 </div>
-                            </div>
 
-                            <div className="flex flex-col md:flex-row gap-4">
-                                <Input
-                                    label="Data Inicial"
-                                    type="date"
-                                    value={filters.startDate}
-                                    onChange={(e) => setFilters({ ...filters, startDate: e.target.value })}
-                                    containerClassName="flex-1"
-                                />
-                                <Input
-                                    label="Data Final"
-                                    type="date"
-                                    value={filters.endDate}
-                                    onChange={(e) => setFilters({ ...filters, endDate: e.target.value })}
-                                    containerClassName="flex-1"
-                                />
+                                <Button onClick={generateReport} className="w-full">
+                                    <FileText size={18} className="mr-2" /> Gerar Relatório
+                                </Button>
                             </div>
+                        </CardContent>
+                    </Card>
+                ) : (
+                    <div className="flex flex-col gap-6">
+                        <Card className="no-print">
+                            <CardHeader>
+                                <h3 className="font-bold text-xl text-slate-900 dark:text-white">Buscar Aniversariantes</h3>
+                                <p className="text-sm text-slate-500 dark:text-slate-400">Selecione uma data para ver os aniversariantes do dia</p>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="flex flex-col md:flex-row gap-4 items-end">
+                                    <div className="flex-1 flex gap-4">
+                                        <div className="flex-1">
+                                            <label className="text-sm font-semibold text-slate-700 ml-1 mb-1.5 block">Dia</label>
+                                            <select
+                                                value={selectedDay}
+                                                onChange={(e) => setSelectedDay(Number(e.target.value))}
+                                                className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-slate-900 focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-200"
+                                            >
+                                                {Array.from({ length: 31 }, (_, i) => i + 1).map(day => (
+                                                    <option key={day} value={day}>{day}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        <div className="flex-[2]">
+                                            <label className="text-sm font-semibold text-slate-700 ml-1 mb-1.5 block">Mês</label>
+                                            <select
+                                                value={selectedMonth}
+                                                onChange={(e) => setSelectedMonth(Number(e.target.value))}
+                                                className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-slate-900 focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-200"
+                                            >
+                                                {['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'].map((month, idx) => (
+                                                    <option key={idx} value={idx + 1}>{month}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => {
+                                            const today = new Date();
+                                            setSelectedDay(today.getDate());
+                                            setSelectedMonth(today.getMonth() + 1);
+                                        }}
+                                        className="mb-0.5"
+                                    >
+                                        Hoje
+                                    </Button>
+                                </div>
+                            </CardContent>
+                        </Card>
 
-                            <div className="flex flex-col gap-1.5">
-                                <label className="text-sm font-semibold text-slate-700 ml-1">Status</label>
-                                <select
-                                    value={filters.status}
-                                    onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-                                    className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-slate-900 focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-200"
-                                >
-                                    <option value="all">Todos os Status</option>
-                                    <option value="taken">Tomadas</option>
-                                    <option value="pending">Pendentes</option>
-                                </select>
-                            </div>
-
-                            <Button onClick={generateReport} className="w-full">
-                                <FileText size={18} className="mr-2" /> Gerar Relatório
-                            </Button>
+                        <div className="grid gap-3">
+                            {birthdayData.length > 0 ? (
+                                birthdayData.map(patient => (
+                                    <Card key={patient.id} className="border-pink-200 bg-pink-50/30">
+                                        <CardContent className="p-4">
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-4">
+                                                    <div className="w-12 h-12 rounded-xl bg-pink-500 flex items-center justify-center text-white">
+                                                        <Gift size={24} />
+                                                    </div>
+                                                    <div>
+                                                        <p className="font-semibold text-slate-900">{patient.name}</p>
+                                                        <p className="text-sm text-slate-600">
+                                                            {formatDate(patient.birthDate)} <span className="text-pink-500 font-medium">• {patient.detailedAge}</span>
+                                                        </p>
+                                                        {patient.phone && (
+                                                            <p className="text-xs text-slate-500 mt-0.5 flex items-center gap-1">
+                                                                <MessageCircle size={12} /> {patient.phone}
+                                                            </p>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                <div className="flex gap-2">
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={() => {
+                                                            const msg = `Olá ${patient.name}, feliz aniversário! 🎂🎉🥳 Que seu dia seja iluminado e cheio de alegria! Desejamos muita saúde, paz e felicidades! ✨🎈`;
+                                                            window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+                                                        }}
+                                                        className="text-pink-600 hover:text-pink-700 hover:bg-pink-50 border-pink-200"
+                                                    >
+                                                        <MessageCircle size={16} className="mr-2" /> WhatsApp
+                                                    </Button>
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={() => openBirthdayEmailModal(patient)}
+                                                        className="text-purple-600 hover:text-purple-700 hover:bg-purple-50 border-purple-200"
+                                                    >
+                                                        <Mail size={16} className="mr-2" /> Email
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                ))
+                            ) : (
+                                <Card>
+                                    <CardContent className="p-12 text-center">
+                                        <Gift size={48} className="mx-auto text-slate-300 mb-4" />
+                                        <p className="text-slate-500">Nenhum aniversariante encontrado nesta data.</p>
+                                    </CardContent>
+                                </Card>
+                            )}
                         </div>
-                    </CardContent>
-                </Card>
+                    </div>
+                )}
 
-                {reportData && (
+                {activeTab === 'history' && reportData && (
                     <>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                             <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
@@ -563,7 +816,7 @@ const Reports = () => {
                 <Modal
                     isOpen={showEmailModal}
                     onClose={() => setShowEmailModal(false)}
-                    title="Enviar Relatório por Email"
+                    title={emailType === 'birthday' ? "Enviar Cartão de Aniversário" : "Enviar Relatório por Email"}
                 >
                     <div className="flex flex-col gap-4">
                         <Input
@@ -595,10 +848,10 @@ const Reports = () => {
                 </Modal>
 
 
-            </div>
+            </div >
 
             {/* Print Only View */}
-            <div className="hidden print:block">
+            < div className="hidden print:block" >
                 <div className="mb-8 text-center">
                     <h1 className="text-2xl font-bold text-slate-900">Relatório de Medicamentos</h1>
                     <p className="text-slate-600">
@@ -689,7 +942,7 @@ const Reports = () => {
                 <div className="mt-8 pt-8 border-t text-center text-slate-400 text-xs">
                     Gerado em {formatDateTime(new Date())}
                 </div>
-            </div>
+            </div >
         </>
     );
 };

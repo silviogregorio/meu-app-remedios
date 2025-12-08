@@ -101,6 +101,13 @@ const Home = () => {
 
 
     const handleToggleStatus = (item) => {
+        // Guard clause for Read Only
+        const patient = patients.find(p => p.id === item.patientId);
+        if (patient && patient.userId !== user?.id) {
+            alert('Modo Leitura: Você não tem permissão para alterar este status.');
+            return;
+        }
+
         if (item.isTaken) {
             // Remove consumption log
             removeConsumption(item.prescriptionId, item.time, selectedDate);
@@ -488,17 +495,26 @@ const Home = () => {
                                                 </div>
                                             </div>
 
-                                            <button
-                                                onClick={() => handleToggleStatus(item)}
-                                                className={clsx(
-                                                    "w-10 h-10 rounded-full flex items-center justify-center transition-all shrink-0",
-                                                    item.isTaken
-                                                        ? "bg-[#10b981] text-white hover:bg-[#059669]"
-                                                        : "bg-[#f1f5f9] text-[#94a3b8] hover:bg-[#e2e8f0] hover:text-[#64748b]"
-                                                )}
-                                            >
-                                                {item.isTaken ? <Check size={20} /> : <Check size={20} />}
-                                            </button>
+                                            {patient?.userId === user?.id ? (
+                                                <button
+                                                    onClick={() => handleToggleStatus(item)}
+                                                    className={clsx(
+                                                        "w-10 h-10 rounded-full flex items-center justify-center transition-all shrink-0",
+                                                        item.isTaken
+                                                            ? "bg-[#10b981] text-white hover:bg-[#059669]"
+                                                            : "bg-[#f1f5f9] text-[#94a3b8] hover:bg-[#e2e8f0] hover:text-[#64748b]"
+                                                    )}
+                                                >
+                                                    <Check size={20} />
+                                                </button>
+                                            ) : (
+                                                <div
+                                                    className="w-10 h-10 rounded-full flex items-center justify-center bg-slate-100 text-slate-400 shrink-0 cursor-not-allowed"
+                                                    title="Modo Leitura: Você não pode alterar este status"
+                                                >
+                                                    <User size={16} />
+                                                </div>
+                                            )}
                                         </CardContent>
                                     </Card>
                                 ))}

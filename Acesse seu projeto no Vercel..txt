@@ -8,9 +8,20 @@ SMTP_PASS: (sua senha de app)
 Após salvar, o envio de convites e contato de
 
 
-Ops! Algo deu errado.
-Ocorreu um erro inesperado na aplicação. Tente recarregar a página.
+---------------------------------------------------------------------------------------------------
 
+Como Eu Crio Apps IRRESISTÍVEIS (Meus Segredos de Design)
+https://www.youtube.com/watch?v=40PJVPPhy5I
+🔗 SITES APRESENTADOS NO VÍDEO 
+
+Mobbin: https://mobbin.com/
+Dribble: https://dribbble.com/attio 
+Aiverse: https://www.aiverse.design/
+TweakCn: https://tweakcn.com/
+Shadcn: https://ui.shadcn.com/
+21st Dev: https://21st.dev
+Lucide: https://lucide.dev/
+---------------------------------------------------------------------------------------------------
 
 Jorgerios100@gmail.com
 

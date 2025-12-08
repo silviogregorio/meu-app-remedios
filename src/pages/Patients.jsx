@@ -5,7 +5,7 @@ import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Modal from '../components/ui/Modal';
 import Pagination from '../components/ui/Pagination';
-import { Plus, MapPin, User, Edit2, Trash2, X, Search, ChevronRight, Calendar, Phone } from 'lucide-react';
+import { Plus, MapPin, User, Edit2, Trash2, X, Search, ChevronRight, Calendar, Phone, Mail, Share2 } from 'lucide-react';
 import { api } from '../services/api';
 
 const ITEMS_PER_PAGE = 6;
@@ -53,15 +53,17 @@ const formatAge = (birthDate) => {
 };
 
 const Patients = () => {
-    const { patients, addPatient, updatePatient, deletePatient, showToast, user } = useApp();
+    const { patients, addPatient, updatePatient, deletePatient, sharePatient, showToast, user } = useApp();
     const [showForm, setShowForm] = useState(false);
     const [editingId, setEditingId] = useState(null);
     const [deleteId, setDeleteId] = useState(null);
+    const [shareModal, setShareModal] = useState({ isOpen: false, patientId: null, patientName: '', email: '' });
     const [searchTerm, setSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
 
     const [formData, setFormData] = useState({
         name: '',
+        email: '',
         birthDate: '',
         phone: '',
         condition: '',
@@ -112,11 +114,31 @@ const Patients = () => {
         }
     };
 
+    const handleShareClick = (patient) => {
+        setShareModal({ isOpen: true, patientId: patient.id, patientName: patient.name, email: '' });
+    };
+
+    const confirmShare = async () => {
+        if (!shareModal.email) {
+            showToast('Digite o email para convidar', 'error');
+            return;
+        }
+        // Fechar modal primeiro para UX rápida
+        const { patientId, email } = shareModal;
+        setShareModal(prev => ({ ...prev, isOpen: false }));
+
+        // Chamar função do contexto (vinda do AppContext)
+        // OBS: Precisa importar `sharePatient` do useApp lá em cima
+        // Vou assumir que ela existe no destructuring
+        await sharePatient(patientId, email); // Corrigir destructuring na próxima tool call
+    };
+
     const handleCancel = () => {
         setShowForm(false);
         setEditingId(null);
         setFormData({
             name: '',
+            email: '',
             birthDate: '',
             phone: '',
             condition: '',
@@ -246,6 +268,14 @@ const Patients = () => {
                                 value={formData.name}
                                 onChange={e => setFormData({ ...formData, name: e.target.value })}
                                 required
+                            />
+
+                            <Input
+                                label="Email"
+                                type="email"
+                                placeholder="ex: maria@email.com"
+                                value={formData.email || ''}
+                                onChange={e => setFormData({ ...formData, email: e.target.value })}
                             />
                             <div className="flex gap-6">
                                 <Input
@@ -425,6 +455,13 @@ const Patients = () => {
                                                 </div>
                                             )}
 
+                                            {patient.email && (
+                                                <div className="flex items-center gap-2 text-sm text-slate-400 mt-1">
+                                                    <Mail size={16} className="shrink-0" />
+                                                    <span>{patient.email}</span>
+                                                </div>
+                                            )}
+
                                             {patient.phone && (
                                                 <div className="flex items-center gap-2 text-sm text-slate-400 mt-1">
                                                     <Phone size={16} className="shrink-0" />
@@ -433,62 +470,115 @@ const Patients = () => {
                                             )}
                                         </div>
 
-                                        <div className="flex md:flex-col gap-2 border-t md:border-t-0 md:border-l border-slate-50 pt-4 md:pt-0 md:pl-6 mt-2 md:mt-0 justify-end">
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                className="flex-1 md:flex-none justify-start text-slate-600 hover:text-primary"
-                                                onClick={() => handleEdit(patient)}
-                                            >
-                                                <Edit2 size={18} className="mr-2" /> Editar
-                                            </Button>
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                className="flex-1 md:flex-none justify-start text-rose-500 hover:bg-rose-50 hover:text-rose-600"
-                                                onClick={() => handleDeleteClick(patient.id)}
-                                            >
-                                                <Trash2 size={18} className="mr-2" /> Excluir
-                                            </Button>
-                                        </div>
+                                        {patient.userId === user?.id ? (
+                                            <>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="flex-1 md:flex-none justify-start text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50"
+                                                    onClick={() => handleShareClick(patient)}
+                                                >
+                                                    <Share2 size={18} className="mr-2" /> Compartilhar
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="flex-1 md:flex-none justify-start text-slate-600 hover:text-primary"
+                                                    onClick={() => handleEdit(patient)}
+                                                >
+                                                    <Edit2 size={18} className="mr-2" /> Editar
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="flex-1 md:flex-none justify-start text-rose-500 hover:bg-rose-50 hover:text-rose-600"
+                                                    onClick={() => handleDeleteClick(patient.id)}
+                                                >
+                                                    <Trash2 size={18} className="mr-2" /> Excluir
+                                                </Button>
+                                            </>
+                                        ) : (
+                                            <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 rounded-lg text-slate-500 text-sm font-medium">
+                                                <User size={16} />
+                                                Modo Leitura
+                                            </div>
+                                        )}
                                     </div>
+                                </div>
                                 </Card>
-                            )
+                    )
                         })}
-                    </div>
-
-                    <Pagination
-                        currentPage={currentPage}
-                        totalPages={totalPages}
-                        onPageChange={setCurrentPage}
-                    />
-                </>
-            )}
-
-            <Modal
-                isOpen={!!deleteId}
-                onClose={() => setDeleteId(null)}
-                title="Excluir Paciente"
-                footer={
-                    <>
-                        <Button variant="ghost" onClick={() => setDeleteId(null)}>Cancelar</Button>
-                        <Button variant="danger" onClick={confirmDelete}>Confirmar Exclusão</Button>
-                    </>
-                }
-            >
-                <div className="text-center py-4">
-                    <div className="w-16 h-16 bg-rose-100 rounded-full flex items-center justify-center text-rose-500 mx-auto mb-4">
-                        <Trash2 size={32} />
-                    </div>
-                    <p className="text-slate-600 text-lg">
-                        Tem certeza que deseja excluir este paciente?
-                    </p>
-                    <p className="text-slate-400 text-sm mt-2">
-                        Essa ação não pode ser desfeita e removerá todo o histórico.
-                    </p>
                 </div>
-            </Modal>
+
+            <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+            />
+        </>
+    )
+}
+
+<Modal
+    isOpen={!!deleteId}
+    onClose={() => setDeleteId(null)}
+    title="Excluir Paciente"
+    footer={
+        <>
+            <Button variant="ghost" onClick={() => setDeleteId(null)}>Cancelar</Button>
+            <Button variant="danger" onClick={confirmDelete}>Confirmar Exclusão</Button>
+        </>
+    }
+>
+    <div className="text-center py-4">
+        <div className="w-16 h-16 bg-rose-100 rounded-full flex items-center justify-center text-rose-500 mx-auto mb-4">
+            <Trash2 size={32} />
         </div>
+        <p className="text-slate-600 text-lg">
+            Tem certeza que deseja excluir este paciente?
+        </p>
+        <p className="text-slate-400 text-sm mt-2">
+            Essa ação não pode ser desfeita e removerá todo o histórico.
+        </p>
+    </div>
+</Modal>
+
+{/* Share Modal */ }
+<Modal
+    isOpen={shareModal.isOpen}
+    onClose={() => setShareModal({ ...shareModal, isOpen: false })}
+    title={`Compartilhar ${shareModal.patientName}`}
+    footer={
+        <>
+            <Button variant="ghost" onClick={() => setShareModal({ ...shareModal, isOpen: false })}>Cancelar</Button>
+            <Button onClick={confirmShare}>Enviar Convite</Button>
+        </>
+    }
+>
+    <div className="py-4">
+        <div className="bg-indigo-50 p-4 rounded-xl mb-6 flex gap-4">
+            <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-600 shrink-0">
+                <Share2 size={20} />
+            </div>
+            <div>
+                <h4 className="font-semibold text-indigo-900">Acesso Familiar</h4>
+                <p className="text-indigo-700 text-sm mt-1">
+                    Convide um familiar para visualizar os medicamentos e histórico deste paciente (Apenas Leitura).
+                </p>
+            </div>
+        </div>
+
+        <Input
+            label="Email do Familiar"
+            placeholder="exemplo@email.com"
+            type="email"
+            value={shareModal.email}
+            onChange={(e) => setShareModal(prev => ({ ...prev, email: e.target.value }))}
+            autoFocus
+        />
+    </div>
+</Modal>
+        </div >
     );
 };
 

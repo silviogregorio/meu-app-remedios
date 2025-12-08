@@ -33,10 +33,15 @@ export const generatePDFReport = (reportData, filters, patients) => {
     doc.text(dateRange, 105, 30, { align: 'center' });
 
     // Patient info if filtered
+    // Patient info if filtered
     if (reportData.filters.patientId !== 'all') {
         const patient = patients.find(p => p.id === reportData.filters.patientId);
         if (patient) {
             doc.text(`Paciente: ${patient.name}`, 105, 36, { align: 'center' });
+            if (patient.email) {
+                doc.setFontSize(10);
+                doc.text(patient.email, 105, 42, { align: 'center' });
+            }
         }
     }
 

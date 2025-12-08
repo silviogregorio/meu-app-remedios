@@ -6,7 +6,7 @@ import NotificationsModal from '../ui/NotificationsModal';
 
 import { useTheme } from '../../context/ThemeContext';
 
-const Header = ({ onMenuClick }) => {
+const Header = ({ onMenuClick, isPinned }) => {
     const { user, pendingShares, logout } = useApp();
     const { theme, setTheme } = useTheme();
     const [showNotifications, setShowNotifications] = useState(false);
@@ -29,12 +29,19 @@ const Header = ({ onMenuClick }) => {
     };
 
     return (
-        <header className="fixed top-0 left-0 right-0 h-[64px] bg-white dark:bg-slate-900 border-b border-[#e2e8f0] dark:border-slate-800 z-30 px-4 flex items-center justify-between shadow-sm transition-colors duration-300">
+        <header
+            className={`fixed top-0 left-0 right-0 h-[64px] bg-white dark:bg-slate-900 border-b border-[#e2e8f0] dark:border-slate-800 z-30 px-4 flex items-center justify-between shadow-sm transition-all duration-300 ${isPinned ? 'md:left-64' : ''
+                }`}
+        >
             <div className="flex items-center gap-3">
-                <button onClick={onMenuClick} className="p-2 -ml-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-full transition-colors">
+                <button
+                    onClick={onMenuClick}
+                    className={`p-2 -ml-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-full transition-colors ${isPinned ? 'md:hidden' : ''
+                        }`}
+                >
                     <Menu size={24} />
                 </button>
-                <div className="flex items-center gap-2">
+                <div className={`flex items-center gap-2 ${isPinned ? 'md:hidden' : ''}`}>
                     <img src="/assets/logo.png" alt="SiG Remédios" className="w-8 h-8 object-contain animate-heartbeat" />
                     <h1 className="text-xl font-bold text-[#10b981]">SiG Remédios</h1>
                 </div>

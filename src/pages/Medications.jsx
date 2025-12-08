@@ -5,12 +5,12 @@ import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Modal from '../components/ui/Modal';
 import Pagination from '../components/ui/Pagination';
-import { Plus, Pill, Trash2, Edit2, X, AlertTriangle, Search } from 'lucide-react';
+import { Plus, Pill, Trash2, Edit2, X, AlertTriangle, Search, User } from 'lucide-react';
 
 const ITEMS_PER_PAGE = 6;
 
 const Medications = () => {
-    const { medications, addMedication, updateMedication, deleteMedication } = useApp();
+    const { medications, addMedication, updateMedication, deleteMedication, user } = useApp();
     const [showForm, setShowForm] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
     const [searchTerm, setSearchTerm] = useState('');
@@ -204,22 +204,31 @@ const Medications = () => {
                                         </div>
 
                                         <div className="flex md:flex-col gap-2 border-t md:border-t-0 md:border-l border-slate-50 dark:border-slate-800 pt-4 md:pt-0 md:pl-6 mt-2 md:mt-0 justify-end">
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                className="flex-1 md:flex-none justify-start text-slate-600 dark:text-slate-300 hover:text-primary"
-                                                onClick={() => handleMedEdit(item)}
-                                            >
-                                                <Edit2 size={18} className="mr-2" /> Editar
-                                            </Button>
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                className="flex-1 md:flex-none justify-start text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 hover:text-rose-600"
-                                                onClick={() => setDeleteMedId(item.id)}
-                                            >
-                                                <Trash2 size={18} className="mr-2" /> Excluir
-                                            </Button>
+                                            {item.user_id === user?.id ? (
+                                                <>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="flex-1 md:flex-none justify-start text-slate-600 dark:text-slate-300 hover:text-primary"
+                                                        onClick={() => handleMedEdit(item)}
+                                                    >
+                                                        <Edit2 size={18} className="mr-2" /> Editar
+                                                    </Button>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="flex-1 md:flex-none justify-start text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 hover:text-rose-600"
+                                                        onClick={() => setDeleteMedId(item.id)}
+                                                    >
+                                                        <Trash2 size={18} className="mr-2" /> Excluir
+                                                    </Button>
+                                                </>
+                                            ) : (
+                                                <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 rounded-lg text-slate-500 text-sm font-medium">
+                                                    <User size={16} />
+                                                    Modo Leitura
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 </Card>
