@@ -504,9 +504,18 @@ const Patients = () => {
                                                 </Button>
                                             </>
                                         ) : (
-                                            <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 rounded-lg text-slate-500 text-sm font-medium">
-                                                <User size={16} />
-                                                Modo Leitura
+                                            <div className="flex flex-col items-end gap-2">
+                                                <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 rounded-lg text-slate-500 text-sm font-medium">
+                                                    <User size={16} />
+                                                    Modo Leitura
+                                                </div>
+                                                {/* SYSTEM ANALYST DEBUG - TEMPORARY */}
+                                                <div className="text-[10px] bg-red-100 text-red-800 p-1 border border-red-200 rounded max-w-[200px] break-all">
+                                                    <strong>DEBUG DIAGNOSTIC:</strong><br />
+                                                    Owner: {String(patient.userId)}<br />
+                                                    Me: {String(user?.id)}<br />
+                                                    Match: {patient.userId === user?.id ? "TRUE" : "FALSE"}
+                                                </div>
                                             </div>
                                         )}
                                     </div>
