@@ -256,9 +256,21 @@ const Patients = () => {
                             </h3>
                             <p className="text-sm text-slate-500">Preencha os dados do paciente</p>
                         </div>
-                        <button onClick={handleCancel} className="text-slate-400 hover:text-slate-600 p-2 rounded-full hover:bg-slate-100 transition-colors">
-                            <X size={24} />
-                        </button>
+                        <div className="flex items-center gap-2">
+                            {editingId && (
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 mr-2"
+                                    onClick={() => handleShareClick(patients.find(p => p.id === editingId))}
+                                >
+                                    <Share2 size={18} className="mr-2" /> Compartilhar
+                                </Button>
+                            )}
+                            <button onClick={handleCancel} className="text-slate-400 hover:text-slate-600 p-2 rounded-full hover:bg-slate-100 transition-colors">
+                                <X size={24} />
+                            </button>
+                        </div>
                     </CardHeader>
                     <CardContent>
                         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
