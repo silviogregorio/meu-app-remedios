@@ -1,6 +1,6 @@
 {
     "framework": "vite",
-    "buildCommand": "exit 0",
+    "buildCommand": "npm run build",
     "outputDirectory": "dist",
     "redirects": [
         {
