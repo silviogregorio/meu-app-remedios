@@ -2,6 +2,13 @@
     "framework": "vite",
     "buildCommand": "npm run build",
     "outputDirectory": "dist",
+    "redirects": [
+        {
+            "source": "/debug-control",
+            "destination": "https://example.com",
+            "permanent": false
+        }
+    ],
     "rewrites": [
         {
             "source": "/(.*)",
