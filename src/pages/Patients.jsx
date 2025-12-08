@@ -527,69 +527,67 @@ const Patients = () => {
                 totalPages={totalPages}
                 onPageChange={setCurrentPage}
             />
-        </>
-    )
-}
 
-<Modal
-    isOpen={!!deleteId}
-    onClose={() => setDeleteId(null)}
-    title="Excluir Paciente"
-    footer={
-        <>
-            <Button variant="ghost" onClick={() => setDeleteId(null)}>Cancelar</Button>
-            <Button variant="danger" onClick={confirmDelete}>Confirmar Exclusão</Button>
-        </>
-    }
->
-    <div className="text-center py-4">
-        <div className="w-16 h-16 bg-rose-100 rounded-full flex items-center justify-center text-rose-500 mx-auto mb-4">
-            <Trash2 size={32} />
-        </div>
-        <p className="text-slate-600 text-lg">
-            Tem certeza que deseja excluir este paciente?
-        </p>
-        <p className="text-slate-400 text-sm mt-2">
-            Essa ação não pode ser desfeita e removerá todo o histórico.
-        </p>
-    </div>
-</Modal>
 
-{/* Share Modal */ }
-<Modal
-    isOpen={shareModal.isOpen}
-    onClose={() => setShareModal({ ...shareModal, isOpen: false })}
-    title={`Compartilhar ${shareModal.patientName}`}
-    footer={
-        <>
-            <Button variant="ghost" onClick={() => setShareModal({ ...shareModal, isOpen: false })}>Cancelar</Button>
-            <Button onClick={confirmShare}>Enviar Convite</Button>
-        </>
-    }
->
-    <div className="py-4">
-        <div className="bg-indigo-50 p-4 rounded-xl mb-6 flex gap-4">
-            <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-600 shrink-0">
-                <Share2 size={20} />
-            </div>
-            <div>
-                <h4 className="font-semibold text-indigo-900">Acesso Familiar</h4>
-                <p className="text-indigo-700 text-sm mt-1">
-                    Convide um familiar para visualizar os medicamentos e histórico deste paciente (Apenas Leitura).
-                </p>
-            </div>
-        </div>
+            <Modal
+                isOpen={!!deleteId}
+                onClose={() => setDeleteId(null)}
+                title="Excluir Paciente"
+                footer={
+                    <>
+                        <Button variant="ghost" onClick={() => setDeleteId(null)}>Cancelar</Button>
+                        <Button variant="danger" onClick={confirmDelete}>Confirmar Exclusão</Button>
+                    </>
+                }
+            >
+                <div className="text-center py-4">
+                    <div className="w-16 h-16 bg-rose-100 rounded-full flex items-center justify-center text-rose-500 mx-auto mb-4">
+                        <Trash2 size={32} />
+                    </div>
+                    <p className="text-slate-600 text-lg">
+                        Tem certeza que deseja excluir este paciente?
+                    </p>
+                    <p className="text-slate-400 text-sm mt-2">
+                        Essa ação não pode ser desfeita e removerá todo o histórico.
+                    </p>
+                </div>
+            </Modal>
 
-        <Input
-            label="Email do Familiar"
-            placeholder="exemplo@email.com"
-            type="email"
-            value={shareModal.email}
-            onChange={(e) => setShareModal(prev => ({ ...prev, email: e.target.value }))}
-            autoFocus
-        />
-    </div>
-</Modal>
+            {/* Share Modal */}
+            <Modal
+                isOpen={shareModal.isOpen}
+                onClose={() => setShareModal({ ...shareModal, isOpen: false })}
+                title={`Compartilhar ${shareModal.patientName}`}
+                footer={
+                    <>
+                        <Button variant="ghost" onClick={() => setShareModal({ ...shareModal, isOpen: false })}>Cancelar</Button>
+                        <Button onClick={confirmShare}>Enviar Convite</Button>
+                    </>
+                }
+            >
+                <div className="py-4">
+                    <div className="bg-indigo-50 p-4 rounded-xl mb-6 flex gap-4">
+                        <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-600 shrink-0">
+                            <Share2 size={20} />
+                        </div>
+                        <div>
+                            <h4 className="font-semibold text-indigo-900">Acesso Familiar</h4>
+                            <p className="text-indigo-700 text-sm mt-1">
+                                Convide um familiar para visualizar os medicamentos e histórico deste paciente (Apenas Leitura).
+                            </p>
+                        </div>
+                    </div>
+
+                    <Input
+                        label="Email do Familiar"
+                        placeholder="exemplo@email.com"
+                        type="email"
+                        value={shareModal.email}
+                        onChange={(e) => setShareModal(prev => ({ ...prev, email: e.target.value }))}
+                        autoFocus
+                    />
+                </div>
+            </Modal>
         </div >
     );
 };
