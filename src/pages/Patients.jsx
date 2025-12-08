@@ -424,12 +424,7 @@ const Patients = () => {
                                 patient.state
                             ].filter(Boolean).join(', ');
 
-                            // Robust ownership check (String coercion + fallback to snake_case)
-                            const isOwner = user?.id && (
-                                String(patient.userId) === String(user.id) ||
-                                String(patient.user_id) === String(user.id)
-                            );
-
+                            // Simplified: Buttons always visible. Permissions handled by Backend/RLS.
                             return (
                                 <Card key={patient.id} className="group hover:border-primary/30">
                                     <div className="flex flex-col md:flex-row md:items-center p-6 gap-6">
@@ -486,42 +481,29 @@ const Patients = () => {
                                             <Button
                                                 variant="ghost"
                                                 size="sm"
-                                                className={`justify-start ${!isOwner ? 'opacity-60 grayscale' : 'text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50'}`}
-                                                onClick={() => {
-                                                    if (isOwner) {
-                                                        handleShareClick(patient);
-                                                    } else {
-                                                        showToast(`Acesso Negado. Você (${user?.id?.slice(0, 5)}...) não é o dono (${patient.userId?.slice(0, 5)}...)`, 'error');
-                                                    }
-                                                }}
+                                                className="justify-start text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50"
+                                                onClick={() => handleShareClick(patient)}
                                             >
                                                 <Share2 size={18} className="mr-2" /> Compartilhar
                                             </Button>
                                             <Button
                                                 variant="ghost"
                                                 size="sm"
-                                                className={`justify-start ${!isOwner ? 'opacity-60 grayscale' : 'text-slate-600 hover:text-primary'}`}
-                                                onClick={() => {
-                                                    if (isOwner) {
-                                                        handleEdit(patient);
-                                                    } else {
-                                                        showToast(`Apenas o dono pode editar este paciente.`, 'error');
-                                                    }
-                                                }}
+                                                className="justify-start text-slate-600 hover:text-primary"
+                                                onClick={() => handleEdit(patient)}
                                             >
                                                 <Edit2 size={18} className="mr-2" /> Editar
                                             </Button>
-                                            {isOwner && (
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    className="justify-start text-rose-500 hover:bg-rose-50 hover:text-rose-600"
-                                                    onClick={() => handleDeleteClick(patient.id)}
-                                                >
-                                                    <Trash2 size={18} className="mr-2" /> Excluir
-                                                </Button>
-                                            )}
-                                        </div>                                                    </div>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="justify-start text-rose-500 hover:bg-rose-50 hover:text-rose-600"
+                                                onClick={() => handleDeleteClick(patient.id)}
+                                            >
+                                                <Trash2 size={18} className="mr-2" /> Excluir
+                                            </Button>
+                                        </div>
+                                    </div>
                                 </Card>
                             );
                         })}
