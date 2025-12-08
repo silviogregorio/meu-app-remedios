@@ -5,7 +5,7 @@ import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Modal from '../components/ui/Modal';
 import Pagination from '../components/ui/Pagination';
-import { Plus, User, Edit2, Trash2, X, Search, ChevronRight, Calendar, Phone, Mail, Share2 } from 'lucide-react';
+import { Plus, User, Edit2, Trash2, X, Search, ChevronRight, Calendar, Phone, Mail, Share2, MapPin } from 'lucide-react';
 import ShareModal from '../components/ShareModal';
 import { api } from '../services/api';
 

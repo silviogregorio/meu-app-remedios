@@ -220,34 +220,7 @@ export const AppProvider = ({ children }) => {
         }
     };
 
-    // Compartilhar Paciente (Portal da Família)
-    const sharePatient = async (patientId, emailToShare) => {
-        if (!user) return;
-        try {
-            // Verificar limites ou regras aqui se necessário
-            const { error } = await supabase
-                .from('patient_shares')
-                .insert([{
-                    owner_id: user.id,
-                    patient_id: patientId,
-                    shared_with_email: emailToShare,
-                    permission: 'view',
-                    status: 'pending'
-                }]);
 
-            if (error) {
-                if (error.code === '23505') { // Unique violation
-                    showToast('Este paciente já foi compartilhado com este email.', 'info');
-                    return;
-                }
-                throw error;
-            }
-            showToast(`Convite enviado para ${emailToShare}!`);
-        } catch (error) {
-            console.error('Erro ao compartilhar paciente:', error);
-            showToast('Erro ao enviar convite.', 'error');
-        }
-    };
 
     const updatePatient = async (id, updatedData) => {
         try {
