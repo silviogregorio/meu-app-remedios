@@ -220,9 +220,6 @@ const Patients = () => {
                 <div>
                     <h2 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Pacientes</h2>
                     <p className="text-slate-500 dark:text-slate-400 mt-1">Gerencie os pacientes cadastrados.</p>
-                    <div className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-md text-xs font-bold w-fit mt-2 border border-yellow-300">
-                        v4.0 - FORCE SHOW BUTTONS
-                    </div>
                 </div>
                 {!showForm && (
                     <Button onClick={() => setShowForm(true)}>
