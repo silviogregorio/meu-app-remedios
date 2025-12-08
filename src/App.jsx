@@ -24,6 +24,7 @@ import NotificationManager from './components/NotificationManager';
 import { ThemeProvider } from './context/ThemeContext';
 
 import ReloadPrompt from './components/ReloadPrompt';
+import { SpeedInsights } from "@vercel/speed-insights/react"
 
 function App() {
   return (
@@ -31,6 +32,7 @@ function App() {
       <AuthProvider>
         <ThemeProvider>
           <AppProvider>
+            <SpeedInsights />
             <ReloadPrompt />
             <NotificationManager />
             <BrowserRouter>
