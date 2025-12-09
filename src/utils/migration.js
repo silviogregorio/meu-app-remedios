@@ -11,7 +11,7 @@ export const migrateData = async (user) => {
     let localData;
     try {
         localData = JSON.parse(localDataString);
-    } catch (e) {
+    } catch (_e) {
         return { success: false, message: 'Erro ao ler dados locais.' };
     }
 
