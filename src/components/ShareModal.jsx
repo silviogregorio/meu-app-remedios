@@ -128,8 +128,8 @@ const ShareModal = ({ isOpen, onClose, patient, onShare, onUnshare }) => {
                                     key={index}
                                     className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-200"
                                 >
-                                    <div className="flex items-center gap-3 flex-1">
-                                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold">
+                                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold shrink-0">
                                             {share.email?.charAt(0).toUpperCase() || '?'}
                                         </div>
                                         <div className="flex-1 min-w-0">
@@ -139,15 +139,15 @@ const ShareModal = ({ isOpen, onClose, patient, onShare, onUnshare }) => {
                                             <div className="flex items-center gap-1.5 mt-0.5">
                                                 {share.permission === 'edit' ? (
                                                     <>
-                                                        <Edit2 size={14} className="text-green-600" />
-                                                        <span className="text-xs text-green-600 font-medium">
+                                                        <Edit2 size={14} className="text-green-600 shrink-0" />
+                                                        <span className="text-xs text-green-600 font-medium truncate">
                                                             Pode editar
                                                         </span>
                                                     </>
                                                 ) : (
                                                     <>
-                                                        <Eye size={14} className="text-blue-600" />
-                                                        <span className="text-xs text-blue-600 font-medium">
+                                                        <Eye size={14} className="text-blue-600 shrink-0" />
+                                                        <span className="text-xs text-blue-600 font-medium truncate">
                                                             Apenas visualizar
                                                         </span>
                                                     </>
@@ -157,7 +157,7 @@ const ShareModal = ({ isOpen, onClose, patient, onShare, onUnshare }) => {
                                     </div>
                                     <button
                                         onClick={() => handleUnshareClick(share.email)}
-                                        className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors"
+                                        className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors shrink-0 ml-2"
                                         title="Remover acesso"
                                     >
                                         <Trash2 size={18} />
