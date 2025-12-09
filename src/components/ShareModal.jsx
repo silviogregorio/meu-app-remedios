@@ -8,9 +8,7 @@ import { Users, Mail, Trash2, Eye, Edit2, Shield } from 'lucide-react';
  * Modal for sharing patient access with other users
  */
 const ShareModal = ({ isOpen, onClose, patient, onShare, onUnshare }) => {
-    const [email, setEmail] = useState('');
-    const [permission, setPermission] = useState('view');
-    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [userToDelete, setUserToDelete] = useState(null);
 
     const handleShare = async () => {
         if (!email.trim()) return;
@@ -25,11 +23,43 @@ const ShareModal = ({ isOpen, onClose, patient, onShare, onUnshare }) => {
         }
     };
 
-    const handleUnshare = async (shareUserId) => {
-        await onUnshare(patient.id, shareUserId);
+    const handleUnshareClick = (shareEmail) => {
+        setUserToDelete(shareEmail);
+    };
+
+    const confirmUnshare = async () => {
+        if (userToDelete) {
+            await onUnshare(patient.id, userToDelete);
+            setUserToDelete(null);
+        }
     };
 
     const sharedUsers = patient?.sharedWith || [];
+
+    // Confirmation View
+    if (userToDelete) {
+        return (
+            <Modal isOpen={isOpen} onClose={() => setUserToDelete(null)} title="Remover Acesso">
+                <div className="text-center py-6">
+                    <div className="w-16 h-16 bg-rose-100 rounded-full flex items-center justify-center text-rose-500 mx-auto mb-4">
+                        <Trash2 size={32} />
+                    </div>
+                    <h3 className="text-lg font-bold text-slate-900 mb-2">Confirmar Remoção</h3>
+                    <p className="text-slate-600 mb-6">
+                        Deseja realmente remover o acesso de <span className="font-semibold">{userToDelete}</span>?
+                    </p>
+                    <div className="flex gap-3">
+                        <Button variant="ghost" onClick={() => setUserToDelete(null)} className="flex-1">
+                            Cancelar
+                        </Button>
+                        <Button variant="danger" onClick={confirmUnshare} className="flex-1">
+                            Confirmar
+                        </Button>
+                    </div>
+                </div>
+            </Modal>
+        );
+    }
 
     return (
         <Modal isOpen={isOpen} onClose={onClose} title="Compartilhar Paciente">
@@ -123,7 +153,7 @@ const ShareModal = ({ isOpen, onClose, patient, onShare, onUnshare }) => {
                                         </div>
                                     </div>
                                     <button
-                                        onClick={() => handleUnshare(share.email)}
+                                        onClick={() => handleUnshareClick(share.email)}
                                         className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors"
                                         title="Remover acesso"
                                     >
