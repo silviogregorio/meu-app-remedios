@@ -559,23 +559,23 @@ export const AppProvider = ({ children }) => {
                 });
 
                 if (!emailResponse.ok) {
-                    // Loga mas não falha a operação inteira, já que o DB foi atualizado
-                    console.warn('Falha ao enviar email do convite');
+                    // Tentar ler JSON de erro
+                    const errorData = await emailResponse.json().catch(() => ({ error: 'Erro ao ler resposta do servidor' }));
+                    console.error('❌ Resposta de erro do email:', errorData);
+                    showToast(`Compartilhado, mas erro no email: ${errorData.error || 'Falha no envio'}`, 'warning');
+                } else {
+                    showToast(`Convite enviado para ${email}!`, 'success');
                 }
 
-                showToast(`Convite enviado para ${email}!`, 'success');
-
                 // Atualizar lista localmente para refletir na UI imediatamente
-                // O Realtime deve pegar, mas otimista é melhor
                 const updatedPatient = patients.find(p => p.id === patientId);
                 if (updatedPatient) {
-                    // Recarregar dados para garantir sync com o objeto de share recém criado
                     fetchAllData(true);
                 }
 
             } catch (emailError) {
                 console.error('Erro ao enviar email:', emailError);
-                showToast(`Compartilhado, mas erro no envio do email.`, 'warning');
+                showToast(`Compartilhado, mas erro de conexão no email.`, 'warning');
             }
 
         } catch (error) {
