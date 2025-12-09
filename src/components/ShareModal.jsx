@@ -123,7 +123,7 @@ const ShareModal = ({ isOpen, onClose, patient, onShare, onUnshare }) => {
                                         </div>
                                     </div>
                                     <button
-                                        onClick={() => handleUnshare(share.userId)}
+                                        onClick={() => handleUnshare(share.email)}
                                         className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors"
                                         title="Remover acesso"
                                     >

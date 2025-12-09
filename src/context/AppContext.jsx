@@ -596,6 +596,18 @@ export const AppProvider = ({ children }) => {
 
             if (error) throw error;
             showToast('Compartilhamento removido.', 'info');
+
+            // Atualização Otimista da UI
+            setPatients(prev => prev.map(p => {
+                if (p.id === patientId) {
+                    return {
+                        ...p,
+                        sharedWith: p.sharedWith.filter(s => s.email !== sharedWithEmail)
+                    };
+                }
+                return p;
+            }));
+
         } catch (error) {
             console.error('Erro ao remover compartilhamento:', error);
             showToast('Erro ao remover compartilhamento', 'error');
