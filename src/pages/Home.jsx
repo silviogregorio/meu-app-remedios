@@ -3,7 +3,7 @@ import { useApp } from '../context/AppContext';
 import Card, { CardContent } from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import Pagination from '../components/ui/Pagination';
-import { Check, Clock, AlertCircle, Calendar, User, Pill, X } from 'lucide-react';
+import { Check, Clock, AlertCircle, Calendar, User, Pill, X, Bell } from 'lucide-react';
 import { formatDate, formatTime, formatDateFull } from '../utils/dateFormatter';
 import clsx from 'clsx';
 
