@@ -74,6 +74,12 @@ export default async function handler(request, response) {
 
     } catch (error) {
         console.error('Error sending email:', error);
+
+        // Tratar erro específico do Gmail (Senha de App requerida)
+        if (error.response && error.response.includes('534') && error.response.includes('5.7.9')) {
+            return response.status(500).json({ error: 'Erro de Autenticação Gmail: É necessário usar uma "Senha de App" e não sua senha normal. Gere uma em myaccount.google.com > Segurança > Senhas de App.' });
+        }
+
         return response.status(500).json({ error: error.message || 'Falha ao enviar email' });
     }
 }
