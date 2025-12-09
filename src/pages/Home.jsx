@@ -13,7 +13,7 @@ import { useNotifications } from '../hooks/useNotifications';
 import confetti from 'canvas-confetti';
 
 const Home = () => {
-    const { user, prescriptions, medications, patients, consumptionLog, logConsumption, removeConsumption } = useApp();
+    const { user, prescriptions, medications, patients, consumptionLog, logConsumption, removeConsumption, pendingShares } = useApp();
     const { permission, requestPermission } = useNotifications();
     const [todaysSchedule, setTodaysSchedule] = useState([]);
     const [currentPage, setCurrentPage] = useState(1);
@@ -156,6 +156,30 @@ const Home = () => {
                 </h1>
                 <p className="text-slate-500 dark:text-slate-400 capitalize">{todayDate}</p>
             </div>
+
+            {pendingShares && pendingShares.length > 0 && (
+                <div className="bg-gradient-to-r from-violet-600 to-indigo-600 rounded-xl p-4 shadow-lg animate-in slide-in-from-top-2 text-white">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                            <div className="p-3 bg-white/20 rounded-lg backdrop-blur-sm">
+                                <Bell size={24} className="text-white animate-bounce" />
+                            </div>
+                            <div>
+                                <h3 className="font-bold text-lg">Convite Pendente!</h3>
+                                <p className="text-violet-100">
+                                    Você tem {pendingShares.length} convite{pendingShares.length > 1 ? 's' : ''} de acesso aguardando aprovação.
+                                </p>
+                            </div>
+                        </div>
+                        <button
+                            onClick={() => document.querySelector('button[title*="Notificações"]')?.click()}
+                            className="px-4 py-2 bg-white text-violet-700 rounded-lg font-bold hover:bg-violet-50 transition-colors shadow-sm"
+                        >
+                            Ver Convites
+                        </button>
+                    </div>
+                </div>
+            )}
 
             {permission === 'default' && (
                 <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-center justify-between animate-in fade-in slide-in-from-top-2">
