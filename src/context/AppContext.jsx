@@ -168,7 +168,15 @@ export const AppProvider = ({ children }) => {
             .on('postgres_changes', { event: '*', schema: 'public', table: 'medications' }, () => fetchAllData(true))
             .on('postgres_changes', { event: '*', schema: 'public', table: 'prescriptions' }, () => fetchAllData(true))
             .on('postgres_changes', { event: '*', schema: 'public', table: 'consumption_log' }, () => fetchAllData(true))
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'patient_shares', filter: `shared_with_email=eq.${user.email}` }, fetchPendingShares)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'patient_shares', filter: `shared_with_email=eq.${user.email}` }, (payload) => {
+                // Se alguém me convidou, removeram meu acesso ou mudaram permissão:
+                console.log('⚡ Mudança em patient_shares:', payload.eventType);
+                fetchPendingShares(); // Atualiza convites (sininho)
+                fetchAllData(true);   // Atualiza lista principal (remove se fui excluído)
+                if (payload.eventType === 'DELETE') {
+                    showToast('Um acesso compartilhado foi atualizado/removido.', 'info');
+                }
+            })
             .subscribe((status) => {
                 // Status do canal sem logs barulhentos
                 if (status === 'CHANNEL_ERROR') {
