@@ -11,6 +11,7 @@ const Landing = () => {
     const [contactStatus, setContactStatus] = useState(null); // { type: 'success' | 'error', message: '' }
     const [sponsors, setSponsors] = useState([]);
     const [isInstalled, setIsInstalled] = useState(false);
+    const [installPrompt, setInstallPrompt] = useState(null);
 
     useEffect(() => {
         // Check if already installed
@@ -576,7 +577,7 @@ const Landing = () => {
                         <a href="#" className="text-slate-400 hover:text-white transition-colors">Termos</a>
                     </div>
                     <div className="text-white/60">
-                        © {new Date().getFullYear()} Todos os direitos reservados. (v1.3.9 - True Build)
+                        © {new Date().getFullYear()} Todos os direitos reservados. (v1.3.10 - Stable)
                     </div>
                 </div>
             </footer>
