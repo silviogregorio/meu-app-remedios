@@ -478,30 +478,61 @@ const Patients = () => {
                                         </div>
 
                                         <div className="flex flex-col md:flex-row gap-2 mt-4 md:mt-0 md:ml-auto">
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                className="justify-start text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50"
-                                                onClick={() => handleShareClick(patient)}
-                                            >
-                                                <Share2 size={18} className="mr-2" /> Compartilhar
-                                            </Button>
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                className="justify-start text-slate-600 hover:text-primary"
-                                                onClick={() => handleEdit(patient)}
-                                            >
-                                                <Edit2 size={18} className="mr-2" /> Editar
-                                            </Button>
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                className="justify-start text-rose-500 hover:bg-rose-50 hover:text-rose-600"
-                                                onClick={() => handleDeleteClick(patient.id)}
-                                            >
-                                                <Trash2 size={18} className="mr-2" /> Excluir
-                                            </Button>
+                                            {/* Logic for permissions */}
+                                            {(() => {
+                                                const isOwner = patient.userId === user?.id;
+                                                const myShare = !isOwner && patient.sharedWith?.find(s =>
+                                                    s.email === user?.email
+                                                );
+                                                const canEdit = isOwner || myShare?.permission === 'edit';
+
+                                                return (
+                                                    <>
+                                                        {/* Share: Only Owner can share (usually) or maybe Editor? Let's restrict to Owner for now or check requirements. Assuming Owner only. */}
+                                                        {isOwner && (
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                className="justify-start text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50"
+                                                                onClick={() => handleShareClick(patient)}
+                                                            >
+                                                                <Share2 size={18} className="mr-2" /> Compartilhar
+                                                            </Button>
+                                                        )}
+
+                                                        {canEdit && (
+                                                            <>
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    className="justify-start text-slate-600 hover:text-primary"
+                                                                    onClick={() => handleEdit(patient)}
+                                                                >
+                                                                    <Edit2 size={18} className="mr-2" /> Editar
+                                                                </Button>
+                                                                {/* Helper logic: Usually only Owner deletes, but if 'edit' implies full management... 
+                                                                    Let's allow Delete if Can Edit, OR restrict Delete to Owner. 
+                                                                    Safe bet: Restrict Delete to Owner to avoid accidents. */}
+                                                                {isOwner && (
+                                                                    <Button
+                                                                        variant="ghost"
+                                                                        size="sm"
+                                                                        className="justify-start text-rose-500 hover:bg-rose-50 hover:text-rose-600"
+                                                                        onClick={() => handleDeleteClick(patient.id)}
+                                                                    >
+                                                                        <Trash2 size={18} className="mr-2" /> Excluir
+                                                                    </Button>
+                                                                )}
+                                                            </>
+                                                        )}
+                                                        {!canEdit && (
+                                                            <span className="text-xs text-slate-400 border border-slate-200 px-3 py-1 rounded-full flex items-center">
+                                                                <User size={12} className="mr-1" /> Leitura
+                                                            </span>
+                                                        )}
+                                                    </>
+                                                );
+                                            })()}
                                         </div>
                                     </div>
                                 </Card>
