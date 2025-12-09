@@ -1,6 +1,5 @@
-{
     "framework": "vite",
-    "outputDirectory": "dist",
+    "outputDirectory": "dist_clean",
     "redirects": [
         {
             "source": "/debug-control",

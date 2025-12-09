@@ -53,6 +53,7 @@ export default defineConfig({
           utils: ['canvas-confetti', 'html2canvas', 'jspdf']
         }
       }
-    }
+    },
+    outDir: 'dist_clean'
   }
 })
