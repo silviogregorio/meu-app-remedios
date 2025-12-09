@@ -8,6 +8,9 @@ import { Users, Mail, Trash2, Eye, Edit2, Shield } from 'lucide-react';
  * Modal for sharing patient access with other users
  */
 const ShareModal = ({ isOpen, onClose, patient, onShare, onUnshare }) => {
+    const [email, setEmail] = useState('');
+    const [permission, setPermission] = useState('view');
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const [userToDelete, setUserToDelete] = useState(null);
 
     const handleShare = async () => {
