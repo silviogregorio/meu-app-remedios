@@ -29,7 +29,7 @@ const NotificationsModal = ({ isOpen, onClose }) => {
                                     </div>
                                     <div className="flex-1">
                                         <p className="text-sm text-slate-900">
-                                            <span className="font-semibold">{share.owner.full_name || share.owner.email}</span> quer compartilhar o acesso ao paciente <span className="font-semibold">{share.patient.name}</span> com você.
+                                            <span className="font-semibold">{share.owner?.full_name || share.owner?.email || 'Usuário'}</span> quer compartilhar o acesso ao paciente <span className="font-semibold">{share.patient?.name || 'Paciente'}</span> com você.
                                         </p>
                                         <p className="text-xs text-slate-500 mt-1">
                                             Permissão: {share.permission === 'edit' ? 'Editar' : 'Visualizar'}
