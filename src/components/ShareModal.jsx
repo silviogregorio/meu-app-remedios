@@ -104,7 +104,7 @@ const ShareModal = ({ isOpen, onClose, patient, onShare, onUnshare }) => {
                         <button
                             type="button"
                             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                            className="w-full px-4 py-3 text-left rounded-xl border border-slate-200 bg-white text-slate-900 flex items-center justify-between hover:border-slate-300 focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-200"
+                            className="w-full px-4 py-3 text-left rounded-xl border border-slate-300 bg-white text-slate-900 flex items-center justify-between hover:border-slate-400 focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-200"
                         >
                             <span>
                                 <span className="font-bold text-slate-800">
