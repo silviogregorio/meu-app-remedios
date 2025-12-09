@@ -30,7 +30,7 @@ const Layout = () => {
             <div className="fixed bottom-0 right-0 w-[600px] h-[600px] bg-gradient-to-tl from-emerald-50/45 via-teal-50/25 to-transparent rounded-full blur-3xl translate-x-1/3 translate-y-1/3 pointer-events-none"></div>
 
             {/* Blue Gradient Vignette (Desktop Only) - DOM Inspection Style */}
-            <div className="hidden lg:block fixed inset-0 z-[100] pointer-events-none shadow-[inset_0px_0px_120px_rgba(59,130,246,0.4)] dark:shadow-[inset_0px_0px_120px_rgba(30,58,138,0.4)] transition-all duration-500"></div>
+            <div className="hidden lg:block fixed inset-0 z-[100] pointer-events-none shadow-[inset_0px_0px_80px_rgba(59,130,246,0.6)] dark:shadow-[inset_0px_0px_80px_rgba(30,58,138,0.6)] transition-all duration-500"></div>
 
             {/* Content Wrapper with Sidebar Offset */}
             <div className={`transition-all duration-300 ease-in-out ${isPinned ? 'md:ml-64' : ''}`}>
