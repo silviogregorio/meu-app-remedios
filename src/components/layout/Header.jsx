@@ -60,6 +60,7 @@ const Header = ({ onMenuClick, isPinned }) => {
                     <button
                         className="relative p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-full transition-colors"
                         onClick={() => setShowNotifications(true)}
+                        title="Notificações"
                     >
                         <Bell size={24} />
                         {pendingShares.length > 0 && (
