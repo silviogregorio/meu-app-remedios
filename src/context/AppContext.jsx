@@ -71,7 +71,7 @@ export const AppProvider = ({ children }) => {
                     owner:profiles!owner_id (full_name, email),
                     patient:patients!patient_id (name)
                 `)
-                .eq('shared_with_email', user.email)
+                .ilike('shared_with_email', user.email)
                 .is('accepted_at', null);
 
             if (error) throw error;
@@ -102,7 +102,7 @@ export const AppProvider = ({ children }) => {
             if (patientsError) throw patientsError;
             setPatients(patientsData.map(transformPatient));
 
-            // 2. Buscar Medicamentos
+            // 2. Buscar Medicamentos (Próprios + Compartilhados)
             const { data: medicationsData, error: medicationsError } = await supabase
                 .from('medications')
                 .select('*')
@@ -114,7 +114,8 @@ export const AppProvider = ({ children }) => {
             // 3. Buscar Receitas
             const { data: prescriptionsData, error: prescriptionsError } = await supabase
                 .from('prescriptions')
-                .select('*');
+                .select('*')
+                .order('created_at', { ascending: false });
 
             if (prescriptionsError) throw prescriptionsError;
             setPrescriptions(prescriptionsData.map(transformPrescription));
@@ -168,7 +169,7 @@ export const AppProvider = ({ children }) => {
             .on('postgres_changes', { event: '*', schema: 'public', table: 'medications' }, () => fetchAllData(true))
             .on('postgres_changes', { event: '*', schema: 'public', table: 'prescriptions' }, () => fetchAllData(true))
             .on('postgres_changes', { event: '*', schema: 'public', table: 'consumption_log' }, () => fetchAllData(true))
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'patient_shares', filter: `shared_with_email=eq.${user.email}` }, (payload) => {
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'patient_shares', filter: `shared_with_email=eq.${user.email.toLowerCase()}` }, (payload) => {
                 // Se alguém me convidou, removeram meu acesso ou mudaram permissão:
                 console.log('⚡ Mudança em patient_shares:', payload.eventType);
                 fetchPendingShares(); // Atualiza convites (sininho)
