@@ -141,10 +141,19 @@ const Home = () => {
 
     const hasActiveFilters = selectedPatient !== 'all' || selectedMedication !== 'all' || selectedStatus !== 'all' || selectedDate !== new Date().toISOString().split('T')[0];
 
+    const getDisplayName = () => {
+        if (!user) return 'Visitante';
+        const nameOrEmail = user.user_metadata?.full_name || user.email || 'Usuário';
+        // Se for email (tem @), pega o que vem antes. Se for nome, pega o primeiro nome.
+        return nameOrEmail.includes('@') ? nameOrEmail.split('@')[0] : nameOrEmail.split(' ')[0];
+    };
+
     return (
         <div className="flex flex-col gap-6 pb-20">
-            <div className="flex flex-col gap-1">
-                <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Olá, {user ? (user.user_metadata?.full_name?.split(' ')[0] || 'Usuário') : 'Visitante'}</h1>
+            <div className="flex flex-col gap-1 w-full overflow-hidden">
+                <h1 className="text-2xl font-bold text-slate-900 dark:text-white break-words line-clamp-2">
+                    Olá, {getDisplayName()}
+                </h1>
                 <p className="text-slate-500 dark:text-slate-400 capitalize">{todayDate}</p>
             </div>
 
