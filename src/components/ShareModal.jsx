@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import Modal from './ui/Modal';
 import Button from './ui/Button';
 import Input from './ui/Input';
-import { Users, Mail, Trash2, Eye, Edit2, Shield } from 'lucide-react';
+import { Users, Mail, Trash2, Eye, Edit2, Shield, ChevronDown } from 'lucide-react';
 
 /**
  * Modal for sharing patient access with other users
@@ -10,6 +10,7 @@ import { Users, Mail, Trash2, Eye, Edit2, Shield } from 'lucide-react';
 const ShareModal = ({ isOpen, onClose, patient, onShare, onUnshare }) => {
     const [email, setEmail] = useState('');
     const [permission, setPermission] = useState('view');
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [userToDelete, setUserToDelete] = useState(null);
 
@@ -94,18 +95,60 @@ const ShareModal = ({ isOpen, onClose, patient, onShare, onUnshare }) => {
                         icon={<Mail size={18} />}
                     />
 
-                    <div className="flex flex-col gap-1.5">
-                        <label className="text-sm font-semibold text-slate-700 ml-1">
-                            Permissão
-                        </label>
-                        <select
-                            value={permission}
-                            onChange={(e) => setPermission(e.target.value)}
-                            className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-slate-900 focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-200"
+                    <label className="text-sm font-semibold text-slate-700 ml-1">
+                        Permissão
+                    </label>
+
+                    {/* Custom Dropdown to allow bold text */}
+                    <div className="relative">
+                        <button
+                            type="button"
+                            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                            className="w-full px-4 py-3 text-left rounded-xl border border-slate-200 bg-white text-slate-900 flex items-center justify-between hover:border-slate-300 focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-200"
                         >
-                            <option value="view">Visualizar - Pode apenas ver os dados</option>
-                            <option value="edit">Editar - Pode visualizar e modificar</option>
-                        </select>
+                            <span>
+                                <span className="font-bold text-slate-800">
+                                    {permission === 'view' ? 'Visualizar' : 'Editar'}
+                                </span>
+                                <span className="text-slate-500 font-normal">
+                                    {permission === 'view' ? ' - Pode apenas ver os dados' : ' - Pode visualizar e modificar'}
+                                </span>
+                            </span>
+                            <ChevronDown size={20} className={`text-slate-400 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} />
+                        </button>
+
+                        {isDropdownOpen && (
+                            <>
+                                <div
+                                    className="fixed inset-0 z-10"
+                                    onClick={() => setIsDropdownOpen(false)}
+                                />
+                                <div className="absolute z-20 w-full mt-2 bg-white border border-slate-100 rounded-xl shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                                    <button
+                                        type="button"
+                                        onClick={() => { setPermission('view'); setIsDropdownOpen(false); }}
+                                        className="w-full text-left px-4 py-3 hover:bg-slate-50 transition-colors border-b border-slate-50 flex items-center"
+                                    >
+                                        <div className="w-2 h-2 rounded-full bg-blue-500 mr-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                        <span>
+                                            <span className="font-bold text-slate-900">Visualizar</span>
+                                            <span className="text-slate-500"> - Pode apenas ver os dados</span>
+                                        </span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => { setPermission('edit'); setIsDropdownOpen(false); }}
+                                        className="w-full text-left px-4 py-3 hover:bg-slate-50 transition-colors flex items-center"
+                                    >
+                                        <div className="w-2 h-2 rounded-full bg-green-500 mr-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                        <span>
+                                            <span className="font-bold text-slate-900">Editar</span>
+                                            <span className="text-slate-500"> - Pode visualizar e modificar</span>
+                                        </span>
+                                    </button>
+                                </div>
+                            </>
+                        )}
                     </div>
 
                     <Button

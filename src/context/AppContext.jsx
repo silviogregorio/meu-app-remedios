@@ -589,15 +589,21 @@ export const AppProvider = ({ children }) => {
 
     const unsharePatient = async (patientId, sharedWithEmail) => {
         try {
-            const { error } = await supabase
+            const { error, count } = await supabase
                 .from('patient_shares')
-                .delete()
-                .match({
-                    patient_id: patientId,
-                    shared_with_email: sharedWithEmail
-                });
+                .delete({ count: 'exact' })
+                .eq('patient_id', patientId)
+                .ilike('shared_with_email', sharedWithEmail);
 
             if (error) throw error;
+
+            if (count === 0) {
+                console.warn('⚠️ Nenhuma permissão removida. Verifique se o email coincide.', { patientId, sharedWithEmail });
+                // Fallback: Try exact match just in case ILIKE fails for some specific reason? No, ILIKE covers equality.
+            } else {
+                console.log(`✅ ${count} permissão(ões) removida(s).`);
+            }
+
             showToast('Compartilhamento removido.', 'info');
 
             // Atualização Otimista da UI
