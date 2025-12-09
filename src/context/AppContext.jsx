@@ -560,9 +560,12 @@ export const AppProvider = ({ children }) => {
 
                 if (!emailResponse.ok) {
                     // Tentar ler JSON de erro
-                    const errorData = await emailResponse.json().catch(() => ({ error: 'Erro ao ler resposta do servidor' }));
-                    console.error('❌ Resposta de erro do email:', errorData);
-                    showToast(`Compartilhado, mas erro no email: ${errorData.error || 'Falha no envio'}`, 'warning');
+                    const errorData = await emailResponse.json().catch(() => ({ error: 'Erro ao ler resposta do servidor (provavelmente HTML)' }));
+
+                    console.error('❌ Resposta de erro do email (RAW):', JSON.stringify(errorData, null, 2));
+
+                    const errorMessage = errorData.error || errorData.message || 'Falha desconhecida';
+                    showToast(`Erro no email: ${errorMessage}`, 'warning');
                 } else {
                     showToast(`Convite enviado para ${email}!`, 'success');
                 }
@@ -575,7 +578,7 @@ export const AppProvider = ({ children }) => {
 
             } catch (emailError) {
                 console.error('Erro ao enviar email:', emailError);
-                showToast(`Compartilhado, mas erro de conexão no email.`, 'warning');
+                showToast(`Erro de rede ao enviar email.`, 'warning');
             }
 
         } catch (error) {
