@@ -34,10 +34,11 @@ function App() {
         <ThemeProvider>
           <AppProvider>
             <SpeedInsights />
-            <VersionCheck />
+            <SpeedInsights />
             <ReloadPrompt />
             <NotificationManager />
             <BrowserRouter>
+              <VersionCheck />
               <Routes>
                 <Route path="/" element={<Landing />} />
                 <Route element={<Layout />}>
