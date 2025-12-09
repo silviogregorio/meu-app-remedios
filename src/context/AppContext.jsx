@@ -522,22 +522,62 @@ export const AppProvider = ({ children }) => {
     const sharePatient = async (patientId, email, permission) => {
         if (!user) return;
         try {
-            const { error } = await supabase.from('patient_shares').insert([{
+            // 1. Tentar Inserir (DB)
+            const { data, error } = await supabase.from('patient_shares').insert([{
                 patient_id: patientId,
                 owner_id: user.id,
                 shared_with_email: email,
                 permission: permission
-            }]);
+            }]).select();
 
             if (error) {
                 if (error.code === '23505') { // Unique violation
-                    showToast('Paciente já compartilhado com este email', 'warning');
+                    showToast('Este paciente já está compartilhado com este email.', 'warning');
+                    return; // Retorna aqui para não tentar enviar email
                 } else {
                     throw error;
                 }
-            } else {
-                showToast(`Convite enviado para ${email}!`, 'success');
             }
+
+            // 2. Enviar Email (Backend)
+            // Lógica copiada e adaptada de shareAccount
+            try {
+                const apiUrl = import.meta.env.VITE_API_URL || '';
+                const endpoint = apiUrl ? `${apiUrl}/api/send-email` : '/api/send-email';
+                const patientName = patients.find(p => p.id === patientId)?.name || 'um paciente';
+
+                const emailResponse = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        to: email,
+                        subject: `Convite de Acesso - Paciente ${patientName}`,
+                        text: `${user.user_metadata?.full_name || 'Alguém'} compartilhou o acesso ao paciente "${patientName}" com você no SiG Remédios.\n\nAcesse o app com este email para visualizar os dados.`,
+                        observations: `Permissão concedida: ${permission === 'edit' ? 'Editar' : 'Visualizar'}`,
+                        type: 'invite'
+                    })
+                });
+
+                if (!emailResponse.ok) {
+                    // Loga mas não falha a operação inteira, já que o DB foi atualizado
+                    console.warn('Falha ao enviar email do convite');
+                }
+
+                showToast(`Convite enviado para ${email}!`, 'success');
+
+                // Atualizar lista localmente para refletir na UI imediatamente
+                // O Realtime deve pegar, mas otimista é melhor
+                const updatedPatient = patients.find(p => p.id === patientId);
+                if (updatedPatient) {
+                    // Recarregar dados para garantir sync com o objeto de share recém criado
+                    fetchAllData(true);
+                }
+
+            } catch (emailError) {
+                console.error('Erro ao enviar email:', emailError);
+                showToast(`Compartilhado, mas erro no envio do email.`, 'warning');
+            }
+
         } catch (error) {
             console.error('Erro ao compartilhar paciente:', error);
             showToast('Erro ao compartilhar paciente', 'error');
