@@ -1,6 +1,5 @@
 {
     "framework": "vite",
-    "buildCommand": "exit 0",
     "outputDirectory": "dist",
     "redirects": [
         {
