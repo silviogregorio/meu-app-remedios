@@ -103,7 +103,13 @@ const Home = () => {
     const handleToggleStatus = (item) => {
         // Guard clause for Read Only
         const patient = patients.find(p => p.id === item.patientId);
-        if (patient && patient.userId !== user?.id) {
+
+        const isOwner = patient?.userId === user?.id;
+        const canEdit = isOwner || patient?.sharedWith?.some(s =>
+            s.email?.toLowerCase() === user?.email?.toLowerCase() && s.permission === 'edit'
+        );
+
+        if (!canEdit) {
             alert('Modo Leitura: Você não tem permissão para alterar este status.');
             return;
         }
@@ -502,55 +508,64 @@ const Home = () => {
                             </Card>
                         ) : (
                             <>
-                                {paginatedSchedule.map(item => (
-                                    <Card key={item.id} className={clsx("transition-all", item.isTaken && "opacity-60 bg-[#f8fafc]")}>
-                                        <CardContent className="flex items-center justify-between p-4">
-                                            <div className="flex items-center gap-4 flex-1">
-                                                <div className={clsx(
-                                                    "w-12 h-12 rounded-xl flex flex-col items-center justify-center font-bold border",
-                                                    item.isTaken
-                                                        ? "bg-[#d1fae5] text-[#059669] border-[#d1fae5]"
-                                                        : "bg-white text-[#0f172a] border-[#e2e8f0]"
-                                                )}>
-                                                    <span className="text-sm">{item.time}</span>
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <h3 className={clsx("font-bold", item.isTaken ? "text-[#64748b] line-through" : "text-[#0f172a]")}>
-                                                        {Number(item.doseAmount)}x {item.medicationName} {item.dosage}
-                                                    </h3>
-                                                    <p className="text-sm text-[#64748b]">{item.patientName}</p>
-                                                    {item.isTaken && item.takenByName && (
-                                                        <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
-                                                            <User size={12} />
-                                                            Tomado por {item.takenByName}
-                                                        </p>
-                                                    )}
-                                                </div>
-                                            </div>
+                                {paginatedSchedule.map(item => {
+                                    const patient = patients.find(p => p.id === item.patientId);
+                                    const isOwner = patient?.userId === user?.id;
+                                    const canEdit = isOwner || patient?.sharedWith?.some(s =>
+                                        s.email?.toLowerCase() === user?.email?.toLowerCase() && s.permission === 'edit'
+                                    );
 
-                                            {patient?.userId === user?.id ? (
-                                                <button
-                                                    onClick={() => handleToggleStatus(item)}
-                                                    className={clsx(
-                                                        "w-10 h-10 rounded-full flex items-center justify-center transition-all shrink-0",
+                                    return (
+                                        <Card key={item.id} className={clsx("transition-all", item.isTaken && "opacity-60 bg-[#f8fafc]")}>
+                                            <CardContent className="flex items-center justify-between p-4">
+                                                <div className="flex items-center gap-4 flex-1">
+                                                    <div className={clsx(
+                                                        "w-12 h-12 rounded-xl flex flex-col items-center justify-center font-bold border",
                                                         item.isTaken
-                                                            ? "bg-[#10b981] text-white hover:bg-[#059669]"
-                                                            : "bg-[#f1f5f9] text-[#94a3b8] hover:bg-[#e2e8f0] hover:text-[#64748b]"
-                                                    )}
-                                                >
-                                                    <Check size={20} />
-                                                </button>
-                                            ) : (
-                                                <div
-                                                    className="w-10 h-10 rounded-full flex items-center justify-center bg-slate-100 text-slate-400 shrink-0 cursor-not-allowed"
-                                                    title="Modo Leitura: Você não pode alterar este status"
-                                                >
-                                                    <User size={16} />
+                                                            ? "bg-[#d1fae5] text-[#059669] border-[#d1fae5]"
+                                                            : "bg-white text-[#0f172a] border-[#e2e8f0]"
+                                                    )}>
+                                                        <span className="text-sm">{item.time}</span>
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <h3 className={clsx("font-bold", item.isTaken ? "text-[#64748b] line-through" : "text-[#0f172a]")}>
+                                                            {Number(item.doseAmount)}x {item.medicationName} {item.dosage}
+                                                        </h3>
+                                                        <p className="text-sm text-[#64748b]">{item.patientName}</p>
+                                                        {item.isTaken && item.takenByName && (
+                                                            <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
+                                                                <User size={12} />
+                                                                Tomado por {item.takenByName}
+                                                            </p>
+                                                        )}
+                                                    </div>
                                                 </div>
-                                            )}
-                                        </CardContent>
-                                    </Card>
-                                ))}
+
+                                                {canEdit ? (
+                                                    <button
+                                                        onClick={() => handleToggleStatus(item)}
+                                                        className={clsx(
+                                                            "w-10 h-10 rounded-full flex items-center justify-center transition-all shrink-0",
+                                                            item.isTaken
+                                                                ? "bg-[#10b981] text-white hover:bg-[#059669]"
+                                                                : "bg-[#f1f5f9] text-[#94a3b8] hover:bg-[#e2e8f0] hover:text-[#64748b]"
+                                                        )}
+                                                        title={item.isTaken ? "Marcar como não tomado" : "Marcar como tomado"}
+                                                    >
+                                                        <Check size={20} />
+                                                    </button>
+                                                ) : (
+                                                    <div
+                                                        className="w-10 h-10 rounded-full flex items-center justify-center bg-slate-100 text-slate-400 shrink-0 cursor-not-allowed"
+                                                        title="Modo Leitura: Você não pode alterar este status"
+                                                    >
+                                                        <User size={16} />
+                                                    </div>
+                                                )}
+                                            </CardContent>
+                                        </Card>
+                                    );
+                                })}
 
                                 {/* Pagination */}
                                 <Pagination
