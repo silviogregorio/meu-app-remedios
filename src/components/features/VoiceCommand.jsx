@@ -182,7 +182,7 @@ const VoiceCommand = ({ schedule, onToggle }) => {
                     }
                     text-white
                 `}
-                title="Comando de Voz"
+                title="Fala o que deseja"
             >
                 {processing ? (
                     <Loader2 className="animate-spin" size={24} />
