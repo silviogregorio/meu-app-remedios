@@ -11,6 +11,9 @@ const ITEMS_PER_PAGE = 6;
 
 import { useNotifications } from '../hooks/useNotifications';
 import confetti from 'canvas-confetti';
+import { generateICS, generateFutureSchedule } from '../utils/icsGenerator';
+import VoiceCommand from '../components/features/VoiceCommand';
+import { Calendar as CalendarIcon, DownloadCloud } from 'lucide-react';
 
 const Home = () => {
     const { user, prescriptions, medications, patients, consumptionLog, logConsumption, removeConsumption, pendingShares } = useApp();
@@ -403,16 +406,33 @@ const Home = () => {
                             </svg>
                             Filtros
                         </h3>
-                        {hasActiveFilters && (
+                        <div className="flex items-center gap-2">
                             <button
-                                onClick={clearFilters}
-                                className="text-xs text-slate-500 hover:text-primary flex items-center gap-1"
+                                onClick={() => {
+                                    const future = generateFutureSchedule(prescriptions, medications, patients, 7);
+                                    if (future.length === 0) {
+                                        alert('Nenhum horário encontrado para os próximos 7 dias.');
+                                        return;
+                                    }
+                                    generateICS(future);
+                                }}
+                                className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg font-medium flex items-center gap-1 transition-colors"
                             >
-                                <X size={14} />
-                                Limpar
+                                <DownloadCloud size={14} />
+                                Exportar Agenda
                             </button>
-                        )}
+                            {hasActiveFilters && (
+                                <button
+                                    onClick={clearFilters}
+                                    className="text-xs text-slate-500 hover:text-primary flex items-center gap-1"
+                                >
+                                    <X size={14} />
+                                    Limpar
+                                </button>
+                            )}
+                        </div>
                     </div>
+                    {/* The closing div and brace were added here */}
 
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                         {/* Date Filter */}
@@ -578,6 +598,8 @@ const Home = () => {
                     })()}
                 </div>
             </div>
+            {/* Voice Command FAB */}
+            <VoiceCommand schedule={todaysSchedule} onToggle={handleToggleStatus} />
         </div>
     );
 };
