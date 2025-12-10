@@ -6,7 +6,7 @@ import Toast from '../components/ui/Toast';
 const AppContext = createContext();
 
 export const AppProvider = ({ children }) => {
-    const { user } = useAuth();
+    const { user, signOut } = useAuth();
     const [patients, setPatients] = useState([]);
     const [medications, setMedications] = useState([]);
     const [prescriptions, setPrescriptions] = useState([]);
@@ -262,6 +262,18 @@ export const AppProvider = ({ children }) => {
             if (updatedData.city) dbData.city = updatedData.city;
             if (updatedData.state) dbData.state = updatedData.state;
             if (updatedData.observations) dbData.observations = updatedData.observations;
+
+            const { data, error } = await supabase
+                .from('patients')
+                .update(dbData)
+                .eq('id', id)
+                .select();
+
+            if (error) throw error;
+
+            const updatedPatient = transformPatient(data[0]);
+            setPatients(prev => prev.map(p => p.id === id ? updatedPatient : p));
+            showToast('Paciente atualizado com sucesso!');
         } catch (error) {
             console.error('Erro ao atualizar paciente:', error);
             showToast('Erro ao atualizar paciente', 'error');
@@ -709,6 +721,21 @@ export const AppProvider = ({ children }) => {
 
         const med = medications.find(m => m.id === medicationId);
 
+        // Calculate dailyUsage for email message
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const activePrescriptions = prescriptions.filter(p =>
+            p.medicationId === medicationId &&
+            p.active !== false &&
+            (!p.endDate || new Date(p.endDate) >= today)
+        );
+        let dailyUsage = 0;
+        activePrescriptions.forEach(p => {
+            const dose = parseFloat(p.doseAmount) || 1;
+            const freq = p.times ? p.times.length : 0;
+            dailyUsage += (dose * freq);
+        });
+
         // 3. Verificar Limite (3 dias)
         if (daysRemaining <= 3) {
             const daysDisplay = Math.floor(daysRemaining);
@@ -752,7 +779,7 @@ export const AppProvider = ({ children }) => {
                         body: JSON.stringify({
                             to: user.email,
                             subject: `⚠️ Alerta de Estoque: ${med.name}`,
-                            text: `Olá, ${user.user_metadata?.full_name || 'Usuário'}.\n\nO estoque do medicamento ${med.name} está baixo.\n\nRestam apenas ${med.quantity} doses/unidades, o que deve durar cerca de ${daysDisplay} dias (baseado no seu uso diário de ${dailyUsage}).\n\nRecomendamos comprar uma nova caixa em breve.\n\nSiG Remédios`,
+                            text: `Olá, ${user.user_metadata?.full_name || 'Usuário'}.\n\nO estoque do medicamento ${med.name} está baixo.\n\nRestam apenas ${med.quantity} doses/unidades, o que deve durar cerca de ${daysDisplay} dias (baseado no seu uso diário de ${dailyUsage.toFixed(1)}).\n\nRecomendamos comprar uma nova caixa em breve.\n\nSiG Remédios`,
                             observations: 'Alerta automático de estoque.',
                             type: 'contact'
                         })
@@ -1154,7 +1181,10 @@ export const AppProvider = ({ children }) => {
             updateProfile,
 
             accountShares, shareAccount, unshareAccount,
-            logout: useAuth().signOut
+            healthLogs, addHealthLog, deleteHealthLog,
+            runCaregiverCheck,
+            checkLowStock,
+            logout: signOut
         }}>
             {children}
             {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
