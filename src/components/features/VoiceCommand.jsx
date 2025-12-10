@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Mic, MicOff, Loader2 } from 'lucide-react';
+import { Mic, MicOff, Loader2, HelpCircle } from 'lucide-react';
 
 const VoiceCommand = ({ schedule, onToggle }) => {
     const [isListening, setIsListening] = useState(false);
@@ -7,6 +7,7 @@ const VoiceCommand = ({ schedule, onToggle }) => {
     const [processing, setProcessing] = useState(false);
     const [confirmMatch, setConfirmMatch] = useState(null); // { item, text }
     const [feedback, setFeedback] = useState(null); // { type: 'error'|'info', message: '' }
+    const [showHelp, setShowHelp] = useState(false); // New state for help
 
     useEffect(() => {
         if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
@@ -21,9 +22,18 @@ const VoiceCommand = ({ schedule, onToggle }) => {
         }
     }, [feedback]);
 
+    // Close help after 10s or when listening starts
+    useEffect(() => {
+        if (showHelp) {
+            const timer = setTimeout(() => setShowHelp(false), 10000);
+            return () => clearTimeout(timer);
+        }
+    }, [showHelp]);
+
     const startListening = () => {
         setFeedback(null);
         setConfirmMatch(null);
+        setShowHelp(false);
 
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         const recognition = new SpeechRecognition();
@@ -138,9 +148,26 @@ const VoiceCommand = ({ schedule, onToggle }) => {
     return (
         <>
             {/* Feedback / Confirmation UI */}
-            {(confirmMatch || feedback) && (
+            {(confirmMatch || feedback || showHelp) && (
                 <div className="fixed bottom-40 right-4 z-50 w-72 bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 p-4 animate-in slide-in-from-bottom-5">
-                    {confirmMatch ? (
+                    {showHelp ? (
+                        <div className="flex flex-col gap-2">
+                            <div className="flex items-center justify-between">
+                                <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                                    <Mic size={16} className="text-primary" />
+                                    Comandos de Voz
+                                </h3>
+                                <button onClick={() => setShowHelp(false)} className="text-slate-400 hover:text-slate-600">×</button>
+                            </div>
+                            <ul className="text-sm text-slate-600 dark:text-slate-300 space-y-1 mt-1">
+                                <li>👉 <strong>"Tomar [Nome]"</strong></li>
+                                <li>👉 <strong>"Marcar [Nome]"</strong></li>
+                                <li>👉 <strong>"Desmarcar [Nome]"</strong></li>
+                                <li>👉 <strong>"Tomei a [Nome]"</strong></li>
+                            </ul>
+                            <p className="text-xs text-slate-400 mt-2 italic">Dica: Fale apenas o nome se preferir.</p>
+                        </div>
+                    ) : confirmMatch ? (
                         <div className="flex flex-col gap-3">
                             <p className="text-sm text-slate-500 dark:text-slate-400">Entendi:</p>
                             <p className="font-bold text-lg text-slate-800 dark:text-white">
@@ -172,31 +199,42 @@ const VoiceCommand = ({ schedule, onToggle }) => {
                 </div>
             )}
 
-            {/* Mic Button */}
-            <button
-                onClick={startListening}
-                disabled={isListening || processing}
-                className={`
-                    fixed bottom-24 right-4 z-40 
-                    w-14 h-14 rounded-full shadow-xl 
-                    flex items-center justify-center 
-                    transition-all duration-300
-                    ${isListening
-                        ? 'bg-red-500 animate-pulse scale-110'
-                        : 'bg-primary hover:bg-primary-dark'
-                    }
-                    text-white
-                `}
-                title="Fala o que deseja"
-            >
-                {processing ? (
-                    <Loader2 className="animate-spin" size={24} />
-                ) : isListening ? (
-                    <MicOff size={24} />
-                ) : (
-                    <Mic size={24} />
-                )}
-            </button>
+            {/* Mic and Help Buttons */}
+            <div className="fixed bottom-24 right-4 z-40 flex flex-col gap-3 items-center">
+                {/* Help Button (Mini) */}
+                <button
+                    onClick={() => setShowHelp(!showHelp)}
+                    className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 shadow-lg flex items-center justify-center hover:bg-slate-200 transition-colors"
+                    title="Ajuda"
+                >
+                    <HelpCircle size={20} />
+                </button>
+
+                {/* Mic Button (Main) */}
+                <button
+                    onClick={startListening}
+                    disabled={isListening || processing}
+                    className={`
+                        w-14 h-14 rounded-full shadow-xl 
+                        flex items-center justify-center 
+                        transition-all duration-300
+                        ${isListening
+                            ? 'bg-red-500 animate-pulse scale-110'
+                            : 'bg-primary hover:bg-primary-dark'
+                        }
+                        text-white
+                    `}
+                    title="Fala o que deseja"
+                >
+                    {processing ? (
+                        <Loader2 className="animate-spin" size={24} />
+                    ) : isListening ? (
+                        <MicOff size={24} />
+                    ) : (
+                        <Mic size={24} />
+                    )}
+                </button>
+            </div>
         </>
     );
 };
