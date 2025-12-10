@@ -426,14 +426,108 @@ const Reports = () => {
         `;
     };
 
+    const generateStockReportText = () => {
+        if (!stockData || stockData.length === 0) return '';
+
+        let text = '*RELATORIO DE ESTOQUE E MOVIMENTACOES*\n\n';
+        text += '*Periodo:* ' + formatDate(filters.startDate) + ' ate ' + formatDate(filters.endDate) + '\n';
+
+        if (filters.patientId !== 'all') {
+            const patient = patients.find(p => p.id === filters.patientId);
+            text += '*Paciente:* ' + (patient?.name || 'N/A') + '\n';
+        }
+        if (filters.medicationId !== 'all') {
+            const med = medications.find(m => m.id === filters.medicationId);
+            text += '*Medicamento:* ' + (med ? `${med.name} ${med.dosage}` : 'N/A') + '\n';
+        }
+
+        text += '\n*MOVIMENTACOES RECENTES*\n';
+
+        stockData.slice(0, 30).forEach((item, idx) => {
+            const isPositive = item.quantity_change > 0;
+            text += '\n' + (idx + 1) + '. ' + formatDateTime(item.created_at) + '\n';
+            text += '   ' + (item.medications?.name || 'Medicamento') + ' (' + (isPositive ? '+' : '') + item.quantity_change + ')\n';
+            text += '   Motivo: ' + item.reason + ' | Usuario: ' + (item.profiles?.full_name || 'Sistema') + '\n';
+        });
+
+        if (stockData.length > 30) {
+            text += '\n... e mais ' + (stockData.length - 30) + ' registros\n';
+        }
+
+        text += '\n---\n_Gerado pelo Sistema de Controle de Medicamentos_';
+        return text;
+    };
+
+    const generateStockReportHtml = () => {
+        if (!stockData || stockData.length === 0) return '';
+
+        const startDate = formatDate(filters.startDate);
+        const endDate = formatDate(filters.endDate);
+
+        const rows = stockData.slice(0, 50).map(item => {
+            const isPositive = item.quantity_change > 0;
+            const color = isPositive ? '#166534' : '#9a3412';
+            const bg = isPositive ? '#dcfce7' : '#ffedd5';
+
+            return `
+                <tr>
+                    <td style="padding: 12px; border-bottom: 1px solid #e2e8f0; color: #334155;">
+                        <div style="font-weight: bold;">${formatDateTime(item.created_at)}</div>
+                        <div style="font-size: 12px; color: #64748b;">${item.profiles?.full_name || 'Usuário'}</div>
+                    </td>
+                    <td style="padding: 12px; border-bottom: 1px solid #e2e8f0; color: #334155;">
+                        <div style="font-weight: 600;">${item.medications?.name}</div>
+                        <div style="font-size: 12px; color: #64748b;">${item.medications?.dosage}</div>
+                    </td>
+                    <td style="padding: 12px; border-bottom: 1px solid #e2e8f0;">
+                         <span style="background-color: ${bg}; color: ${color}; padding: 4px 8px; border-radius: 9999px; font-size: 12px; font-weight: bold; display: inline-block;">
+                            ${isPositive ? '+' : ''}${item.quantity_change}
+                        </span>
+                        <div style="font-size: 11px; margin-top: 4px; color: #64748b;">${item.reason}</div>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+
+        return `
+            <!DOCTYPE html>
+            <html>
+             <head>
+                <meta charset="utf-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            </head>
+            <body style="font-family: 'Segoe UI', sans-serif; background-color: #f4f4f5; padding: 20px;">
+                <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                    <div style="background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%); padding: 30px; text-align: center; color: white;">
+                        <h1 style="margin: 0; font-size: 24px;">Relatório de Movimentações</h1>
+                        <p style="margin: 5px 0 0; opacity: 0.9;">${startDate} até ${endDate}</p>
+                    </div>
+                    <div style="padding: 20px;">
+                        <table style="width: 100%; border-collapse: collapse;">
+                            <thead>
+                                <tr style="background: #f8fafc; text-align: left;">
+                                    <th style="padding: 10px; font-size: 12px; color: #64748b;">DATA/QUEM</th>
+                                    <th style="padding: 10px; font-size: 12px; color: #64748b;">ITEM</th>
+                                    <th style="padding: 10px; font-size: 12px; color: #64748b;">QTD</th>
+                                </tr>
+                            </thead>
+                            <tbody>${rows}</tbody>
+                        </table>
+                    </div>
+                </div>
+            </body>
+            </html>
+        `;
+    };
+
     const handleWhatsApp = () => {
-        const text = generateReportText();
+        const text = activeTab === 'stock' ? generateStockReportText() : generateReportText();
         const encodedText = encodeURIComponent(text);
         window.open(`https://wa.me/?text=${encodedText}`, '_blank');
     };
 
-    const handleEmail = () => {
-        setEmailType('report');
+    const handleEmail = (type) => { // Updated to accept type override
+        setEmailType(type || (activeTab === 'stock' ? 'stock' : 'report'));
         setEmailData({ to: '', observations: '' });
         setShowEmailModal(true);
     };
@@ -496,6 +590,10 @@ const Reports = () => {
                     </body>
                     </html>
                 `;
+            } else if (emailType === 'stock') {
+                html = generateStockReportHtml();
+                text = generateStockReportText();
+                subject = `Relatório de Movimentações - ${formatDate(new Date())}`;
             } else {
                 html = generateReportHtml();
                 text = generateReportText(); // Fallback text
@@ -640,6 +738,23 @@ const Reports = () => {
                                 </div>
                             </CardContent>
                         </Card>
+
+                        {stockData.length > 0 && (
+                            <div className="flex flex-wrap gap-3 no-print">
+                                <Button variant="outline" onClick={handlePrint}>
+                                    <Printer size={18} className="mr-2" /> Imprimir
+                                </Button>
+                                {/* PDF generation for Stock is not yet implemented, maybe skip or add later? 
+                                   User asked for Email specifically. 
+                                */}
+                                <Button variant="outline" onClick={() => handleEmail('stock')}>
+                                    <Mail size={18} className="mr-2" /> Email
+                                </Button>
+                                <Button variant="outline" onClick={handleWhatsApp}>
+                                    <MessageCircle size={18} className="mr-2" /> WhatsApp
+                                </Button>
+                            </div>
+                        )}
 
                         {loadingStock ? (
                             <div className="py-12 text-center text-slate-500">Carregando movimentações...</div>
@@ -1010,12 +1125,15 @@ const Reports = () => {
                 >
                     <div className="flex flex-col gap-4">
                         <Input
-                            label="Email do Destinatário"
-                            type="email"
-                            placeholder="exemplo@email.com"
+                            label="Para:"
+                            type="text" // Changed to text to allow multiple comma-separated emails
+                            placeholder="exemplo@email.com, outro@email.com"
                             value={emailData.to}
                             onChange={(e) => setEmailData({ ...emailData, to: e.target.value })}
                         />
+                        <p className="text-xs text-slate-400 -mt-3 mb-2 ml-1">
+                            Dica: Separe múltiplos emails com vírgula (,)
+                        </p>
                         <div className="flex flex-col gap-1.5">
                             <label className="text-sm font-semibold text-slate-700 ml-1">Observações (opcional)</label>
                             <textarea

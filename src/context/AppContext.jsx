@@ -13,8 +13,10 @@ export const AppProvider = ({ children }) => {
     const [consumptionLog, setConsumptionLog] = useState([]);
     const [pendingShares, setPendingShares] = useState([]); // Compartilhamento de Paciente Específico (Legado/Granular)
     const [accountShares, setAccountShares] = useState([]); // Compartilhamento Global de Conta
+    const [healthLogs, setHealthLogs] = useState([]); // Diário de Saúde (Pressão, Glicemia, etc.)
     const [toast, setToast] = useState(null);
     const [loadingData, setLoadingData] = useState(false);
+
 
     // Helper de Toast
     const showToast = (message, type = 'success') => {
@@ -140,6 +142,18 @@ export const AppProvider = ({ children }) => {
             if (sharesError) throw sharesError; // Se a tabela não existir ainda, vai dar erro, mas o toast avisa
             setAccountShares(sharesData || []);
 
+            // 7. Buscar Diário de Saúde
+            const { data: healthData, error: healthError } = await supabase
+                .from('health_logs')
+                .select('*, profiles:user_id(full_name)')
+                .order('measured_at', { ascending: false });
+
+            if (healthError) {
+                console.warn('Tabela health_logs pode não existir ainda:', healthError.message);
+            } else {
+                setHealthLogs(healthData);
+            }
+
 
         } catch (error) {
             console.error('Erro ao buscar dados:', error);
@@ -169,6 +183,7 @@ export const AppProvider = ({ children }) => {
             .on('postgres_changes', { event: '*', schema: 'public', table: 'medications' }, () => fetchAllData(true))
             .on('postgres_changes', { event: '*', schema: 'public', table: 'prescriptions' }, () => fetchAllData(true))
             .on('postgres_changes', { event: '*', schema: 'public', table: 'consumption_log' }, () => fetchAllData(true))
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'health_logs' }, () => fetchAllData(true))
             .on('postgres_changes', { event: '*', schema: 'public', table: 'patient_shares', filter: `shared_with_email=eq.${user.email.toLowerCase()}` }, (payload) => {
                 // Se alguém me convidou, removeram meu acesso ou mudaram permissão:
                 console.log('⚡ Mudança em patient_shares:', payload.eventType);
@@ -247,18 +262,6 @@ export const AppProvider = ({ children }) => {
             if (updatedData.city) dbData.city = updatedData.city;
             if (updatedData.state) dbData.state = updatedData.state;
             if (updatedData.observations) dbData.observations = updatedData.observations;
-
-            const { data, error } = await supabase
-                .from('patients')
-                .update(dbData)
-                .eq('id', id)
-                .select();
-
-            if (error) throw error;
-
-            const updatedPatient = transformPatient(data[0]);
-            setPatients(prev => prev.map(p => p.id === id ? updatedPatient : p));
-            showToast('Paciente atualizado com sucesso!');
         } catch (error) {
             console.error('Erro ao atualizar paciente:', error);
             showToast('Erro ao atualizar paciente', 'error');
@@ -279,6 +282,142 @@ export const AppProvider = ({ children }) => {
         } catch (error) {
             console.error('Erro ao excluir paciente:', error);
             showToast('Erro ao excluir paciente', 'error');
+        }
+    };
+
+    // Compartilhamento
+    const sharePatient = async (patientId, email, permission) => {
+        if (!user) return;
+        try {
+            await supabase.from('patient_shares').insert([
+                {
+                    owner_id: user.id,
+                    patient_id: patientId,
+                    shared_with_email: email.toLowerCase(),
+                    permission: permission,
+                },
+            ]);
+            showToast('Convite enviado com sucesso!');
+        } catch (error) {
+            console.error('Erro ao compartilhar:', error);
+            showToast('Erro ao compartilhar paciente', 'error');
+        }
+    };
+
+    const unshareAccount = async (shareId) => {
+        try {
+            await supabase.from('account_shares').delete().eq('id', shareId);
+            setAccountShares(prev => prev.filter(s => s.id !== shareId));
+            showToast('Compartilhamento removido.');
+        } catch (error) {
+            console.error('Erro ao remover compartilhamento:', error);
+            showToast('Erro ao remover', 'error');
+        }
+    };
+
+    // --- Simulação do Modo Cuidador (Para Testes) ---
+    const runCaregiverCheck = async () => {
+        showToast('Iniciando verificação de cuidador...', 'info');
+        console.log('--- Iniciando Check de Cuidador (Simulado) ---');
+
+        let alertsSent = 0;
+        const now = new Date(); // Hora "Servidor"
+        const todayStr = now.toISOString().split('T')[0];
+
+        // Iterar prescrições ativas
+        const activePrescriptions = prescriptions.filter(p => !p.endDate || new Date(p.endDate) >= new Date().setHours(0, 0, 0, 0));
+
+        for (const p of activePrescriptions) {
+            if (!p.times || !Array.isArray(p.times)) continue;
+
+            const med = medications.find(m => m.id === p.medicationId);
+            const patient = patients.find(pt => pt.id === p.patientId);
+
+            for (const timeStr of p.times) {
+                const [h, m] = timeStr.split(':').map(Number);
+                const scheduledDate = new Date();
+                scheduledDate.setHours(h, m, 0, 0);
+
+                const diffMs = now.getTime() - scheduledDate.getTime();
+                const diffMins = diffMs / (1000 * 60);
+
+                // Lógica: Atraso > 30 min E < 24h
+                if (diffMins > 30 && diffMins < 1440) {
+                    // 1. Checar Consumo
+                    const hasConsumed = consumptionLog.some(l =>
+                        l.prescriptionId === p.id &&
+                        l.date === todayStr &&
+                        l.scheduledTime === timeStr
+                    );
+
+                    if (hasConsumed) {
+                        console.log(`✅ ${patient?.name} tomou ${med?.name} das ${timeStr}`);
+                        continue;
+                    }
+
+                    // 2. Checar se já alertamos (No Front simulamos verificando se já mandamos nessa sessão ou mock)
+                    // Num cenário real consultaríamos tabela 'alert_logs'
+                    const { data: existingAlert } = await supabase
+                        .from('alert_logs')
+                        .select('id')
+                        .eq('prescription_id', p.id)
+                        .eq('alert_date', todayStr)
+                        .eq('alert_time', timeStr + ':00') // DB time often has seconds
+                        .maybeSingle();
+
+                    if (existingAlert) {
+                        console.log(`⚠️ Alerta já enviado para ${patient?.name} - ${med?.name} (${timeStr})`);
+                        continue;
+                    }
+
+                    // 3. Disparar Alerta
+                    console.log(`🚨 ALERTA: ${patient?.name} perdeu ${med?.name} das ${timeStr}! (+${Math.floor(diffMins)}m)`);
+                    alertsSent++;
+
+                    // Enviar Email Real
+                    if (user?.email) {
+                        try {
+                            // Tentar usar a função send-email existente
+                            // Nota: Num ambiente real, isso pegaria os emails de 'patient_shares' tb
+                            const recipients = [user.email]; // Demo: manda pro dono logado
+                            if (patient?.sharedWith) {
+                                patient.sharedWith.forEach(s => recipients.push(s.email));
+                            }
+
+                            await fetch(`${import.meta.env.VITE_API_URL || ''}/api/send-email`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    to: recipients.join(','),
+                                    subject: `🚨 ALERTA DE ATRASO: ${patient?.name}`,
+                                    text: `O paciente ${patient?.name} não tomou ${med?.name} agendado para ${timeStr}.\nAtraso de ${Math.floor(diffMins)} minutos.`,
+                                    type: 'alert'
+                                })
+                            });
+
+                            // Logar no DB para não repetir
+                            await supabase.from('alert_logs').insert({
+                                prescription_id: p.id,
+                                patient_id: p.patientId,
+                                alert_date: todayStr,
+                                alert_time: timeStr,
+                                sent_to: recipients
+                            });
+
+                            showToast(`Alerta enviado: ${patient?.name} / ${med?.name}`, 'warning');
+
+                        } catch (err) {
+                            console.error('Falha ao enviar email de alerta', err);
+                        }
+                    }
+                }
+            }
+        }
+
+        if (alertsSent === 0) {
+            showToast('Verificação concluída. Nenhuns atrasos novos.', 'success');
+        } else {
+            showToast(`${alertsSent} alertas de atraso enviados!`, 'warning');
         }
     };
 
@@ -682,6 +821,50 @@ export const AppProvider = ({ children }) => {
         } catch (error) {
             console.error('Erro ao remover registro de consumo:', error);
             showToast('Erro ao remover registro', 'error');
+        }
+    };
+
+    // Diário de Saúde
+    const addHealthLog = async (logData) => {
+        if (!user) return;
+        try {
+            const dbData = {
+                user_id: user.id,
+                patient_id: logData.patientId,
+                category: logData.category, // 'pressure', 'glucose', 'weight', etc.
+                value: parseFloat(logData.value),
+                value_secondary: logData.valueSecondary ? parseFloat(logData.valueSecondary) : null,
+                measured_at: logData.measuredAt || new Date().toISOString(),
+                notes: logData.notes
+            };
+
+            const { data, error } = await supabase
+                .from('health_logs')
+                .insert([dbData])
+                .select();
+
+            if (error) throw error;
+
+            // Optimistic update done by Realtime usually, but let's be safe
+            showToast('Registro de saúde adicionado!');
+        } catch (error) {
+            console.error('Erro ao adicionar registro de saúde:', error);
+            showToast('Erro ao salvar registro', 'error');
+        }
+    };
+
+    const deleteHealthLog = async (id) => {
+        try {
+            const { error } = await supabase
+                .from('health_logs')
+                .delete()
+                .eq('id', id);
+
+            if (error) throw error;
+            showToast('Registro excluído.', 'info');
+        } catch (error) {
+            console.error('Erro ao excluir registro de saúde:', error);
+            showToast('Erro ao excluir registro', 'error');
         }
     };
 

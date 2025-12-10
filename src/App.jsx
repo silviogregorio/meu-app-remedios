@@ -11,6 +11,7 @@ import Home from './pages/Home';
 import Patients from './pages/Patients';
 import Medications from './pages/Medications';
 import Prescriptions from './pages/Prescriptions.jsx';
+import HealthDiary from './pages/HealthDiary';
 import Reports from './pages/Reports';
 import Profile from './pages/Profile';
 import Login from './pages/Login';
@@ -47,6 +48,7 @@ function App() {
                   <Route path="/medications" element={<ProtectedRoute><Medications /></ProtectedRoute>} />
                   <Route path="/prescriptions" element={<ProtectedRoute><Prescriptions /></ProtectedRoute>} />
                   <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
+                  <Route path="/diary" element={<ProtectedRoute><HealthDiary /></ProtectedRoute>} />
                   <Route path="/share" element={<ProtectedRoute><Share /></ProtectedRoute>} />
                   <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
                   <Route path="/admin/sponsors" element={<ProtectedRoute><AdminSponsors /></ProtectedRoute>} />

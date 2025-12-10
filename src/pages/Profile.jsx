@@ -1,18 +1,19 @@
 import React, { useState } from 'react';
+import { useAuth } from '../context/AuthContext';
 import { useApp } from '../context/AppContext';
 import { useNavigate } from 'react-router-dom';
 import Card, { CardContent } from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Modal from '../components/ui/Modal';
-import { User, Settings, LogOut, Bell, LogIn, Database, Trash2 } from 'lucide-react';
+import { User, Settings, LogOut, Bell, LogIn, Database, Trash2, Mail, Phone, MapPin, Camera, Shield, Share2, Activity } from 'lucide-react';
 
 const Profile = () => {
-    const { user, logout, showToast, fetchAllData, updateProfile, accountShares, shareAccount, unshareAccount } = useApp();
+    const { user, logout, updateProfile } = useAuth(); // AuthContext for user/logout/updateProfile
+    const { showToast, runCaregiverCheck } = useApp(); // AppContext for app features
     const navigate = useNavigate();
 
     const [isEditing, setIsEditing] = useState(false);
-
     const [editForm, setEditForm] = useState({
         name: user?.user_metadata?.full_name || ''
     });
@@ -22,7 +23,6 @@ const Profile = () => {
             showToast('Nome é obrigatório', 'error');
             return;
         }
-
         await updateProfile(editForm);
         setIsEditing(false);
     };
@@ -44,13 +44,14 @@ const Profile = () => {
     }
 
     return (
-        <div className="flex flex-col gap-6 pb-20">
+        <div className="flex flex-col gap-6 pb-20 animate-in fade-in duration-500">
+            {/* User Header */}
             <div className="flex flex-col items-center gap-4 py-6">
                 {user.user_metadata?.avatar_url ? (
                     <img
                         src={user.user_metadata.avatar_url}
                         alt={user.user_metadata?.full_name || 'User'}
-                        className="w-24 h-24 rounded-full border-4 border-white shadow-lg"
+                        className="w-24 h-24 rounded-full border-4 border-white shadow-lg object-cover"
                     />
                 ) : (
                     <div className="w-24 h-24 rounded-full bg-primary/10 text-primary flex items-center justify-center text-2xl font-bold border-4 border-white shadow-lg">
@@ -63,6 +64,43 @@ const Profile = () => {
                 </div>
             </div>
 
+            {/* Caregiver Mode (Premium) Section */}
+            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden">
+                <div className="p-6 border-b border-slate-100 dark:border-slate-700 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/10 dark:to-orange-900/10">
+                    <div className="flex items-center gap-3 mb-2">
+                        <div className="bg-amber-100 dark:bg-amber-900/30 p-2 rounded-lg">
+                            <Activity className="text-amber-600 dark:text-amber-400" size={24} />
+                        </div>
+                        <h2 className="text-xl font-bold text-amber-900 dark:text-amber-100">Modo Cuidador</h2>
+                    </div>
+                    <p className="text-amber-700/80 dark:text-amber-300/70 text-sm">
+                        Ferramentas para quem cuida de idosos ou familiares remotamente.
+                    </p>
+                </div>
+                <div className="p-6">
+                    <div className="flex flex-col gap-4">
+                        <div className="flex items-start gap-3 p-4 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-700">
+                            <Bell className="text-slate-400 mt-1" size={20} />
+                            <div>
+                                <h4 className="font-semibold text-slate-900 dark:text-white">Verificação de Atrasos</h4>
+                                <p className="text-sm text-slate-500 mb-3">
+                                    Simule a verificação automática de remédios atrasados (mais de 30min).
+                                    Se houver atrasos não notificados hoje, você receberá um email de alerta.
+                                </p>
+                                <Button
+                                    variant="outline"
+                                    onClick={() => runCaregiverCheck()}
+                                    className="border-amber-200 hover:bg-amber-50 text-amber-900"
+                                >
+                                    Executar Verificação Agora
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Account Settings */}
             <div className="flex flex-col gap-4">
                 <Card>
                     <CardContent className="p-0">
@@ -78,7 +116,6 @@ const Profile = () => {
                                 <p className="text-sm text-[#64748b] dark:text-slate-400">Alterar nome, email</p>
                             </div>
                         </button>
-
                     </CardContent>
                 </Card>
 
@@ -88,6 +125,7 @@ const Profile = () => {
                 </Button>
             </div>
 
+            {/* Edit Modal */}
             <Modal
                 isOpen={isEditing}
                 onClose={() => setIsEditing(false)}
