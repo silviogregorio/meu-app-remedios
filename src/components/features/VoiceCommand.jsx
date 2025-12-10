@@ -53,6 +53,29 @@ const VoiceCommand = ({ schedule, onToggle }) => {
         recognition.start();
     };
 
+    // Levenshtein distance for fuzzy matching
+    const levenshtein = (a, b) => {
+        if (a.length === 0) return b.length;
+        if (b.length === 0) return a.length;
+        const matrix = [];
+        for (let i = 0; i <= b.length; i++) matrix[i] = [i];
+        for (let j = 0; j <= a.length; j++) matrix[0][j] = j;
+        for (let i = 1; i <= b.length; i++) {
+            for (let j = 1; j <= a.length; j++) {
+                if (b.charAt(i - 1) === a.charAt(j - 1)) {
+                    matrix[i][j] = matrix[i - 1][j - 1];
+                } else {
+                    matrix[i][j] = Math.min(
+                        matrix[i - 1][j - 1] + 1,
+                        matrix[i][j - 1] + 1,
+                        matrix[i - 1][j] + 1
+                    );
+                }
+            }
+        }
+        return matrix[b.length][a.length];
+    };
+
     const processCommand = (text) => {
         setProcessing(true);
 
@@ -74,14 +97,27 @@ const VoiceCommand = ({ schedule, onToggle }) => {
         }
 
         const pendingItems = schedule.filter(item => !item.isTaken);
-        const match = pendingItems.find(item =>
+
+        // 1. Exact/Substring Match (Priority)
+        let match = pendingItems.find(item =>
             item.medicationName.toLowerCase().includes(cleanText)
         );
+
+        // 2. Fuzzy Match (Fallback)
+        if (!match) {
+            match = pendingItems.find(item => {
+                const medName = item.medicationName.toLowerCase();
+                const dist = levenshtein(medName, cleanText);
+                // Allow error of 3 chars or 30% length difference
+                return dist <= 3 || dist < medName.length * 0.4;
+            });
+        }
 
         if (match) {
             setConfirmMatch(match);
         } else {
-            setFeedback({ type: 'error', message: `Não achei "${cleanText}" pendente para hoje.` });
+            console.log('Falha ao encontrar:', cleanText); // Debug
+            setFeedback({ type: 'error', message: `Não achei "${cleanText}" (ou parecido) para hoje.` });
         }
 
         setProcessing(false);
