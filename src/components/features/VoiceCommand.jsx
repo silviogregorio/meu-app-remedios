@@ -79,16 +79,19 @@ const VoiceCommand = ({ schedule, onToggle }) => {
     const processCommand = (text) => {
         setProcessing(true);
 
-        const cleanText = text
-            .replace(/marcar/g, '')
-            .replace(/como/g, '')
-            .replace(/tomado/g, '')
-            .replace(/tomei/g, '')
-            .replace(/tomar/g, '')
-            .replace(/registrar/g, '')
-            .replace(/o/g, '')
-            .replace(/a/g, '')
-            .trim();
+        // Remove keywords (whole words only) to isolate medication name
+        const stopWords = [
+            'marcar', 'desmarcar', 'desmarque', 'como', 'tomado', 'tomei', 'tomar',
+            'registrar', 'o', 'a', 'os', 'as', 'um', 'uma', 'que', 'de', 'do', 'da'
+        ];
+
+        let cleanText = text;
+        stopWords.forEach(word => {
+            const regex = new RegExp(`\\b${word}\\b`, 'gi');
+            cleanText = cleanText.replace(regex, '');
+        });
+
+        cleanText = cleanText.trim();
 
         if (cleanText.length < 3) {
             setFeedback({ type: 'error', message: `Ouvi "${text}", mas não reconheci o remédio.` });
@@ -96,19 +99,17 @@ const VoiceCommand = ({ schedule, onToggle }) => {
             return;
         }
 
-        const pendingItems = schedule.filter(item => !item.isTaken);
-
+        // Search in ALL items (taken or pending)
         // 1. Exact/Substring Match (Priority)
-        let match = pendingItems.find(item =>
+        let match = schedule.find(item =>
             item.medicationName.toLowerCase().includes(cleanText)
         );
 
         // 2. Fuzzy Match (Fallback)
         if (!match) {
-            match = pendingItems.find(item => {
+            match = schedule.find(item => {
                 const medName = item.medicationName.toLowerCase();
                 const dist = levenshtein(medName, cleanText);
-                // Allow error of 3 chars or 30% length difference
                 return dist <= 3 || dist < medName.length * 0.4;
             });
         }
@@ -116,8 +117,8 @@ const VoiceCommand = ({ schedule, onToggle }) => {
         if (match) {
             setConfirmMatch(match);
         } else {
-            console.log('Falha ao encontrar:', cleanText); // Debug
-            setFeedback({ type: 'error', message: `Não achei "${cleanText}" (ou parecido) para hoje.` });
+            console.log('Falha ao encontrar:', cleanText);
+            setFeedback({ type: 'error', message: `Não achei "${cleanText}" na lista de hoje.` });
         }
 
         setProcessing(false);
@@ -126,7 +127,8 @@ const VoiceCommand = ({ schedule, onToggle }) => {
     const handleConfirm = () => {
         if (confirmMatch) {
             onToggle(confirmMatch);
-            setFeedback({ type: 'success', message: `Marcado: ${confirmMatch.medicationName}` });
+            const action = confirmMatch.isTaken ? 'Desmarcado' : 'Marcado';
+            setFeedback({ type: 'success', message: `${action}: ${confirmMatch.medicationName}` });
             setConfirmMatch(null);
         }
     };
@@ -143,6 +145,9 @@ const VoiceCommand = ({ schedule, onToggle }) => {
                             <p className="text-sm text-slate-500 dark:text-slate-400">Entendi:</p>
                             <p className="font-bold text-lg text-slate-800 dark:text-white">
                                 {confirmMatch.medicationName} ({confirmMatch.dosage})
+                            </p>
+                            <p className="text-xs text-slate-500">
+                                {confirmMatch.isTaken ? 'Já tomado. Deseja desmarcar?' : 'Marcar como tomado?'}
                             </p>
                             <div className="flex gap-2 mt-1">
                                 <button
