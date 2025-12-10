@@ -297,35 +297,6 @@ export const AppProvider = ({ children }) => {
         }
     };
 
-    // Compartilhamento
-    const sharePatient = async (patientId, email, permission) => {
-        if (!user) return;
-        try {
-            await supabase.from('patient_shares').insert([
-                {
-                    owner_id: user.id,
-                    patient_id: patientId,
-                    shared_with_email: email.toLowerCase(),
-                    permission: permission,
-                },
-            ]);
-            showToast('Convite enviado com sucesso!');
-        } catch (error) {
-            console.error('Erro ao compartilhar:', error);
-            showToast('Erro ao compartilhar paciente', 'error');
-        }
-    };
-
-    const unshareAccount = async (shareId) => {
-        try {
-            await supabase.from('account_shares').delete().eq('id', shareId);
-            setAccountShares(prev => prev.filter(s => s.id !== shareId));
-            showToast('Compartilhamento removido.');
-        } catch (error) {
-            console.error('Erro ao remover compartilhamento:', error);
-            showToast('Erro ao remover', 'error');
-        }
-    };
 
     // --- Simulação do Modo Cuidador (Para Testes) ---
     const runCaregiverCheck = async () => {
