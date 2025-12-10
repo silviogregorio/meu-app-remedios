@@ -13,28 +13,16 @@ const VersionCheck = () => {
 
                 const data = await response.json();
                 const serverVersion = data.version;
-                const localVersion = localStorage.getItem('app_version');
+                // Use the injected build version constant
+                // eslint-disable-next-line no-undef
+                const currentVersion = __APP_VERSION__;
 
-                console.log(`Checking version... Server: ${serverVersion} | Local: ${localVersion}`);
+                console.log(`Checking version... Server: ${serverVersion} | Local (Running): ${currentVersion}`);
 
-                if (serverVersion && serverVersion !== localVersion) {
+                if (serverVersion && serverVersion !== currentVersion) {
                     console.log(`New version found: ${serverVersion}. Force updating...`);
 
-                    // 1. Clear Local Storage version to prevent loops if reload fails, 
-                    // BUT here we want to set it so next load matches. 
-                    // Actually, we should only set it AFTER the reload effectively happens, 
-                    // but we can't run code after reload. 
-                    // So we update it now. If the reload serves old code again, it will loop?
-                    // No, because old code (if *truly* old) won't have this VersionCheck component!
-                    // If old code DOES have VersionCheck but is just one version behind,
-                    // valid point.
-                    // The "Stuck" version (v1.3.1) definitely does NOT have this component.
-                    // So once this component loads, it means we ARE on the new version.
-                    // So we should just align the localStorage.
-
-                    localStorage.setItem('app_version', serverVersion);
-
-                    // 2. Clear all caches (Service Workers, Cache API)
+                    // 1. Clear caches
                     if ('caches' in window) {
                         try {
                             const keys = await caches.keys();
@@ -59,9 +47,6 @@ const VersionCheck = () => {
 
                     // 3. Force Reload
                     window.location.reload(true);
-                } else if (!localVersion) {
-                    // First run with this system
-                    localStorage.setItem('app_version', serverVersion);
                 }
             } catch (error) {
                 console.error('Version check failed:', error);

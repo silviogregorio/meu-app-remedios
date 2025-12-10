@@ -9,4 +9,4 @@ ReactDOM.createRoot(document.getElementById('root')).render(
   </React.StrictMode>,
 )
 
-console.log('🚀 SYSTEM VERSION: v1.3.20 - LOADED SUCCESSFULLY');
+console.log(`🚀 SYSTEM VERSION: v${__APP_VERSION__} - LOADED SUCCESSFULLY`);
