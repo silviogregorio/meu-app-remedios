@@ -600,6 +600,10 @@ const Home = () => {
             </div>
             {/* Voice Command FAB */}
             <VoiceCommand schedule={todaysSchedule} onToggle={handleToggleStatus} />
+
+            <div className="text-center pb-20 pt-4 text-[10px] text-slate-300">
+                v1.3.18
+            </div>
         </div>
     );
 };
