@@ -149,6 +149,9 @@ const Medications = () => {
                                 onChange={e => setMedForm({ ...medForm, quantity: e.target.value })}
                                 step="0.1"
                             />
+                            <p className="text-xs text-slate-500 bg-blue-50 p-2 rounded-lg -mt-4 border border-blue-100">
+                                <span className="font-bold">Dica:</span> Para líquidos (xaropes, gotas), cadastre o volume total em <strong>ml</strong> ou <strong>gotas</strong> (ex: 100ml), não o número de frascos. Assim o desconto da dose será exato.
+                            </p>
                             <div className="flex gap-4 mt-4 pt-6 border-t border-slate-50">
                                 <Button type="button" variant="ghost" onClick={handleCancel} className="flex-1">
                                     Cancelar

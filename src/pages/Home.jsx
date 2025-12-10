@@ -16,10 +16,15 @@ import VoiceCommand from '../components/features/VoiceCommand';
 import { Calendar as CalendarIcon, DownloadCloud } from 'lucide-react';
 
 const Home = () => {
-    const { user, prescriptions, medications, patients, consumptionLog, logConsumption, removeConsumption, pendingShares } = useApp();
+    const { user, prescriptions, medications, patients, consumptionLog, logConsumption, removeConsumption, pendingShares, calculateStockDays } = useApp();
     const { permission, requestPermission } = useNotifications();
     const [todaysSchedule, setTodaysSchedule] = useState([]);
     const [currentPage, setCurrentPage] = useState(1);
+
+    // ... (filters state)
+    // We only need to replace the top destructuring line but replace_file_content needs context.
+    // I will replace the destructuring line and the alert block separately or together?
+    // Doing it separately is safer. This block replaces the destructuring.
 
     // Filters
     const [selectedDate, setSelectedDate] = useState(() => {
@@ -366,7 +371,11 @@ const Home = () => {
 
             {/* Low Stock Alert */}
             {(() => {
-                const lowStockMeds = medications.filter(med => (med.quantity || 0) < 5);
+                // Filter meds that have active stock control and are running low (<= 3 days)
+                const lowStockMeds = medications.filter(med => {
+                    const days = calculateStockDays ? calculateStockDays(med.id) : null;
+                    return days !== null && days <= 3;
+                });
 
                 if (lowStockMeds.length > 0) {
                     return (
@@ -381,12 +390,15 @@ const Home = () => {
                                         Alguns medicamentos estão acabando. Verifique seu estoque.
                                     </p>
                                     <div className="flex flex-wrap gap-2">
-                                        {lowStockMeds.map(med => (
-                                            <span key={med.id} className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-white/50 border border-amber-100 text-xs font-medium text-amber-800">
-                                                <Pill size={12} />
-                                                {med.name} ({med.quantity || 0})
-                                            </span>
-                                        ))}
+                                        {lowStockMeds.map(med => {
+                                            const days = Math.floor(calculateStockDays(med.id));
+                                            return (
+                                                <span key={med.id} className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-white/50 border border-amber-100 text-xs font-medium text-amber-800">
+                                                    <Pill size={12} />
+                                                    {med.name} ({days} dias)
+                                                </span>
+                                            );
+                                        })}
                                     </div>
                                 </div>
                             </div>

@@ -5,7 +5,7 @@ import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Modal from '../components/ui/Modal';
 import Pagination from '../components/ui/Pagination';
-import { FileText, Printer, Calendar, CheckCircle, Clock, Mail, MessageCircle, Download, Gift } from 'lucide-react';
+import { FileText, Printer, Calendar, CheckCircle, Clock, Mail, MessageCircle, Download, Gift, Activity, Filter, ArrowRight } from 'lucide-react';
 import { formatDate, formatTime, formatDateTime } from '../utils/dateFormatter';
 import { generatePDFReport } from '../utils/pdfGenerator';
 import { supabase } from '../lib/supabase';
@@ -38,7 +38,7 @@ const Reports = () => {
 
     const defaultDates = getDefaultDates();
 
-    const [activeTab, setActiveTab] = useState('history'); // 'history' | 'birthdays'
+    const [activeTab, setActiveTab] = useState('history'); // 'history' | 'birthdays' | 'stock'
 
     // Default to today
     const [selectedDay, setSelectedDay] = useState(new Date().getDate());
@@ -50,8 +50,12 @@ const Reports = () => {
         patientId: 'all',
         startDate: defaultDates.startDate,
         endDate: defaultDates.endDate,
-        status: 'all'
+        status: 'all',
+        medicationId: 'all' // New Filter
     });
+
+    const [stockData, setStockData] = useState([]);
+    const [loadingStock, setLoadingStock] = useState(false);
 
     const [reportData, setReportData] = useState(null);
     const [showEmailModal, setShowEmailModal] = useState(false);
@@ -121,6 +125,47 @@ const Reports = () => {
             setBirthdayData(birthdays);
         }
     }, [activeTab, selectedDay, selectedMonth, patients]);
+
+    // Fetch Stock History
+    React.useEffect(() => {
+        if (activeTab === 'stock') {
+            fetchStockHistory();
+        }
+    }, [activeTab, filters.startDate, filters.endDate, filters.patientId, filters.medicationId]);
+
+    const fetchStockHistory = async () => {
+        setLoadingStock(true);
+        try {
+            let query = supabase
+                .from('stock_history')
+                .select(`
+                    *,
+                    medications:medication_id (name, dosage, type),
+                    patients:patient_id (name),
+                    profiles:user_id (full_name)
+                `)
+                .gte('created_at', `${filters.startDate}T00:00:00`)
+                .lte('created_at', `${filters.endDate}T23:59:59`)
+                .order('created_at', { ascending: false });
+
+            if (filters.patientId !== 'all') {
+                query = query.eq('patient_id', filters.patientId);
+            }
+            if (filters.medicationId !== 'all') {
+                query = query.eq('medication_id', filters.medicationId);
+            }
+
+            const { data, error } = await query;
+            if (error) throw error;
+            setStockData(data || []);
+
+        } catch (error) {
+            console.error('Error fetching stock history:', error);
+            showToast('Erro ao buscar histórico de estoque', 'error');
+        } finally {
+            setLoadingStock(false);
+        }
+    };
 
     const generateReport = () => {
         if (!filters.startDate || !filters.endDate) {
@@ -522,7 +567,152 @@ const Reports = () => {
                             <span className="absolute bottom-0 left-0 w-full h-0.5 bg-primary rounded-full" />
                         )}
                     </button>
+                    <button
+                        onClick={() => setActiveTab('stock')}
+                        className={`pb-4 px-2 font-medium text-sm transition-colors relative ${activeTab === 'stock'
+                            ? 'text-primary'
+                            : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+                            }`}
+                    >
+                        Movimentações
+                        {activeTab === 'stock' && (
+                            <span className="absolute bottom-0 left-0 w-full h-0.5 bg-primary rounded-full" />
+                        )}
+                    </button>
                 </div>
+
+                {activeTab === 'stock' && (
+                    <div className="flex flex-col gap-6">
+                        <Card className="no-print">
+                            <CardHeader>
+                                <h3 className="font-bold text-xl text-slate-900 dark:text-white">Filtros de Estoque</h3>
+                                <p className="text-sm text-slate-500 dark:text-slate-400">Visualize a movimentação de entrada e saída.</p>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="flex flex-col gap-6">
+                                    <div className="flex flex-col md:flex-row gap-4">
+                                        <Input
+                                            label="Data Inicial"
+                                            type="date"
+                                            value={filters.startDate}
+                                            onChange={(e) => setFilters({ ...filters, startDate: e.target.value })}
+                                            containerClassName="flex-1"
+                                        />
+                                        <Input
+                                            label="Data Final"
+                                            type="date"
+                                            value={filters.endDate}
+                                            onChange={(e) => setFilters({ ...filters, endDate: e.target.value })}
+                                            containerClassName="flex-1"
+                                        />
+                                    </div>
+                                    <div className="flex flex-col md:flex-row gap-4">
+                                        <div className="flex flex-col gap-1.5 flex-1">
+                                            <label className="text-sm font-semibold text-slate-700 ml-1">Medicamento</label>
+                                            <select
+                                                value={filters.medicationId}
+                                                onChange={(e) => setFilters({ ...filters, medicationId: e.target.value })}
+                                                className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-slate-900 focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-200"
+                                            >
+                                                <option value="all">Todos os Medicamentos</option>
+                                                {medications.map(med => (
+                                                    <option key={med.id} value={med.id}>{med.name} {med.dosage}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        <div className="flex flex-col gap-1.5 flex-1">
+                                            <label className="text-sm font-semibold text-slate-700 ml-1">Paciente</label>
+                                            <select
+                                                value={filters.patientId}
+                                                onChange={(e) => setFilters({ ...filters, patientId: e.target.value })}
+                                                className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-slate-900 focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-200"
+                                            >
+                                                <option value="all">Todos os Pacientes</option>
+                                                {patients.map(p => (
+                                                    <option key={p.id} value={p.id}>{p.name}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <Button onClick={fetchStockHistory} variant="outline" className="w-full">
+                                        <Filter size={18} className="mr-2" /> Atualizar Filtros
+                                    </Button>
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        {loadingStock ? (
+                            <div className="py-12 text-center text-slate-500">Carregando movimentações...</div>
+                        ) : stockData.length === 0 ? (
+                            <div className="py-12 text-center text-slate-500 bg-white rounded-2xl border border-dashed border-slate-200">
+                                Nenhum registro encontrado para estes filtros.
+                            </div>
+                        ) : (
+                            <Card>
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-sm text-left">
+                                        <thead className="bg-slate-50 text-slate-500 font-medium border-b border-slate-100">
+                                            <tr>
+                                                <th className="px-6 py-4">Data/Hora</th>
+                                                <th className="px-6 py-4">Medicamento</th>
+                                                <th className="px-6 py-4">Qtd.</th>
+                                                <th className="px-6 py-4">Motivo</th>
+                                                <th className="px-6 py-4">Paciente</th>
+                                                <th className="px-6 py-4">Usuário</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-100">
+                                            {stockData.map((item) => {
+                                                const isPositive = item.quantity_change > 0;
+                                                const reasonMap = {
+                                                    'consumption': 'Consumo',
+                                                    'refill': 'Compra/Entrada',
+                                                    'adjustment': 'Ajuste Manual',
+                                                    'correction': 'Correção'
+                                                };
+                                                return (
+                                                    <tr key={item.id} className="hover:bg-slate-50 transition-colors">
+                                                        <td className="px-6 py-4 text-slate-600">
+                                                            {formatDateTime(item.created_at)}
+                                                        </td>
+                                                        <td className="px-6 py-4 font-medium text-slate-900">
+                                                            {item.medications?.name}
+                                                            <div className="flex gap-1 text-xs text-slate-500 font-normal mt-0.5">
+                                                                <span>{item.medications?.dosage}</span>
+                                                                {item.medications?.type && (
+                                                                    <>
+                                                                        <span>•</span>
+                                                                        <span>{item.medications?.type}</span>
+                                                                    </>
+                                                                )}
+                                                            </div>
+                                                        </td>
+                                                        <td className={`px-6 py-4 font-bold ${isPositive ? 'text-green-600' : 'text-orange-600'}`}>
+                                                            {isPositive ? '+' : ''}{item.quantity_change}
+                                                        </td>
+                                                        <td className="px-6 py-4 text-slate-600">
+                                                            <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium ${item.reason === 'consumption' ? 'bg-orange-50 text-orange-700' :
+                                                                item.reason === 'refill' ? 'bg-green-50 text-green-700' : 'bg-slate-100 text-slate-600'
+                                                                }`}>
+                                                                {reasonMap[item.reason] || item.reason}
+                                                            </span>
+                                                        </td>
+                                                        <td className="px-6 py-4 text-slate-600">
+                                                            {item.patients?.name || '-'}
+                                                        </td>
+                                                        <td className="px-6 py-4 text-slate-500 text-xs">
+                                                            {item.profiles?.full_name || 'Usuário'}
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </Card>
+                        )}
+                    </div>
+                )}
 
                 {activeTab === 'history' ? (
                     <Card className="no-print">

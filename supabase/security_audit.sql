@@ -2,11 +2,11 @@
 -- RUN THIS IN SUPABASE SQL EDITOR
 
 -- 1. Enable Row Level Security (RLS) on ALL tables
-ALTER TABLE public.patients ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.medications ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.prescriptions ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.consumption_log ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.account_shares ENABLE ROW LEVEL SECURITY;
+-- ALTER TABLE public.patients ENABLE ROW LEVEL SECURITY;
+-- ALTER TABLE public.medications ENABLE ROW LEVEL SECURITY;
+-- ALTER TABLE public.prescriptions ENABLE ROW LEVEL SECURITY;
+-- ALTER TABLE public.consumption_log ENABLE ROW LEVEL SECURITY;
+-- ALTER TABLE public.account_shares ENABLE ROW LEVEL SECURITY;
 
 -- 2. Revoke all permissions from 'anon' and 'public' roles for sensitive operations
 -- 'anon' should NOT be able to insert/update/delete sensitive data directly
@@ -44,6 +44,7 @@ GRANT EXECUTE ON FUNCTION public.check_access(uuid) TO service_role;
 
 -- 7. Ensure `account_shares` policies are tight
 -- Only owner can insert/delete shares.
+DROP POLICY IF EXISTS "Users can manage their own shares" ON public.account_shares;
 CREATE POLICY "Users can manage their own shares"
 ON public.account_shares
 FOR ALL

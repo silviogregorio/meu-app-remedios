@@ -14,7 +14,6 @@ const NotificationManager = () => {
         const checkDoses = () => {
             const now = new Date();
             const todayStr = now.toISOString().split('T')[0];
-            const currentTime = format(now, 'HH:mm');
 
             // Calculate schedule for today (simplified version of Home.jsx logic)
             const schedule = [];

@@ -303,6 +303,20 @@ export const AppProvider = ({ children }) => {
 
             const newMedication = transformMedication(data[0]);
             setMedications(prev => [...prev, newMedication]);
+
+            // Log Stock History (Initial Refill)
+            if (newMedication.quantity > 0) {
+                await supabase.from('stock_history').insert([{
+                    user_id: user.id,
+                    medication_id: newMedication.id,
+                    quantity_change: newMedication.quantity,
+                    previous_balance: 0,
+                    new_balance: newMedication.quantity,
+                    reason: 'refill',
+                    notes: 'Cadastro inicial'
+                }]);
+            }
+
             showToast('Medicamento adicionado!');
         } catch (error) {
             console.error('Erro ao adicionar medicamento:', error);
@@ -327,6 +341,25 @@ export const AppProvider = ({ children }) => {
             if (error) throw error;
 
             const updatedMedication = transformMedication(data[0]);
+
+            // Log Stock Adjustment if quantity changed
+            const oldMed = medications.find(m => m.id === id);
+            if (oldMed && updatedData.quantity !== undefined && parseFloat(updatedData.quantity) !== oldMed.quantity) {
+                const oldQty = parseFloat(oldMed.quantity);
+                const newQty = parseFloat(updatedData.quantity);
+                const diff = newQty - oldQty;
+
+                await supabase.from('stock_history').insert([{
+                    user_id: user.id,
+                    medication_id: id,
+                    quantity_change: diff,
+                    previous_balance: oldQty,
+                    new_balance: newQty,
+                    reason: 'adjustment',
+                    notes: 'Ajuste manual de estoque'
+                }]);
+            }
+
             setMedications(prev => prev.map(m => m.id === id ? updatedMedication : m));
             showToast('Medicamento atualizado!');
         } catch (error) {
@@ -467,6 +500,20 @@ export const AppProvider = ({ children }) => {
                         .update({ quantity: newQuantity })
                         .eq('id', medication.id);
 
+                    // Log Stock History (Consumption)
+                    await supabase.from('stock_history').insert([{
+                        user_id: user.id,
+                        patient_id: prescription.patientId,
+                        medication_id: medication.id,
+                        quantity_change: -dose,
+                        previous_balance: parseFloat(medication.quantity),
+                        new_balance: newQuantity,
+                        reason: 'consumption',
+                        // Note if taken not by owner? We are logging AS the current user (user.id).
+                        // If we want detailed tracking on shared patients, we might need a distinct 'notes' field logic later.
+                        notes: `Dose tomada: ${prescription.doseAmount || '1'}`
+                    }]);
+
                     // Atualiza estado local (optimistic/realtime vai cobrir, mas garantindo)
                     setMedications(prev => prev.map(m =>
                         m.id === medication.id ? { ...m, quantity: newQuantity } : m
@@ -475,9 +522,109 @@ export const AppProvider = ({ children }) => {
             }
 
             showToast('Dose registrada!');
+
+            // 3. Verificar Estoque Baixo (Novo)
+            if (prescription && prescription.medicationId) {
+                // Pequeno delay para garantir que o estado local atualizou (embora estejamos usando vars locais)
+                // Usando setTimeout para não bloquear a UI
+                setTimeout(() => checkLowStock(prescription.medicationId), 1000);
+            }
+
         } catch (error) {
             console.error('Erro ao registrar consumo:', error);
             showToast('Erro ao registrar dose', 'error');
+        }
+    };
+
+    // --- Lógica de Alerta de Estoque Inteligente ---
+    const calculateStockDays = (medicationId) => {
+        const med = medications.find(m => m.id === medicationId);
+        if (!med || !med.quantity) return null;
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const activePrescriptions = prescriptions.filter(p =>
+            p.medicationId === medicationId &&
+            p.active !== false &&
+            (!p.endDate || new Date(p.endDate) >= today)
+        );
+
+        if (activePrescriptions.length === 0) return null;
+
+        let dailyUsage = 0;
+        activePrescriptions.forEach(p => {
+            const dose = parseFloat(p.doseAmount) || 1;
+            const freq = p.times ? p.times.length : 0;
+            dailyUsage += (dose * freq);
+        });
+
+        if (dailyUsage <= 0) return null;
+
+        return med.quantity / dailyUsage;
+    };
+
+    const checkLowStock = async (medicationId) => {
+        const daysRemaining = calculateStockDays(medicationId);
+        if (daysRemaining === null) return;
+
+        const med = medications.find(m => m.id === medicationId);
+
+        // 3. Verificar Limite (3 dias)
+        if (daysRemaining <= 3) {
+            const daysDisplay = Math.floor(daysRemaining);
+            const msg = `Atenção: Estoque de ${med.name} acaba em ${daysDisplay} dia(s)!`;
+
+            // Alerta Visual (Toast)
+            showToast(msg, 'warning');
+
+            // Alerta por Email (Throttled - 1x por dia)
+            const todayStr = new Date().toISOString().split('T')[0];
+
+            // Se já alertou hoje, ignora
+            if (med.last_alert_date === todayStr) {
+                console.log('Email de estoque já enviado hoje para', med.name);
+                return;
+            }
+
+            // Enviar Email
+            try {
+                const apiUrl = import.meta.env.VITE_API_URL || '';
+                const endpoint = apiUrl ? `${apiUrl}/api/send-email` : '/api/send-email';
+
+                // Atualizar DB PRIMEIRO para evitar dupla execução em race condition
+                const { error: updateError } = await supabase
+                    .from('medications')
+                    .update({ last_alert_date: todayStr })
+                    .eq('id', med.id);
+
+                if (updateError) throw updateError;
+
+                // Atualizar estado local
+                setMedications(prev => prev.map(m =>
+                    m.id === med.id ? { ...m, last_alert_date: todayStr } : m
+                ));
+
+                // Disparar Email
+                if (user && user.email) {
+                    await fetch(endpoint, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            to: user.email,
+                            subject: `⚠️ Alerta de Estoque: ${med.name}`,
+                            text: `Olá, ${user.user_metadata?.full_name || 'Usuário'}.\n\nO estoque do medicamento ${med.name} está baixo.\n\nRestam apenas ${med.quantity} doses/unidades, o que deve durar cerca de ${daysDisplay} dias (baseado no seu uso diário de ${dailyUsage}).\n\nRecomendamos comprar uma nova caixa em breve.\n\nSiG Remédios`,
+                            observations: 'Alerta automático de estoque.',
+                            type: 'contact'
+                        })
+                    });
+                    console.log('Email de baixo estoque enviado:', med.name);
+                }
+
+            } catch (err) {
+                console.error('Erro ao processar alerta de estoque:', err);
+                // Não mostramos toast de erro pro usuário para não assustar, é um processo bg
+            }
         }
     };
 
@@ -512,6 +659,17 @@ export const AppProvider = ({ children }) => {
                         .from('medications')
                         .update({ quantity: newQuantity })
                         .eq('id', medication.id);
+
+                    // Log Stock History (Correction/Return)
+                    await supabase.from('stock_history').insert([{
+                        user_id: user.id,
+                        medication_id: medication.id,
+                        quantity_change: dose,
+                        previous_balance: parseFloat(medication.quantity),
+                        new_balance: newQuantity,
+                        reason: 'correction',
+                        notes: 'Dose desmarcada (devolvida ao estoque)'
+                    }]);
 
                     // Atualiza estado local
                     setMedications(prev => prev.map(m =>
@@ -809,6 +967,7 @@ export const AppProvider = ({ children }) => {
             prescriptions: userPrescriptions, addPrescription, updatePrescription, deletePrescription,
             consumptionLog, logConsumption, removeConsumption,
             showToast,
+            calculateStockDays,
             updateProfile,
 
             accountShares, shareAccount, unshareAccount,
