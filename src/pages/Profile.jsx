@@ -17,7 +17,9 @@ const Profile = () => {
     const [isEditing, setIsEditing] = useState(false);
     const [isChangingPassword, setIsChangingPassword] = useState(false);
     const [editForm, setEditForm] = useState({
-        name: user?.user_metadata?.full_name || ''
+        name: user?.user_metadata?.full_name || '',
+        email: user?.email || '',
+        currentPassword: '' // Para validar alteração de email
     });
     const [passwordForm, setPasswordForm] = useState({
         currentPassword: '',
@@ -30,8 +32,50 @@ const Profile = () => {
             showToast('Nome é obrigatório', 'error');
             return;
         }
-        await updateProfile(editForm);
+
+        // Se o email mudou, valida senha
+        const emailChanged = editForm.email !== user?.email;
+
+        if (emailChanged) {
+            if (!editForm.currentPassword) {
+                showToast('Digite sua senha para alterar o email', 'error');
+                return;
+            }
+
+            // Valida a senha atual
+            try {
+                const { error: signInError } = await supabase.auth.signInWithPassword({
+                    email: user.email,
+                    password: editForm.currentPassword
+                });
+
+                if (signInError) {
+                    showToast('Senha incorreta', 'error');
+                    return;
+                }
+
+                // Senha correta, atualiza o email
+                const { error: updateError } = await supabase.auth.updateUser({
+                    email: editForm.email
+                });
+
+                if (updateError) {
+                    showToast('Erro ao alterar email: ' + updateError.message, 'error');
+                    return;
+                }
+
+                showToast('Email de confirmação enviado para ' + editForm.email, 'success');
+                showToast('Verifique sua caixa de entrada para confirmar', 'info');
+            } catch (error) {
+                showToast('Erro: ' + error.message, 'error');
+                return;
+            }
+        }
+
+        // Atualiza nome
+        await updateProfile({ name: editForm.name });
         setIsEditing(false);
+        setEditForm({ ...editForm, currentPassword: '' }); // Limpa senha
         showToast('Perfil atualizado com sucesso!', 'success');
     };
 
@@ -200,6 +244,32 @@ const Profile = () => {
                         onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
                         placeholder="Seu nome"
                     />
+
+                    <Input
+                        label="Email"
+                        type="email"
+                        value={editForm.email}
+                        onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                        placeholder="seu@email.com"
+                    />
+
+                    {editForm.email !== user?.email && (
+                        <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4">
+                            <p className="text-sm text-amber-900 dark:text-amber-100 mb-3 font-medium">
+                                🔒 Para alterar o email, confirme sua senha:
+                            </p>
+                            <Input
+                                label="Senha Atual"
+                                type="password"
+                                value={editForm.currentPassword}
+                                onChange={(e) => setEditForm({ ...editForm, currentPassword: e.target.value })}
+                                placeholder="Digite sua senha"
+                            />
+                            <p className="text-xs text-amber-700 dark:text-amber-300 mt-2">
+                                ℹ️ Um email de confirmação será enviado para <strong>{editForm.email}</strong>
+                            </p>
+                        </div>
+                    )}
 
                     <div className="flex gap-3 mt-2">
                         <Button variant="ghost" onClick={() => setIsEditing(false)} className="flex-1">
