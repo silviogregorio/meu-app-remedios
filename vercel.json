@@ -2,7 +2,7 @@
     "crons": [
         {
             "path": "/api/cron/check-missed-doses",
-            "schedule": "*/30 * * * *"
+            "schedule": "0 */2 * * *"
         }
     ]
 }
