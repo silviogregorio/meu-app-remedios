@@ -16,6 +16,7 @@ const Profile = () => {
 
     const [isEditing, setIsEditing] = useState(false);
     const [isChangingPassword, setIsChangingPassword] = useState(false);
+    const [isSaving, setIsSaving] = useState(false); // Loading state for save operations
     const [editForm, setEditForm] = useState({
         name: user?.user_metadata?.full_name || '',
         email: user?.email || '',
@@ -28,86 +29,94 @@ const Profile = () => {
     });
 
     const handleUpdateProfile = async () => {
-        if (!editForm.name.trim()) {
-            showToast('Nome é obrigatório', 'error');
-            return;
-        }
+        if (isSaving) return; // Prevent multiple clicks
 
-        // Se o email mudou, valida senha
-        const emailChanged = editForm.email !== user?.email;
+        setIsSaving(true); // Disable button
 
-        if (emailChanged) {
-            if (!editForm.currentPassword) {
-                showToast('Digite sua senha para alterar o email', 'error');
+        try {
+            if (!editForm.name.trim()) {
+                showToast('Nome é obrigatório', 'error');
                 return;
             }
 
-            // Valida a senha atual
-            try {
-                const { error: signInError } = await supabase.auth.signInWithPassword({
-                    email: user.email,
-                    password: editForm.currentPassword
-                });
+            // Se o email mudou, valida senha
+            const emailChanged = editForm.email !== user?.email;
 
-                if (signInError) {
-                    console.error('Erro de autenticação:', signInError);
-                    showToast('❌ Senha incorreta! Verifique e tente novamente.', 'error');
+            if (emailChanged) {
+                if (!editForm.currentPassword) {
+                    showToast('Digite sua senha para alterar o email', 'error');
                     return;
                 }
 
-                // Senha correta, atualiza o email
-                const { error: updateError } = await supabase.auth.updateUser({
-                    email: editForm.email
-                });
+                // Valida a senha atual
+                try {
+                    const { error: signInError } = await supabase.auth.signInWithPassword({
+                        email: user.email,
+                        password: editForm.currentPassword
+                    });
 
-                if (updateError) {
-                    // Traduzir mensagens de erro do Supabase
-                    let errorMessage = 'Erro ao alterar email';
-
-                    if (updateError.message.includes('has already been registered') ||
-                        updateError.message.includes('already registered') ||
-                        updateError.message.includes('already exists') ||
-                        updateError.message.includes('Email already in use')) {
-                        errorMessage = '❌ Este email já está sendo usado por outra conta';
-                    } else if (updateError.message.includes('rate limit')) {
-                        errorMessage = '⏱️ Muitas tentativas. Aguarde alguns minutos e tente novamente';
-                    } else if (updateError.message.includes('invalid')) {
-                        errorMessage = '❌ Email inválido. Verifique e tente novamente';
-                    } else {
-                        errorMessage = `❌ Erro ao alterar email: ${updateError.message}`;
+                    if (signInError) {
+                        console.error('Erro de autenticação:', signInError);
+                        showToast('❌ Senha incorreta! Verifique e tente novamente.', 'error');
+                        return;
                     }
 
-                    showToast(errorMessage, 'error');
+                    // Senha correta, atualiza o email
+                    const { error: updateError } = await supabase.auth.updateUser({
+                        email: editForm.email
+                    });
+
+                    if (updateError) {
+                        // Traduzir mensagens de erro do Supabase
+                        let errorMessage = 'Erro ao alterar email';
+
+                        if (updateError.message.includes('has already been registered') ||
+                            updateError.message.includes('already registered') ||
+                            updateError.message.includes('already exists') ||
+                            updateError.message.includes('Email already in use')) {
+                            errorMessage = '❌ Este email já está sendo usado por outra conta';
+                        } else if (updateError.message.includes('rate limit')) {
+                            errorMessage = '⏱️ Muitas tentativas. Aguarde alguns minutos e tente novamente';
+                        } else if (updateError.message.includes('invalid')) {
+                            errorMessage = '❌ Email inválido. Verifique e tente novamente';
+                        } else {
+                            errorMessage = `❌ Erro ao alterar email: ${updateError.message}`;
+                        }
+
+                        showToast(errorMessage, 'error');
+                        return;
+                    }
+
+                    showToast('📧 Email de confirmação enviado!', 'success');
+                    showToast(`Verifique ${editForm.email} e clique no link para confirmar a mudança`, 'info');
+                    showToast('⚠️ Seu email só mudará após confirmação', 'warning');
+                } catch (error) {
+                    showToast('Erro: ' + error.message, 'error');
                     return;
                 }
+            }
 
-                showToast('📧 Email de confirmação enviado!', 'success');
-                showToast(`Verifique ${editForm.email} e clique no link para confirmar a mudança`, 'info');
-                showToast('⚠️ Seu email só mudará após confirmação', 'warning');
+            // Atualiza nome via Supabase
+            try {
+                const { error } = await supabase.auth.updateUser({
+                    data: { full_name: editForm.name }
+                });
+
+                if (error) {
+                    showToast('Erro ao atualizar nome: ' + error.message, 'error');
+                    return;
+                }
             } catch (error) {
                 showToast('Erro: ' + error.message, 'error');
                 return;
             }
+
+            setIsEditing(false);
+            setEditForm({ ...editForm, currentPassword: '' }); // Limpa senha
+            showToast('Perfil atualizado com sucesso!', 'success');
+        } finally {
+            setIsSaving(false); // Re-enable button
         }
-
-        // Atualiza nome via Supabase
-        try {
-            const { error } = await supabase.auth.updateUser({
-                data: { full_name: editForm.name }
-            });
-
-            if (error) {
-                showToast('Erro ao atualizar nome: ' + error.message, 'error');
-                return;
-            }
-        } catch (error) {
-            showToast('Erro: ' + error.message, 'error');
-            return;
-        }
-
-        setIsEditing(false);
-        setEditForm({ ...editForm, currentPassword: '' }); // Limpa senha
-        showToast('Perfil atualizado com sucesso!', 'success');
     };
 
     const handleChangePassword = async () => {
@@ -314,8 +323,8 @@ const Profile = () => {
                         <Button variant="ghost" onClick={() => setIsEditing(false)} className="flex-1">
                             Cancelar
                         </Button>
-                        <Button onClick={handleUpdateProfile} className="flex-1">
-                            Salvar Alterações
+                        <Button onClick={handleUpdateProfile} className="flex-1" disabled={isSaving}>
+                            {isSaving ? '⏳ Salvando...' : 'Salvar Alterações'}
                         </Button>
                     </div>
                 </div>
