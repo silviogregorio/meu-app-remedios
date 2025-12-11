@@ -13,21 +13,25 @@
 export const generateGoogleCalendarUrl = (prescription, medication, patient, specificTime) => {
     const baseUrl = 'https://calendar.google.com/calendar/render?action=TEMPLATE';
 
-    // Event title
-    const title = `💊 ${medication?.name || 'Medicamento'} - ${patient?.name || 'Paciente'}`;
+    // SECURITY: Use generic IDs instead of names to prevent data exposure in URLs
+    const medCode = medication?.id?.slice(0, 8) || 'MED';
+    const patCode = patient?.id?.slice(0, 8) || 'PAT';
 
-    // Event description
+    // Event title - SANITIZED (no real names)
+    const title = `💊 Medicamento ${medCode}`;
+
+    // Event description - SANITIZED
     const dosage = prescription.doseAmount || '1';
     const unit = prescription.doseUnit || 'unidade';
     const instructions = prescription.instructions || '';
 
     const description = `
-Medicamento: ${medication?.name}
-Paciente: ${patient?.name}
+Código: ${medCode}
+Paciente: ${patCode}
 Dose: ${dosage} ${unit}
 ${instructions ? `Instruções: ${instructions}` : ''}
 
-Registrado via SiG Remédios
+⚠️ Detalhes completos no app SiG Remédios
   `.trim();
 
     // Calculate start and end time
@@ -114,12 +118,16 @@ export const downloadICalFile = (prescription, medication, patient, specificTime
         return date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
     };
 
-    const title = `💊 ${medication?.name || 'Medicamento'} - ${patient?.name || 'Paciente'}`;
+    // SECURITY: Use generic codes instead of real names
+    const medCode = medication?.id?.slice(0, 8) || 'MED';
+    const patCode = patient?.id?.slice(0, 8) || 'PAT';
+
+    const title = `💊 Medicamento ${medCode}`;
     const dosage = prescription.doseAmount || '1';
     const unit = prescription.doseUnit || 'unidade';
     const instructions = prescription.instructions || '';
 
-    const description = `Medicamento: ${medication?.name}\\nPaciente: ${patient?.name}\\nDose: ${dosage} ${unit}${instructions ? `\\nInstruções: ${instructions}` : ''}`;
+    const description = `Código: ${medCode}\\nPaciente: ${patCode}\\nDose: ${dosage} ${unit}${instructions ? `\\nInstr: ${instructions}` : ''}`;
 
     let rrule = 'FREQ=DAILY';
     if (prescription.endDate) {
@@ -152,7 +160,7 @@ export const downloadICalFile = (prescription, medication, patient, specificTime
     const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = `medicamento-${medication?.name}-${specificTime}.ics`;
+    link.download = `med-${medCode}-${specificTime}.ics`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
