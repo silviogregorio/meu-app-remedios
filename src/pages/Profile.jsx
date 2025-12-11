@@ -17,6 +17,8 @@ const Profile = () => {
     const [isEditing, setIsEditing] = useState(false);
     const [isChangingPassword, setIsChangingPassword] = useState(false);
     const [isSaving, setIsSaving] = useState(false); // Loading state for save operations
+    const [showEmailConfirmModal, setShowEmailConfirmModal] = useState(false); // Confirmation modal for email change
+    const [pendingEmailChange, setPendingEmailChange] = useState(null); // Store pending email change data
     const [editForm, setEditForm] = useState({
         name: user?.user_metadata?.full_name || '',
         email: user?.email || '',
@@ -31,15 +33,13 @@ const Profile = () => {
     const handleUpdateProfile = async () => {
         if (isSaving) return; // Prevent multiple clicks
 
-        setIsSaving(true); // Disable button
-
         try {
             if (!editForm.name.trim()) {
                 showToast('Nome é obrigatório', 'error');
                 return;
             }
 
-            // Se o email mudou, valida senha
+            // Se o email mudou, mostra confirmação primeiro
             const emailChanged = editForm.email !== user?.email;
 
             if (emailChanged) {
@@ -48,55 +48,18 @@ const Profile = () => {
                     return;
                 }
 
-                // Valida a senha atual
-                try {
-                    const { error: signInError } = await supabase.auth.signInWithPassword({
-                        email: user.email,
-                        password: editForm.currentPassword
-                    });
-
-                    if (signInError) {
-                        console.error('Erro de autenticação:', signInError);
-                        showToast('❌ Senha incorreta! Verifique e tente novamente.', 'error');
-                        return;
-                    }
-
-                    // Senha correta, atualiza o email
-                    const { error: updateError } = await supabase.auth.updateUser({
-                        email: editForm.email
-                    });
-
-                    if (updateError) {
-                        // Traduzir mensagens de erro do Supabase
-                        let errorMessage = 'Erro ao alterar email';
-
-                        if (updateError.message.includes('has already been registered') ||
-                            updateError.message.includes('already registered') ||
-                            updateError.message.includes('already exists') ||
-                            updateError.message.includes('Email already in use')) {
-                            errorMessage = '❌ Este email já está sendo usado por outra conta';
-                        } else if (updateError.message.includes('rate limit')) {
-                            errorMessage = '⏱️ Muitas tentativas. Aguarde alguns minutos e tente novamente';
-                        } else if (updateError.message.includes('invalid')) {
-                            errorMessage = '❌ Email inválido. Verifique e tente novamente';
-                        } else {
-                            errorMessage = `❌ Erro ao alterar email: ${updateError.message}`;
-                        }
-
-                        showToast(errorMessage, 'error');
-                        return;
-                    }
-
-                    showToast('📧 Email de confirmação enviado!', 'success');
-                    showToast(`Verifique ${editForm.email} e clique no link para confirmar a mudança`, 'info');
-                    showToast('⚠️ Seu email só mudará após confirmação', 'warning');
-                } catch (error) {
-                    showToast('Erro: ' + error.message, 'error');
-                    return;
-                }
+                // Armazena dados e mostra modal de confirmação
+                setPendingEmailChange({
+                    newEmail: editForm.email,
+                    password: editForm.currentPassword,
+                    name: editForm.name
+                });
+                setShowEmailConfirmModal(true);
+                return; // Para aqui e espera confirmação
             }
 
-            // Atualiza nome via Supabase
+            // Se não mudou email, só atualiza nome
+            setIsSaving(true);
             try {
                 const { error } = await supabase.auth.updateUser({
                     data: { full_name: editForm.name }
@@ -116,6 +79,69 @@ const Profile = () => {
             showToast('Perfil atualizado com sucesso!', 'success');
         } finally {
             setIsSaving(false); // Re-enable button
+        }
+    };
+
+    // Função que executa após confirmação no modal
+    const handleConfirmEmailChange = async () => {
+        if (!pendingEmailChange) return;
+
+        setIsSaving(true);
+        setShowEmailConfirmModal(false);
+
+        try {
+            // Valida a senha atual
+            const { error: signInError } = await supabase.auth.signInWithPassword({
+                email: user.email,
+                password: pendingEmailChange.password
+            });
+
+            if (signInError) {
+                console.error('Erro de autenticação:', signInError);
+                showToast('❌ Senha incorreta! Verifique e tente novamente.', 'error');
+                return;
+            }
+
+            // Senha correta, atualiza o email
+            const { error: updateError } = await supabase.auth.updateUser({
+                email: pendingEmailChange.newEmail
+            });
+
+            if (updateError) {
+                // Traduzir mensagens de erro do Supabase
+                let errorMessage = 'Erro ao alterar email';
+
+                if (updateError.message.includes('has already been registered') ||
+                    updateError.message.includes('already registered') ||
+                    updateError.message.includes('already exists') ||
+                    updateError.message.includes('Email already in use')) {
+                    errorMessage = '❌ Este email já está sendo usado por outra conta';
+                } else if (updateError.message.includes('rate limit')) {
+                    errorMessage = '⏱️ Muitas tentativas. Aguarde alguns minutos e tente novamente';
+                } else if (updateError.message.includes('invalid')) {
+                    errorMessage = '❌ Email inválido. Verifique e tente novamente';
+                } else {
+                    errorMessage = `❌ Erro ao alterar email: ${updateError.message}`;
+                }
+
+                showToast(errorMessage, 'error');
+                return;
+            }
+
+            showToast('📧 Email de confirmação enviado!', 'success');
+            showToast(`Verifique ${pendingEmailChange.newEmail} e clique no link para confirmar`, 'info');
+
+            // Aguarda 2 segundos para mostrar mensagens
+            await new Promise(resolve => setTimeout(resolve, 2000));
+
+            // Faz logout
+            await logout();
+            navigate('/login');
+        } catch (error) {
+            showToast('Erro: ' + error.message, 'error');
+        } finally {
+            setIsSaving(false);
+            setPendingEmailChange(null);
         }
     };
 
@@ -325,6 +351,61 @@ const Profile = () => {
                         </Button>
                         <Button onClick={handleUpdateProfile} className="flex-1" disabled={isSaving}>
                             {isSaving ? '⏳ Salvando...' : 'Salvar Alterações'}
+                        </Button>
+                    </div>
+                </div>
+            </Modal>
+
+            {/* Email Change Confirmation Modal */}
+            <Modal
+                isOpen={showEmailConfirmModal}
+                onClose={() => {
+                    setShowEmailConfirmModal(false);
+                    setPendingEmailChange(null);
+                }}
+                title="⚠️ Confirmar Mudança de Email"
+            >
+                <div className="flex flex-col gap-4">
+                    <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4">
+                        <p className="text-sm text-amber-900 dark:text-amber-100 mb-2">
+                            <strong>📧 Você está prestes a alterar seu email para:</strong>
+                        </p>
+                        <p className="text-base font-semibold text-amber-900 dark:text-amber-100 mb-3">
+                            {pendingEmailChange?.newEmail}
+                        </p>
+                        <hr className="border-amber-200 dark:border-amber-700 my-3" />
+                        <p className="text-sm text-amber-900 dark:text-amber-100 mb-2">
+                            <strong>✉️ O que vai acontecer:</strong>
+                        </p>
+                        <ul className="text-sm text-amber-900 dark:text-amber-100 space-y-1 list-disc list-inside">
+                            <li>Você receberá um <strong>email de confirmação</strong> no novo endereço</li>
+                            <li>Clique no link do email para <strong>confirmar a mudança</strong></li>
+                            <li>Você será <strong>deslogado automaticamente</strong> após enviar</li>
+                            <li>Faça login com o <strong>novo email</strong> após confirmar</li>
+                        </ul>
+                    </div>
+
+                    <p className="text-sm text-gray-600 dark:text-gray-400 text-center">
+                        Tem certeza que deseja continuar?
+                    </p>
+
+                    <div className="flex gap-3 mt-2">
+                        <Button
+                            variant="ghost"
+                            onClick={() => {
+                                setShowEmailConfirmModal(false);
+                                setPendingEmailChange(null);
+                            }}
+                            className="flex-1"
+                        >
+                            Cancelar
+                        </Button>
+                        <Button
+                            onClick={handleConfirmEmailChange}
+                            className="flex-1 bg-amber-500 hover:bg-amber-600"
+                            disabled={isSaving}
+                        >
+                            {isSaving ? '⏳ Processando...' : '✅ Sim, Confirmar'}
                         </Button>
                     </div>
                 </div>
