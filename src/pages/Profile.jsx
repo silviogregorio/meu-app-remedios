@@ -10,7 +10,7 @@ import Modal from '../components/ui/Modal';
 import { User, Settings, LogOut, Bell, LogIn, Database, Trash2, Mail, Phone, MapPin, Camera, Shield, Share2, Activity } from 'lucide-react';
 
 const Profile = () => {
-    const { user, logout, updateProfile } = useAuth(); // AuthContext for user/logout/updateProfile
+    const { user, logout } = useAuth(); // AuthContext for user/logout
     const { showToast, runCaregiverCheck } = useApp(); // AppContext for app features
     const navigate = useNavigate();
 
@@ -72,8 +72,21 @@ const Profile = () => {
             }
         }
 
-        // Atualiza nome
-        await updateProfile({ name: editForm.name });
+        // Atualiza nome via Supabase
+        try {
+            const { error } = await supabase.auth.updateUser({
+                data: { full_name: editForm.name }
+            });
+
+            if (error) {
+                showToast('Erro ao atualizar nome: ' + error.message, 'error');
+                return;
+            }
+        } catch (error) {
+            showToast('Erro: ' + error.message, 'error');
+            return;
+        }
+
         setIsEditing(false);
         setEditForm({ ...editForm, currentPassword: '' }); // Limpa senha
         showToast('Perfil atualizado com sucesso!', 'success');
