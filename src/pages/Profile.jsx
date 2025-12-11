@@ -50,7 +50,8 @@ const Profile = () => {
                 });
 
                 if (signInError) {
-                    showToast('Senha incorreta', 'error');
+                    console.error('Erro de autenticação:', signInError);
+                    showToast('❌ Senha incorreta! Verifique e tente novamente.', 'error');
                     return;
                 }
 
@@ -273,13 +274,6 @@ const Profile = () => {
                         placeholder="seu@email.com"
                     />
 
-                    {/* Debug temporário - remover depois */}
-                    <div className="text-xs p-2 bg-gray-100 rounded border">
-                        <strong>Debug:</strong><br />
-                        Form: <code>{editForm.email}</code><br />
-                        User: <code>{user?.email}</code><br />
-                        Diferentes? <code>{String(editForm.email?.trim().toLowerCase() !== user?.email?.trim().toLowerCase())}</code>
-                    </div>
 
                     {(editForm.email?.trim().toLowerCase() !== user?.email?.trim().toLowerCase()) && (
                         <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4">
