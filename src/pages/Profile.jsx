@@ -64,7 +64,8 @@ const Profile = () => {
                     // Traduzir mensagens de erro do Supabase
                     let errorMessage = 'Erro ao alterar email';
 
-                    if (updateError.message.includes('already registered') ||
+                    if (updateError.message.includes('has already been registered') ||
+                        updateError.message.includes('already registered') ||
                         updateError.message.includes('already exists') ||
                         updateError.message.includes('Email already in use')) {
                         errorMessage = '❌ Este email já está sendo usado por outra conta';
