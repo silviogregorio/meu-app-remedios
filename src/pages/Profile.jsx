@@ -273,7 +273,15 @@ const Profile = () => {
                         placeholder="seu@email.com"
                     />
 
-                    {editForm.email !== user?.email && (
+                    {/* Debug temporário - remover depois */}
+                    <div className="text-xs p-2 bg-gray-100 rounded border">
+                        <strong>Debug:</strong><br />
+                        Form: <code>{editForm.email}</code><br />
+                        User: <code>{user?.email}</code><br />
+                        Diferentes? <code>{String(editForm.email?.trim().toLowerCase() !== user?.email?.trim().toLowerCase())}</code>
+                    </div>
+
+                    {(editForm.email?.trim().toLowerCase() !== user?.email?.trim().toLowerCase()) && (
                         <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4">
                             <p className="text-sm text-amber-900 dark:text-amber-100 mb-3 font-medium">
                                 🔒 Para alterar o email, confirme sua senha:
