@@ -2,7 +2,7 @@ import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
-const ProtectedRoute = ({ children }) => {
+const ProtectedRoute = ({ children, adminOnly = false }) => {
     const { user, loading } = useAuth();
 
     if (loading) {
@@ -15,6 +15,11 @@ const ProtectedRoute = ({ children }) => {
 
     if (!user) {
         return <Navigate to="/" replace />;
+    }
+
+    // Admin-only route protection
+    if (adminOnly && user.email !== 'sigremedios@gmail.com') {
+        return <Navigate to="/app" replace />;
     }
 
     return children;

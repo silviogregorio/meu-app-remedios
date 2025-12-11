@@ -20,6 +20,7 @@ import Share from './pages/Share';
 
 import Landing from './pages/Landing';
 import AdminSponsors from './pages/AdminSponsors';
+import AdminSecurity from './pages/AdminSecurity';
 
 import NotificationManager from './components/NotificationManager';
 import { ThemeProvider } from './context/ThemeContext';
@@ -52,6 +53,7 @@ function App() {
                   <Route path="/share" element={<ProtectedRoute><Share /></ProtectedRoute>} />
                   <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
                   <Route path="/admin/sponsors" element={<ProtectedRoute><AdminSponsors /></ProtectedRoute>} />
+                  <Route path="/admin/security" element={<ProtectedRoute adminOnly={true}><AdminSecurity /></ProtectedRoute>} />
                 </Route>
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
