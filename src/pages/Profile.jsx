@@ -79,13 +79,22 @@ const Profile = () => {
                 </div>
                 <div className="p-6">
                     <div className="flex flex-col gap-4">
+                        <div className="flex items-start gap-3 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-800">
+                            <Bell className="text-blue-600 dark:text-blue-400 mt-1" size={20} />
+                            <div>
+                                <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-1">ℹ️ Verificação Automática Ativa</h4>
+                                <p className="text-sm text-blue-700 dark:text-blue-300">
+                                    O sistema verifica automaticamente remédios atrasados <strong>a cada 2 horas</strong>.
+                                    Você receberá um email se algum medicamento não for marcado como tomado após 30 minutos do horário agendado.
+                                </p>
+                            </div>
+                        </div>
                         <div className="flex items-start gap-3 p-4 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-700">
                             <Bell className="text-slate-400 mt-1" size={20} />
                             <div>
-                                <h4 className="font-semibold text-slate-900 dark:text-white">Verificação de Atrasos</h4>
+                                <h4 className="font-semibold text-slate-900 dark:text-white">Verificação Manual</h4>
                                 <p className="text-sm text-slate-500 mb-3">
-                                    Simule a verificação automática de remédios atrasados (mais de 30min).
-                                    Se houver atrasos não notificados hoje, você receberá um email de alerta.
+                                    Não quer esperar? Clique abaixo para executar a verificação imediatamente.
                                 </p>
                                 <Button
                                     variant="outline"
