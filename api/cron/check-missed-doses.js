@@ -8,15 +8,50 @@ export const config = {
 }
 
 export default async function handler(req) {
-    // Security: Check for cron secret or authorization
+    // ========================================
+    // SECURITY LAYER 1: CRON SECRET (REQUIRED)
+    // ========================================
     const authHeader = req.headers.get('authorization')
     const cronSecret = process.env.CRON_SECRET
 
-    if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+    // CRON_SECRET is now MANDATORY
+    if (!cronSecret) {
+        console.error('SECURITY ERROR: CRON_SECRET not configured')
+        return new Response(JSON.stringify({
+            error: 'Server misconfiguration - CRON_SECRET missing'
+        }), {
+            status: 500,
+            headers: { 'Content-Type': 'application/json' },
+        })
+    }
+
+    if (authHeader !== `Bearer ${cronSecret}`) {
+        const clientIp = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown'
+        console.warn('SECURITY ALERT: Unauthorized cron access attempt', {
+            ip: clientIp,
+            timestamp: new Date().toISOString(),
+            headers: Object.fromEntries(req.headers.entries())
+        })
         return new Response(JSON.stringify({ error: 'Unauthorized' }), {
             status: 401,
             headers: { 'Content-Type': 'application/json' },
         })
+    }
+
+    // ========================================
+    // SECURITY LAYER 2: IP WHITELIST (Vercel Cron IPs)
+    // ========================================
+    const clientIp = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip')
+    const vercelCronHeader = req.headers.get('x-vercel-cron')
+
+    // In production, verify it's coming from Vercel Cron
+    if (process.env.NODE_ENV === 'production' && !vercelCronHeader) {
+        console.warn('SECURITY ALERT: Non-Vercel cron source detected', {
+            ip: clientIp,
+            timestamp: new Date().toISOString()
+        })
+        // Allow for now but log suspicious activity
+        // Uncomment to enforce: return new Response(JSON.stringify({ error: 'Forbidden' }), { status: 403 })
     }
 
     try {
