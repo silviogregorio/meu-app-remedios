@@ -170,6 +170,49 @@ const Home = () => {
                 </h1>
                 <p className="text-slate-500 dark:text-slate-400 capitalize">{todayDate}</p>
             </div>
+            {/* Low Stock Alert - Moved to Top */}
+            {(() => {
+                // Filter meds that have active stock control and are running low (<= 3 days)
+                const lowStockMeds = medications.filter(med => {
+                    const days = calculateStockDays ? calculateStockDays(med.id) : null;
+                    return days !== null && days <= 3;
+                });
+
+                if (lowStockMeds.length > 0) {
+                    return (
+                        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 animate-in slide-in-from-top-2 shadow-sm mb-2">
+                            <div className="flex items-start gap-4">
+                                <div className="p-3 bg-amber-100 rounded-full text-amber-700 shrink-0">
+                                    <AlertCircle size={24} />
+                                </div>
+                                <div className="flex-1">
+                                    <h3 className="font-bold text-amber-900 text-lg">Estoque Baixo</h3>
+                                    <p className="text-amber-800 mb-3 leading-tight">
+                                        Você tem medicamentos que vão acabar em breve.
+                                    </p>
+                                    <div className="flex flex-col gap-2">
+                                        {lowStockMeds.map(med => {
+                                            const days = Math.floor(calculateStockDays(med.id));
+                                            return (
+                                                <div key={med.id} className="flex items-center justify-between bg-white/60 p-2 rounded-lg border border-amber-100">
+                                                    <span className="font-medium text-amber-900 flex items-center gap-2">
+                                                        <Pill size={16} className="text-amber-600" />
+                                                        {med.name}
+                                                    </span>
+                                                    <span className={`text-xs font-bold px-2 py-1 rounded-full ${days <= 1 ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>
+                                                        {days === 0 ? 'Acaba hoje!' : `${days} dia(s)`}
+                                                    </span>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    );
+                }
+                return null;
+            })()}
 
             {pendingShares && pendingShares.length > 0 && (
                 <div className="bg-gradient-to-r from-violet-600 to-indigo-600 rounded-xl p-4 shadow-lg animate-in slide-in-from-top-2 text-white">
@@ -369,44 +412,7 @@ const Home = () => {
                 return null;
             })()}
 
-            {/* Low Stock Alert */}
-            {(() => {
-                // Filter meds that have active stock control and are running low (<= 3 days)
-                const lowStockMeds = medications.filter(med => {
-                    const days = calculateStockDays ? calculateStockDays(med.id) : null;
-                    return days !== null && days <= 3;
-                });
 
-                if (lowStockMeds.length > 0) {
-                    return (
-                        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 animate-in slide-in-from-top-2">
-                            <div className="flex items-start gap-3">
-                                <div className="p-2 bg-amber-100 rounded-lg text-amber-600">
-                                    <AlertCircle size={20} />
-                                </div>
-                                <div className="flex-1">
-                                    <h3 className="font-bold text-amber-900">Estoque Baixo</h3>
-                                    <p className="text-sm text-amber-700 mb-2">
-                                        Alguns medicamentos estão acabando. Verifique seu estoque.
-                                    </p>
-                                    <div className="flex flex-wrap gap-2">
-                                        {lowStockMeds.map(med => {
-                                            const days = Math.floor(calculateStockDays(med.id));
-                                            return (
-                                                <span key={med.id} className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-white/50 border border-amber-100 text-xs font-medium text-amber-800">
-                                                    <Pill size={12} />
-                                                    {med.name} ({days} dias)
-                                                </span>
-                                            );
-                                        })}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    );
-                }
-                return null;
-            })()}
 
             {/* Filters Section */}
             <Card className="border-l-4 border-l-primary">

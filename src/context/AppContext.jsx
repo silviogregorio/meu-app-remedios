@@ -6,14 +6,18 @@ import Toast from '../components/ui/Toast';
 const AppContext = createContext();
 
 export const AppProvider = ({ children }) => {
-    const { user, signOut } = useAuth();
+    const { user, signOut: authSignOut } = useAuth();
+
+    // Estados principais
     const [patients, setPatients] = useState([]);
     const [medications, setMedications] = useState([]);
     const [prescriptions, setPrescriptions] = useState([]);
     const [consumptionLog, setConsumptionLog] = useState([]);
-    const [pendingShares, setPendingShares] = useState([]); // Compartilhamento de Paciente Específico (Legado/Granular)
-    const [accountShares, setAccountShares] = useState([]); // Compartilhamento Global de Conta
-    const [healthLogs, setHealthLogs] = useState([]); // Diário de Saúde (Pressão, Glicemia, etc.)
+
+    // Dados 'menos críticos' ou que mudam muito rápido podem ficar sem cache ou cache simples
+    const [pendingShares, setPendingShares] = useState([]);
+    const [accountShares, setAccountShares] = useState([]);
+    const [healthLogs, setHealthLogs] = useState([]);
     const [toast, setToast] = useState(null);
     const [loadingData, setLoadingData] = useState(false);
 
@@ -206,6 +210,7 @@ export const AppProvider = ({ children }) => {
     }, [user?.id]);
 
     // --- Operações CRUD ---
+
 
     // Pacientes
     const addPatient = async (patientData) => {
