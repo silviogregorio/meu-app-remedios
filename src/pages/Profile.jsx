@@ -61,7 +61,22 @@ const Profile = () => {
                 });
 
                 if (updateError) {
-                    showToast('Erro ao alterar email: ' + updateError.message, 'error');
+                    // Traduzir mensagens de erro do Supabase
+                    let errorMessage = 'Erro ao alterar email';
+
+                    if (updateError.message.includes('already registered') ||
+                        updateError.message.includes('already exists') ||
+                        updateError.message.includes('Email already in use')) {
+                        errorMessage = '❌ Este email já está sendo usado por outra conta';
+                    } else if (updateError.message.includes('rate limit')) {
+                        errorMessage = '⏱️ Muitas tentativas. Aguarde alguns minutos e tente novamente';
+                    } else if (updateError.message.includes('invalid')) {
+                        errorMessage = '❌ Email inválido. Verifique e tente novamente';
+                    } else {
+                        errorMessage = `❌ Erro ao alterar email: ${updateError.message}`;
+                    }
+
+                    showToast(errorMessage, 'error');
                     return;
                 }
 
