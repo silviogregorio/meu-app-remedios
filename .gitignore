@@ -28,3 +28,5 @@ dist-ssr
 server/.env
 
 .vercel
+
+.vercel
