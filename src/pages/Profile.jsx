@@ -10,8 +10,8 @@ import Modal from '../components/ui/Modal';
 import { User, Settings, LogOut, Bell, LogIn, Database, Trash2, Mail, Phone, MapPin, Camera, Shield, Share2, Activity } from 'lucide-react';
 
 const Profile = () => {
-    const { user, logout } = useAuth(); // AuthContext for user/logout
-    const { showToast, runCaregiverCheck } = useApp(); // AppContext for app features
+    const { user } = useAuth(); // AuthContext for user
+    const { showToast, runCaregiverCheck, logout } = useApp(); // AppContext for app features
     const navigate = useNavigate();
 
     const [isEditing, setIsEditing] = useState(false);

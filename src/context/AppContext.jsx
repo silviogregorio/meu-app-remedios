@@ -1160,7 +1160,7 @@ export const AppProvider = ({ children }) => {
             healthLogs, addHealthLog, deleteHealthLog,
             runCaregiverCheck,
             checkLowStock,
-            signOut: authSignOut
+            logout: authSignOut
         }}>
             {children}
             {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
