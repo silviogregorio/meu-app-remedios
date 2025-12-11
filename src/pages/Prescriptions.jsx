@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
+import { generateCalendarUrlsForPrescription, downloadICalFile } from '../utils/calendarUtils';
 import Card, { CardHeader, CardContent } from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
@@ -479,6 +480,46 @@ const Prescriptions = () => {
                                         <div className="flex md:flex-col gap-2 border-t md:border-t-0 md:border-l border-slate-50 pt-4 md:pt-0 md:pl-6 mt-2 md:mt-0 justify-end">
                                             {patients.find(p => p.id === prescription.patientId)?.userId === user?.id ? (
                                                 <>
+                                                    {/* Calendar Export Button */}
+                                                    <div className="relative group">
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            className="flex-1 md:flex-none justify-start text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700"
+                                                            onClick={() => {
+                                                                const med = medications.find(m => m.id === prescription.medicationId);
+                                                                const pat = patients.find(p => p.id === prescription.patientId);
+                                                                const urls = generateCalendarUrlsForPrescription(prescription, med, pat);
+
+                                                                if (urls.length === 1) {
+                                                                    // Single time - open directly
+                                                                    window.open(urls[0].url, '_blank');
+                                                                } else {
+                                                                    // Multiple times - show options
+                                                                    const choice = confirm(
+                                                                        `Este medicamento tem ${urls.length} horários.\n\n` +
+                                                                        `Clique OK para abrir todos no Google Calendar\n` +
+                                                                        `ou Cancelar para baixar arquivos .ics`
+                                                                    );
+
+                                                                    if (choice) {
+                                                                        // Open all in Google Calendar
+                                                                        urls.forEach(({ url }) => window.open(url, '_blank'));
+                                                                    } else {
+                                                                        // Download .ics files
+                                                                        urls.forEach(({ time }) => {
+                                                                            downloadICalFile(prescription, med, pat, time);
+                                                                        });
+                                                                    }
+                                                                }
+
+                                                                showToast('Abrindo Google Calendar...', 'success');
+                                                            }}
+                                                        >
+                                                            <Calendar size={18} className="mr-2" /> Calendário
+                                                        </Button>
+                                                    </div>
+
                                                     <Button
                                                         variant="ghost"
                                                         size="sm"
