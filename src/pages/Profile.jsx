@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useApp } from '../context/AppContext';
+import { supabase } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
 import Card, { CardContent } from '../components/ui/Card';
 import Button from '../components/ui/Button';
@@ -14,8 +15,14 @@ const Profile = () => {
     const navigate = useNavigate();
 
     const [isEditing, setIsEditing] = useState(false);
+    const [isChangingPassword, setIsChangingPassword] = useState(false);
     const [editForm, setEditForm] = useState({
         name: user?.user_metadata?.full_name || ''
+    });
+    const [passwordForm, setPasswordForm] = useState({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: ''
     });
 
     const handleUpdateProfile = async () => {
@@ -25,6 +32,36 @@ const Profile = () => {
         }
         await updateProfile(editForm);
         setIsEditing(false);
+        showToast('Perfil atualizado com sucesso!', 'success');
+    };
+
+    const handleChangePassword = async () => {
+        if (!passwordForm.newPassword || !passwordForm.confirmPassword) {
+            showToast('Preencha todos os campos', 'error');
+            return;
+        }
+        if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+            showToast('As senhas não coincidem', 'error');
+            return;
+        }
+        if (passwordForm.newPassword.length < 6) {
+            showToast('A senha deve ter pelo menos 6 caracteres', 'error');
+            return;
+        }
+
+        try {
+            const { error } = await supabase.auth.updateUser({
+                password: passwordForm.newPassword
+            });
+
+            if (error) throw error;
+
+            showToast('Senha alterada com sucesso!', 'success');
+            setIsChangingPassword(false);
+            setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+        } catch (error) {
+            showToast('Erro ao alterar senha: ' + error.message, 'error');
+        }
     };
 
     if (!user) {
@@ -97,9 +134,8 @@ const Profile = () => {
                                     Não quer esperar? Clique abaixo para executar a verificação imediatamente.
                                 </p>
                                 <Button
-                                    variant="outline"
                                     onClick={() => runCaregiverCheck()}
-                                    className="border-amber-200 hover:bg-amber-50 text-amber-900"
+                                    className="bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300"
                                 >
                                     Executar Verificação Agora
                                 </Button>
@@ -123,6 +159,23 @@ const Profile = () => {
                             <div className="flex-1">
                                 <h3 className="font-medium text-[#0f172a] dark:text-white">Dados Pessoais</h3>
                                 <p className="text-sm text-[#64748b] dark:text-slate-400">Alterar nome, email</p>
+                            </div>
+                        </button>
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardContent className="p-0">
+                        <button
+                            onClick={() => setIsChangingPassword(true)}
+                            className="w-full flex items-center gap-4 p-4 hover:bg-[#f8fafc] dark:hover:bg-slate-800/50 text-left transition-colors"
+                        >
+                            <div className="w-10 h-10 rounded-full bg-[#f1f5f9] dark:bg-slate-800 flex items-center justify-center text-[#64748b] dark:text-slate-400">
+                                <Shield size={20} />
+                            </div>
+                            <div className="flex-1">
+                                <h3 className="font-medium text-[#0f172a] dark:text-white">Alterar Senha</h3>
+                                <p className="text-sm text-[#64748b] dark:text-slate-400">Trocar sua senha de acesso</p>
                             </div>
                         </button>
                     </CardContent>
@@ -154,6 +207,50 @@ const Profile = () => {
                         </Button>
                         <Button onClick={handleUpdateProfile} className="flex-1">
                             Salvar Alterações
+                        </Button>
+                    </div>
+                </div>
+            </Modal>
+
+            {/* Change Password Modal */}
+            <Modal
+                isOpen={isChangingPassword}
+                onClose={() => {
+                    setIsChangingPassword(false);
+                    setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+                }}
+                title="Alterar Senha"
+            >
+                <div className="flex flex-col gap-4">
+                    <Input
+                        label="Nova Senha"
+                        type="password"
+                        value={passwordForm.newPassword}
+                        onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
+                        placeholder="Mínimo 6 caracteres"
+                    />
+
+                    <Input
+                        label="Confirmar Nova Senha"
+                        type="password"
+                        value={passwordForm.confirmPassword}
+                        onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
+                        placeholder="Digite novamente"
+                    />
+
+                    <div className="flex gap-3 mt-2">
+                        <Button
+                            variant="ghost"
+                            onClick={() => {
+                                setIsChangingPassword(false);
+                                setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+                            }}
+                            className="flex-1"
+                        >
+                            Cancelar
+                        </Button>
+                        <Button onClick={handleChangePassword} className="flex-1">
+                            Alterar Senha
                         </Button>
                     </div>
                 </div>
