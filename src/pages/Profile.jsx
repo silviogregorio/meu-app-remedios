@@ -65,8 +65,9 @@ const Profile = () => {
                     return;
                 }
 
-                showToast('Email de confirmação enviado para ' + editForm.email, 'success');
-                showToast('Verifique sua caixa de entrada para confirmar', 'info');
+                showToast('📧 Email de confirmação enviado!', 'success');
+                showToast(`Verifique ${editForm.email} e clique no link para confirmar a mudança`, 'info');
+                showToast('⚠️ Seu email só mudará após confirmação', 'warning');
             } catch (error) {
                 showToast('Erro: ' + error.message, 'error');
                 return;
