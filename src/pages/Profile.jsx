@@ -194,7 +194,14 @@ const Profile = () => {
                 <Card>
                     <CardContent className="p-0">
                         <button
-                            onClick={() => setIsEditing(true)}
+                            onClick={() => {
+                                setEditForm({
+                                    name: user?.user_metadata?.full_name || '',
+                                    email: user?.email || '',
+                                    currentPassword: ''
+                                });
+                                setIsEditing(true);
+                            }}
                             className="w-full flex items-center gap-4 p-4 border-b border-[#e2e8f0] dark:border-slate-800 hover:bg-[#f8fafc] dark:hover:bg-slate-800/50 text-left transition-colors"
                         >
                             <div className="w-10 h-10 rounded-full bg-[#f1f5f9] dark:bg-slate-800 flex items-center justify-center text-[#64748b] dark:text-slate-400">
