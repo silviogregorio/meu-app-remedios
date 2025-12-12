@@ -4,13 +4,33 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 /**
+ * Helper to load image as base64
+ */
+const loadImage = (url) => {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = 'Anonymous';
+        img.src = url;
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0);
+            resolve(canvas.toDataURL('image/png'));
+        };
+        img.onerror = reject;
+    });
+};
+
+/**
  * Generates a professional PDF report for medications
  * @param {Object} reportData - Report data from Reports page
  * @param {Object} filters - Applied filters
  * @param {Array} patients - List of patients
- * @returns {void} - Downloads the PDF
+ * @returns {Promise<void>} - Downloads the PDF
  */
-export const generatePDFReport = (reportData, filters, patients) => {
+export const generatePDFReport = async (reportData, filters, patients) => {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.width;
     const pageHeight = doc.internal.pageSize.height;
@@ -26,19 +46,34 @@ export const generatePDFReport = (reportData, filters, patients) => {
         accent: [244, 63, 94] // Rose-500
     };
 
+    // Load Logo
+    let logoData = null;
+    try {
+        logoData = await loadImage('/assets/logo.png');
+    } catch (error) {
+        console.error("Erro ao carregar logo:", error);
+    }
+
     // --- Header ---
     const drawHeader = () => {
         // Top Bar
         doc.setFillColor(...colors.primary);
         doc.rect(0, 0, pageWidth, 40, 'F');
 
-        // Logo Area (Simulated with Text/Icon)
-        doc.setFillColor(255, 255, 255);
-        doc.circle(25, 20, 12, 'F');
-        doc.setTextColor(...colors.primary);
-        doc.setFontSize(14);
-        doc.setFont('helvetica', 'bold');
-        doc.text('SiG', 20, 22);
+        // Logo Area
+        if (logoData) {
+            doc.setFillColor(255, 255, 255);
+            doc.circle(25, 20, 14, 'F'); // White background for logo
+            doc.addImage(logoData, 'PNG', 16, 11, 18, 18); // Adjust position to center in circle
+        } else {
+            // Fallback if logo fails
+            doc.setFillColor(255, 255, 255);
+            doc.circle(25, 20, 12, 'F');
+            doc.setTextColor(...colors.primary);
+            doc.setFontSize(14);
+            doc.setFont('helvetica', 'bold');
+            doc.text('SiG', 20, 22);
+        }
 
         // Title
         doc.setTextColor(255, 255, 255);
