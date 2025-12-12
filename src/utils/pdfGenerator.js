@@ -140,31 +140,53 @@ export const generatePDFReport = async (reportData, filters, patients) => {
     let xCurr = 14;
 
     summaryData.forEach(item => {
-        // Card Background
+        // Card Background (Reduced Height: 24 -> 16)
         doc.setDrawColor(...colors.border);
         doc.setFillColor(255, 255, 255);
-        doc.roundedRect(xCurr, yPos, cardWidth, 24, 3, 3, 'FD');
+        doc.roundedRect(xCurr, yPos, cardWidth, 16, 2, 2, 'FD');
 
         // Color Strip
         doc.setFillColor(...item.color);
-        doc.rect(xCurr, yPos + 3, 4, 18, 'F');
+        doc.rect(xCurr, yPos + 3, 3, 10, 'F');
 
         // Value
         doc.setTextColor(...colors.heading);
-        doc.setFontSize(14);
+        doc.setFontSize(12);
         doc.setFont('helvetica', 'bold');
-        doc.text(String(item.value), xCurr + 10, yPos + 12);
+        doc.text(String(item.value), xCurr + 8, yPos + 7);
 
         // Label
         doc.setTextColor(100, 116, 139); // Slate-500
-        doc.setFontSize(7);
+        doc.setFontSize(6);
         doc.setFont('helvetica', 'bold');
-        doc.text(item.label, xCurr + 10, yPos + 20);
+        doc.text(item.label, xCurr + 8, yPos + 13);
 
         xCurr += cardWidth + 5;
     });
 
-    yPos += 40;
+    yPos += 22;
+
+    // --- Legend ---
+    doc.setFontSize(7);
+    doc.setTextColor(100, 116, 139); // Slate-500
+    doc.setFont('helvetica', 'normal');
+
+    const legendY = yPos;
+    const legendLineHeight = 3.5;
+
+    doc.text('Legenda:', 14, legendY);
+    doc.setFontSize(6.5);
+    doc.setTextColor(71, 85, 105); // Slate-600
+
+    // Column 1
+    doc.text('• Total: Quantidade total de doses prescritas para o período selecionado.', 14, legendY + legendLineHeight);
+    doc.text('• Tomadas: Doses confirmadas e registradas pelo paciente/cuidador.', 14, legendY + (legendLineHeight * 2));
+
+    // Column 2 (Approx)
+    doc.text('• Pendentes: Doses agendadas que ainda não foram marcadas ou estão atrasadas.', 110, legendY + legendLineHeight);
+    doc.text('• Adesão: Porcentagem de sucesso do tratamento (Tomadas ÷ Total).', 110, legendY + (legendLineHeight * 2));
+
+    yPos += 15;
 
     // --- Data Table ---
     doc.setFontSize(12);
