@@ -279,7 +279,7 @@ const Profile = () => {
                             </div>
                             <div className="flex-1">
                                 <h3 className="font-medium text-[#0f172a] dark:text-white">Dados Pessoais</h3>
-                                <p className="text-sm text-[#64748b] dark:text-slate-400">Alterar nome, email</p>
+                                <p className="text-sm text-[#64748b] dark:text-slate-400">Visualize e edite suas informações de perfil, como nome e email.</p>
                             </div>
                         </button>
                     </CardContent>
@@ -296,7 +296,7 @@ const Profile = () => {
                             </div>
                             <div className="flex-1">
                                 <h3 className="font-medium text-[#0f172a] dark:text-white">Alterar Senha</h3>
-                                <p className="text-sm text-[#64748b] dark:text-slate-400">Trocar sua senha de acesso</p>
+                                <p className="text-sm text-[#64748b] dark:text-slate-400">Atualize sua senha para garantir a segurança da sua conta.</p>
                             </div>
                         </button>
                     </CardContent>
@@ -320,7 +320,7 @@ const Profile = () => {
                             </div>
                             <div className="flex-1">
                                 <h3 className="font-medium text-[#0f172a] dark:text-white">Baixar MEUS Dados</h3>
-                                <p className="text-sm text-[#64748b] dark:text-slate-400">Fazer backup completo em JSON</p>
+                                <p className="text-sm text-[#64748b] dark:text-slate-400">Exporte uma cópia completa do seu histórico (Backup) para seu dispositivo.</p>
                             </div>
                         </button>
                     </CardContent>
