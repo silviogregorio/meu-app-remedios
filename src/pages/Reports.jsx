@@ -634,9 +634,10 @@ const Reports = () => {
         setSendingEmail(true);
 
         try {
-            let html, text, subject;
+            let html, text, subject, attachments;
 
             if (emailType === 'birthday' && birthdayPatient) {
+                // Birthday Email Logic (Unchanged)
                 subject = `Feliz Aniversário, ${birthdayPatient.name}! 🎉`;
                 text = `Parabéns ${birthdayPatient.name}! Desejamos muitas felicidades.`;
                 html = `
@@ -684,32 +685,66 @@ const Reports = () => {
                     </html>
                 `;
             } else if (emailType === 'stock') {
+                // Stock Report logic (could also be updated to PDF later if implemented)
                 html = generateStockReportHtml();
                 text = generateStockReportText();
                 subject = `Relatório de Movimentações - ${formatDate(new Date())}`;
             } else {
-                html = generateReportHtml();
-                text = generateReportText(); // Fallback text
+                // MAIN REPORT logic - Now uses PDF Attachment
+                const doc = await generatePDFReport(reportData, filters, patients);
+                const pdfBase64 = doc.output('datauristring').split(',')[1];
+                const filename = `relatorio-${format(new Date(), 'dd-MM')}.pdf`;
+
                 subject = `Relatório de Medicamentos - ${formatDate(reportData?.filters?.startDate || new Date())}`;
+                text = `Olá,\n\nSegue em anexo o relatório de medicamentos (PDF) com a visualização completa e padronizada.`;
+
+                // Use a simple HTML wrapper
+                html = `
+                    <div style="font-family: sans-serif; color: #333;">
+                        <h2>Relatório de Medicamentos</h2>
+                        <p>Olá,</p>
+                        <p>Seu relatório completo foi gerado e está <strong>em anexo</strong> neste email.</p>
+                        <p>O arquivo PDF contém o layout oficial com todos os detalhes.</p>
+                        <br/>
+                        <p>Atenciosamente,<br/>Equipe SiG Remédios</p>
+                    </div>
+                 `;
+
+                attachments = [
+                    {
+                        filename: filename,
+                        content: pdfBase64,
+                        encoding: 'base64'
+                    }
+                ];
             }
 
-            const { data, error } = await supabase.functions.invoke('send-email', {
-                body: {
+            // call VERCEL API instead of Supabase function
+            const response = await fetch('/api/send-email', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
                     to: emailData.to,
                     subject: subject,
                     text: text,
-                    html: html
-                }
+                    html: html,
+                    observations: emailData.observations,
+                    type: (emailType === 'birthday') ? 'contact' : 'report', // Use 'contact' for generic/birthday template or 'report'
+                    attachments: attachments
+                })
             });
 
-            if (error) throw error;
+            if (!response.ok) {
+                const errData = await response.json();
+                throw new Error(errData.error || 'Falha ao enviar email');
+            }
 
             showToast('Email enviado com sucesso!', 'success');
             setShowEmailModal(false);
             setEmailData({ to: '', observations: '' });
         } catch (error) {
             console.error('Erro ao enviar email:', error);
-            showToast(error.message || 'Erro ao enviar email. Verifique se a Edge Function está configurada.', 'error');
+            showToast(error.message || 'Erro ao enviar email.', 'error');
         } finally {
             setSendingEmail(false);
         }
@@ -1297,99 +1332,7 @@ const Reports = () => {
 
             </div >
 
-            {/* Print Only View */}
-            < div className="hidden print:block" >
-                <div className="mb-8 text-center">
-                    <h1 className="text-2xl font-bold text-slate-900">Relatório de Medicamentos</h1>
-                    <p className="text-slate-600">
-                        {(() => {
-                            const [startYear, startMonth, startDay] = filters.startDate.split('-').map(Number);
-                            const [endYear, endMonth, endDay] = filters.endDate.split('-').map(Number);
-                            const start = new Date(startYear, startMonth - 1, startDay);
-                            const end = new Date(endYear, endMonth - 1, endDay);
-                            return `${formatDate(start)} até ${formatDate(end)}`;
-                        })()}
-                    </p>
-                    {filters.patientId !== 'all' && (
-                        <p className="text-slate-500 mt-1">
-                            Paciente: {patients.find(p => p.id === filters.patientId)?.name}
-                        </p>
-                    )}
-                    <p className="text-slate-500 mt-1">
-                        Status: {filters.status === 'all' ? 'Todos' : filters.status === 'taken' ? 'Tomadas' : 'Pendentes'}
-                    </p>
-                </div>
 
-                <div className="mb-8">
-                    <h3 className="font-bold text-lg mb-4 text-slate-900">Resumo</h3>
-                    <div className="grid grid-cols-4 gap-4">
-                        <div className="p-4 border rounded-lg bg-blue-50 border-blue-100">
-                            <div className="text-sm text-blue-600">Total</div>
-                            <div className="text-xl font-bold text-blue-900">{reportData?.summary.total}</div>
-                        </div>
-                        <div className="p-4 border rounded-lg bg-green-50">
-                            <div className="text-sm text-green-600">Tomadas</div>
-                            <div className="text-xl font-bold text-green-900">{reportData?.summary.taken}</div>
-                        </div>
-                        <div className="p-4 border rounded-lg bg-orange-50">
-                            <div className="text-sm text-orange-600">Pendentes</div>
-                            <div className="text-xl font-bold text-orange-900">{reportData?.summary.pending}</div>
-                        </div>
-                        <div className="p-4 border rounded-lg bg-purple-50">
-                            <div className="text-sm text-purple-600">Adesão</div>
-                            <div className="text-xl font-bold text-purple-900">{reportData?.summary.adherenceRate}%</div>
-                        </div>
-                    </div>
-                </div>
-
-                <div>
-                    <h3 className="font-bold text-lg mb-4 text-slate-900">Detalhamento</h3>
-                    <table className="w-full text-sm text-left">
-                        <thead className="bg-slate-100 text-slate-700 uppercase font-medium">
-                            <tr>
-                                <th className="px-4 py-3 rounded-l-lg">Data/Hora</th>
-                                <th className="px-4 py-3">Medicamento</th>
-                                <th className="px-4 py-3">Paciente</th>
-                                <th className="px-4 py-3 rounded-r-lg">Status</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100">
-                            {filteredReportItems.map((item, idx) => (
-                                <tr key={idx}>
-                                    <td className="px-4 py-3 text-slate-600">
-                                        <div className="font-medium text-slate-900">
-                                            {(() => {
-                                                const [year, month, day] = item.date.split('-').map(Number);
-                                                const date = new Date(year, month - 1, day);
-                                                return formatDate(date);
-                                            })()}
-                                        </div>
-                                        <div className="text-xs">{item.time}</div>
-                                    </td>
-                                    <td className="px-4 py-3 font-medium text-slate-900">
-                                        {item.medication}
-                                    </td>
-                                    <td className="px-4 py-3 text-slate-600">
-                                        {item.patient}
-                                    </td>
-                                    <td className="px-4 py-3">
-                                        <span className={`px-2 py-1 rounded-full text-xs font-bold ${item.status === 'taken'
-                                            ? 'bg-green-100 text-green-700'
-                                            : 'bg-orange-100 text-orange-700'
-                                            }`}>
-                                            {item.status === 'taken' ? 'TOMADO' : 'PENDENTE'}
-                                        </span>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-
-                <div className="mt-8 pt-8 border-t text-center text-slate-400 text-xs">
-                    Gerado em {formatDateTime(new Date())}
-                </div>
-            </div >
         </>
     );
 };
