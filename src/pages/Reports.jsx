@@ -335,8 +335,6 @@ const Reports = () => {
             doc.autoPrint();
             const blob = doc.output('blob');
             const url = URL.createObjectURL(blob);
-            // Open in new window (iframe approach often blocked or complex, new window is safer for broad compatibility)
-            // Or specific iframe for cleaner UX if enabled. Let's try window.open which usually triggers print dialog on PDF viewers.
             window.open(url);
         } catch (error) {
             console.error('Erro ao gerar PDF para impressão:', error);
@@ -357,92 +355,69 @@ const Reports = () => {
     };
 
     const generateReportText = () => {
-        // ... existing text generation logic ...
         if (!reportData) return '';
 
         const filteredItems = reportData.items.filter(
             item => filters.status === 'all' || item.status === filters.status
         );
-        // ...
+
+        let text = '*RELATORIO DE MEDICACOES*\n\n';
+        text += '*Periodo:* ' + formatDate(reportData.filters.startDate) + ' ate ' + formatDate(reportData.filters.endDate) + '\n';
+
+        if (reportData.filters.patientId !== 'all') {
+            const patient = patients.find(p => p.id === reportData.filters.patientId);
+            text += '*Paciente:* ' + patient?.name + '\n';
+        }
+
+        text += '\n*RESUMO*\n';
+        text += 'Total: ' + reportData.summary.total + '\n';
+        text += 'Tomadas: ' + reportData.summary.taken + '\n';
+        text += 'Pendentes: ' + reportData.summary.pending + '\n';
+        text += 'Taxa de Adesao: ' + reportData.summary.adherenceRate + '%\n';
+
+        text += '\n*DETALHAMENTO*\n';
+        filteredItems.slice(0, 20).forEach((item, idx) => {
+            const status = item.status === 'taken' ? '[TOMADO]' : '[PENDENTE]';
+            text += '\n' + (idx + 1) + '. ' + status + ' ' + formatDate(item.date) + ' as ' + item.time + '\n';
+            text += '   ' + item.patient + ' - ' + item.medication + '\n';
+        });
+
+        if (filteredItems.length > 20) {
+            text += '\n... e mais ' + (filteredItems.length - 20) + ' medicacoes\n';
+        }
+
+        text += '\n---\n_Gerado pelo Sistema de Controle de Medicamentos_';
+
         return text;
     };
-    // ... keep other helpers ...
 
-    return (
-        <>
-            <div className="flex flex-col gap-8 pb-24 animate-in fade-in duration-500">
-                <div>
-                    {/* Removed print:hidden since we don't have a print view anymore */}
-                    <h2 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Relatórios</h2>
-                    <p className="text-slate-500 dark:text-slate-400 mt-1">Visualize e imprima relatórios de medicações.</p>
-                </div>
-                {/* ... rest of UI ... */}
-                {/* ... existing main JSX ... */}
-            </div>
-            {/* REMOVED: <div className="hidden print:block"> ... </div> */}
-        </>
-    );
-};
-item => filters.status === 'all' || item.status === filters.status
+    const generateReportHtml = () => {
+        if (!reportData) return '';
+
+        const filteredItems = reportData.items.filter(
+            item => filters.status === 'all' || item.status === filters.status
         );
 
-let text = '*RELATORIO DE MEDICACOES*\n\n';
-text += '*Periodo:* ' + formatDate(reportData.filters.startDate) + ' ate ' + formatDate(reportData.filters.endDate) + '\n';
+        const [startYear, startMonth, startDay] = reportData.filters.startDate.split('-').map(Number);
+        const [endYear, endMonth, endDay] = reportData.filters.endDate.split('-').map(Number);
+        const startDate = formatDate(new Date(startYear, startMonth - 1, startDay));
+        const endDate = formatDate(new Date(endYear, endMonth - 1, endDay));
 
-if (reportData.filters.patientId !== 'all') {
-    const patient = patients.find(p => p.id === reportData.filters.patientId);
-    text += '*Paciente:* ' + patient?.name + '\n';
-}
+        const patientName = reportData.filters.patientId !== 'all'
+            ? patients.find(p => p.id === reportData.filters.patientId)?.name
+            : 'Todos os Pacientes';
 
-text += '\n*RESUMO*\n';
-text += 'Total: ' + reportData.summary.total + '\n';
-text += 'Tomadas: ' + reportData.summary.taken + '\n';
-text += 'Pendentes: ' + reportData.summary.pending + '\n';
-text += 'Taxa de Adesao: ' + reportData.summary.adherenceRate + '%\n';
+        const statusFilter = filters.status === 'all' ? 'Todos' : filters.status === 'taken' ? 'Tomadas' : 'Pendentes';
 
-text += '\n*DETALHAMENTO*\n';
-filteredItems.slice(0, 20).forEach((item, idx) => {
-    const status = item.status === 'taken' ? '[TOMADO]' : '[PENDENTE]';
-    text += '\n' + (idx + 1) + '. ' + status + ' ' + formatDate(item.date) + ' as ' + item.time + '\n';
-    text += '   ' + item.patient + ' - ' + item.medication + '\n';
-});
+        const rows = filteredItems.slice(0, 50).map(item => {
+            const statusColor = item.status === 'taken' ? '#dcfce7' : '#ffedd5';
+            const statusText = item.status === 'taken' ? '#166534' : '#9a3412';
+            const statusLabel = item.status === 'taken' ? 'TOMADO' : 'PENDENTE';
 
-if (filteredItems.length > 20) {
-    text += '\n... e mais ' + (filteredItems.length - 20) + ' medicacoes\n';
-}
+            const [year, month, day] = item.date.split('-').map(Number);
+            const itemDate = formatDate(new Date(year, month - 1, day));
 
-text += '\n---\n_Gerado pelo Sistema de Controle de Medicamentos_';
-
-return text;
-    };
-
-const generateReportHtml = () => {
-    if (!reportData) return '';
-
-    const filteredItems = reportData.items.filter(
-        item => filters.status === 'all' || item.status === filters.status
-    );
-
-    const [startYear, startMonth, startDay] = reportData.filters.startDate.split('-').map(Number);
-    const [endYear, endMonth, endDay] = reportData.filters.endDate.split('-').map(Number);
-    const startDate = formatDate(new Date(startYear, startMonth - 1, startDay));
-    const endDate = formatDate(new Date(endYear, endMonth - 1, endDay));
-
-    const patientName = reportData.filters.patientId !== 'all'
-        ? patients.find(p => p.id === reportData.filters.patientId)?.name
-        : 'Todos os Pacientes';
-
-    const statusFilter = filters.status === 'all' ? 'Todos' : filters.status === 'taken' ? 'Tomadas' : 'Pendentes';
-
-    const rows = filteredItems.slice(0, 50).map(item => {
-        const statusColor = item.status === 'taken' ? '#dcfce7' : '#ffedd5';
-        const statusText = item.status === 'taken' ? '#166534' : '#9a3412';
-        const statusLabel = item.status === 'taken' ? 'TOMADO' : 'PENDENTE';
-
-        const [year, month, day] = item.date.split('-').map(Number);
-        const itemDate = formatDate(new Date(year, month - 1, day));
-
-        return `
+            return `
                 <tr>
                     <td style="padding: 12px; border-bottom: 1px solid #e2e8f0; color: #334155;">
                         <div style="font-weight: bold;">${itemDate}</div>
@@ -459,9 +434,9 @@ const generateReportHtml = () => {
                     </td>
                 </tr>
             `;
-    }).join('');
+        }).join('');
 
-    return `
+        return `
             <!DOCTYPE html>
             <html>
             <head>
@@ -542,52 +517,52 @@ const generateReportHtml = () => {
             </body>
             </html>
         `;
-};
+    };
 
-const generateStockReportText = () => {
-    if (!stockData || stockData.length === 0) return '';
+    const generateStockReportText = () => {
+        if (!stockData || stockData.length === 0) return '';
 
-    let text = '*RELATORIO DE ESTOQUE E MOVIMENTACOES*\n\n';
-    text += '*Periodo:* ' + formatDate(filters.startDate) + ' ate ' + formatDate(filters.endDate) + '\n';
+        let text = '*RELATORIO DE ESTOQUE E MOVIMENTACOES*\n\n';
+        text += '*Periodo:* ' + formatDate(filters.startDate) + ' ate ' + formatDate(filters.endDate) + '\n';
 
-    if (filters.patientId !== 'all') {
-        const patient = patients.find(p => p.id === filters.patientId);
-        text += '*Paciente:* ' + (patient?.name || 'N/A') + '\n';
-    }
-    if (filters.medicationId !== 'all') {
-        const med = medications.find(m => m.id === filters.medicationId);
-        text += '*Medicamento:* ' + (med ? `${med.name} ${med.dosage}` : 'N/A') + '\n';
-    }
+        if (filters.patientId !== 'all') {
+            const patient = patients.find(p => p.id === filters.patientId);
+            text += '*Paciente:* ' + (patient?.name || 'N/A') + '\n';
+        }
+        if (filters.medicationId !== 'all') {
+            const med = medications.find(m => m.id === filters.medicationId);
+            text += '*Medicamento:* ' + (med ? `${med.name} ${med.dosage}` : 'N/A') + '\n';
+        }
 
-    text += '\n*MOVIMENTACOES RECENTES*\n';
+        text += '\n*MOVIMENTACOES RECENTES*\n';
 
-    stockData.slice(0, 30).forEach((item, idx) => {
-        const isPositive = item.quantity_change > 0;
-        text += '\n' + (idx + 1) + '. ' + formatDateTime(item.created_at) + '\n';
-        text += '   ' + (item.medications?.name || 'Medicamento') + ' (' + (isPositive ? '+' : '') + item.quantity_change + ')\n';
-        text += '   Motivo: ' + item.reason + ' | Usuario: ' + (item.profiles?.full_name || 'Sistema') + '\n';
-    });
+        stockData.slice(0, 30).forEach((item, idx) => {
+            const isPositive = item.quantity_change > 0;
+            text += '\n' + (idx + 1) + '. ' + formatDateTime(item.created_at) + '\n';
+            text += '   ' + (item.medications?.name || 'Medicamento') + ' (' + (isPositive ? '+' : '') + item.quantity_change + ')\n';
+            text += '   Motivo: ' + item.reason + ' | Usuario: ' + (item.profiles?.full_name || 'Sistema') + '\n';
+        });
 
-    if (stockData.length > 30) {
-        text += '\n... e mais ' + (stockData.length - 30) + ' registros\n';
-    }
+        if (stockData.length > 30) {
+            text += '\n... e mais ' + (stockData.length - 30) + ' registros\n';
+        }
 
-    text += '\n---\n_Gerado pelo Sistema de Controle de Medicamentos_';
-    return text;
-};
+        text += '\n---\n_Gerado pelo Sistema de Controle de Medicamentos_';
+        return text;
+    };
 
-const generateStockReportHtml = () => {
-    if (!stockData || stockData.length === 0) return '';
+    const generateStockReportHtml = () => {
+        if (!stockData || stockData.length === 0) return '';
 
-    const startDate = formatDate(filters.startDate);
-    const endDate = formatDate(filters.endDate);
+        const startDate = formatDate(filters.startDate);
+        const endDate = formatDate(filters.endDate);
 
-    const rows = stockData.slice(0, 50).map(item => {
-        const isPositive = item.quantity_change > 0;
-        const color = isPositive ? '#166534' : '#9a3412';
-        const bg = isPositive ? '#dcfce7' : '#ffedd5';
+        const rows = stockData.slice(0, 50).map(item => {
+            const isPositive = item.quantity_change > 0;
+            const color = isPositive ? '#166534' : '#9a3412';
+            const bg = isPositive ? '#dcfce7' : '#ffedd5';
 
-        return `
+            return `
                 <tr>
                     <td style="padding: 12px; border-bottom: 1px solid #e2e8f0; color: #334155;">
                         <div style="font-weight: bold;">${formatDateTime(item.created_at)}</div>
@@ -605,9 +580,9 @@ const generateStockReportHtml = () => {
                     </td>
                 </tr>
             `;
-    }).join('');
+        }).join('');
 
-    return `
+        return `
             <!DOCTYPE html>
             <html>
              <head>
@@ -636,35 +611,35 @@ const generateStockReportHtml = () => {
             </body>
             </html>
         `;
-};
+    };
 
-const handleWhatsApp = () => {
-    const text = activeTab === 'stock' ? generateStockReportText() : generateReportText();
-    const encodedText = encodeURIComponent(text);
-    window.open(`https://wa.me/?text=${encodedText}`, '_blank');
-};
+    const handleWhatsApp = () => {
+        const text = activeTab === 'stock' ? generateStockReportText() : generateReportText();
+        const encodedText = encodeURIComponent(text);
+        window.open(`https://wa.me/?text=${encodedText}`, '_blank');
+    };
 
-const handleEmail = (type) => { // Updated to accept type override
-    setEmailType(type || (activeTab === 'stock' ? 'stock' : 'report'));
-    setEmailData({ to: '', observations: '' });
-    setShowEmailModal(true);
-};
+    const handleEmail = (type) => { // Updated to accept type override
+        setEmailType(type || (activeTab === 'stock' ? 'stock' : 'report'));
+        setEmailData({ to: '', observations: '' });
+        setShowEmailModal(true);
+    };
 
-const handleSendEmail = async () => {
-    if (!emailData.to) {
-        showToast('Por favor, informe o email do destinatário', 'error');
-        return;
-    }
+    const handleSendEmail = async () => {
+        if (!emailData.to) {
+            showToast('Por favor, informe o email do destinatário', 'error');
+            return;
+        }
 
-    setSendingEmail(true);
+        setSendingEmail(true);
 
-    try {
-        let html, text, subject;
+        try {
+            let html, text, subject;
 
-        if (emailType === 'birthday' && birthdayPatient) {
-            subject = `Feliz Aniversário, ${birthdayPatient.name}! 🎉`;
-            text = `Parabéns ${birthdayPatient.name}! Desejamos muitas felicidades.`;
-            html = `
+            if (emailType === 'birthday' && birthdayPatient) {
+                subject = `Feliz Aniversário, ${birthdayPatient.name}! 🎉`;
+                text = `Parabéns ${birthdayPatient.name}! Desejamos muitas felicidades.`;
+                html = `
                     <!DOCTYPE html>
                     <html>
                     <body style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background-color: #f0fdfa;">
@@ -708,623 +683,715 @@ const handleSendEmail = async () => {
                     </body>
                     </html>
                 `;
-        } else if (emailType === 'stock') {
-            html = generateStockReportHtml();
-            text = generateStockReportText();
-            subject = `Relatório de Movimentações - ${formatDate(new Date())}`;
-        } else {
-            html = generateReportHtml();
-            text = generateReportText(); // Fallback text
-            subject = `Relatório de Medicamentos - ${formatDate(reportData?.filters?.startDate || new Date())}`;
-        }
-
-        const { data, error } = await supabase.functions.invoke('send-email', {
-            body: {
-                to: emailData.to,
-                subject: subject,
-                text: text,
-                html: html
+            } else if (emailType === 'stock') {
+                html = generateStockReportHtml();
+                text = generateStockReportText();
+                subject = `Relatório de Movimentações - ${formatDate(new Date())}`;
+            } else {
+                html = generateReportHtml();
+                text = generateReportText(); // Fallback text
+                subject = `Relatório de Medicamentos - ${formatDate(reportData?.filters?.startDate || new Date())}`;
             }
-        });
 
-        if (error) throw error;
+            const { data, error } = await supabase.functions.invoke('send-email', {
+                body: {
+                    to: emailData.to,
+                    subject: subject,
+                    text: text,
+                    html: html
+                }
+            });
 
-        showToast('Email enviado com sucesso!', 'success');
-        setShowEmailModal(false);
-        setEmailData({ to: '', observations: '' });
-    } catch (error) {
-        console.error('Erro ao enviar email:', error);
-        showToast(error.message || 'Erro ao enviar email. Verifique se a Edge Function está configurada.', 'error');
-    } finally {
-        setSendingEmail(false);
-    }
-};
+            if (error) throw error;
 
-const filteredReportItems = reportData?.items.filter(
-    item => filters.status === 'all' || item.status === filters.status
-) || [];
-const totalPages = Math.ceil(filteredReportItems.length / ITEMS_PER_PAGE);
-const paginatedItems = filteredReportItems.slice(
-    (currentPage - 1) * ITEMS_PER_PAGE,
-    currentPage * ITEMS_PER_PAGE
-);
+            showToast('Email enviado com sucesso!', 'success');
+            setShowEmailModal(false);
+            setEmailData({ to: '', observations: '' });
+        } catch (error) {
+            console.error('Erro ao enviar email:', error);
+            showToast(error.message || 'Erro ao enviar email. Verifique se a Edge Function está configurada.', 'error');
+        } finally {
+            setSendingEmail(false);
+        }
+    };
 
-return (
-    <>
-        <div className="flex flex-col gap-8 pb-24 animate-in fade-in duration-500 print:hidden">
-            <div className="no-print">
-                <h2 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Relatórios</h2>
-                <p className="text-slate-500 dark:text-slate-400 mt-1">Visualize e imprima relatórios de medicações.</p>
-            </div>
+    const filteredReportItems = reportData?.items.filter(
+        item => filters.status === 'all' || item.status === filters.status
+    ) || [];
+    const totalPages = Math.ceil(filteredReportItems.length / ITEMS_PER_PAGE);
+    const paginatedItems = filteredReportItems.slice(
+        (currentPage - 1) * ITEMS_PER_PAGE,
+        currentPage * ITEMS_PER_PAGE
+    );
 
-            {/* Tabs Navigation */}
-            <div className="flex gap-4 border-b border-slate-200 dark:border-slate-800 no-print overflow-x-auto">
-                <button
-                    onClick={() => setActiveTab('dashboard')}
-                    className={`pb-4 px-2 font-medium text-sm transition-colors relative whitespace-nowrap ${activeTab === 'dashboard'
-                        ? 'text-primary'
-                        : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
-                        }`}
-                >
-                    <div className="flex items-center gap-2">
-                        <PieChart size={16} />
-                        Visão Geral
-                    </div>
-                    {activeTab === 'dashboard' && (
-                        <span className="absolute bottom-0 left-0 w-full h-0.5 bg-primary rounded-full" />
-                    )}
-                </button>
-                <button
-                    onClick={() => setActiveTab('history')}
-                    className={`pb-4 px-2 font-medium text-sm transition-colors relative whitespace-nowrap ${activeTab === 'history'
-                        ? 'text-primary'
-                        : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
-                        }`}
-                >
-                    Histórico de Consumo
-                    {activeTab === 'history' && (
-                        <span className="absolute bottom-0 left-0 w-full h-0.5 bg-primary rounded-full" />
-                    )}
-                </button>
-                {/* ... other buttons ... */}
-                <button
-                    onClick={() => setActiveTab('birthdays')}
-                    className={`pb-4 px-2 font-medium text-sm transition-colors relative ${activeTab === 'birthdays'
-                        ? 'text-primary'
-                        : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
-                        }`}
-                >
-                    Aniversariantes
-                    {activeTab === 'birthdays' && (
-                        <span className="absolute bottom-0 left-0 w-full h-0.5 bg-primary rounded-full" />
-                    )}
-                </button>
-                <button
-                    onClick={() => setActiveTab('stock')}
-                    className={`pb-4 px-2 font-medium text-sm transition-colors relative ${activeTab === 'stock'
-                        ? 'text-primary'
-                        : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
-                        }`}
-                >
-                    Movimentações
-                    {activeTab === 'stock' && (
-                        <span className="absolute bottom-0 left-0 w-full h-0.5 bg-primary rounded-full" />
-                    )}
-                </button>
-            </div>
-
-            {activeTab === 'stock' && (
-                <div className="flex flex-col gap-6">
-                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 text-slate-600 text-sm no-print">
-                        Gerencie o fluxo do seu estoque de medicamentos. Aqui você pode visualizar todas as entradas (compras) e saídas (consumo ou ajustes), permitindo um controle preciso do inventário e identificação de quando é necessário repor seus medicamentos.
-                    </div>
-                    <Card className="no-print">
-                        <CardHeader>
-                            <h3 className="font-bold text-xl text-slate-900 dark:text-white">Filtros de Estoque</h3>
-                            <p className="text-sm text-slate-500 dark:text-slate-400">Visualize a movimentação de entrada e saída.</p>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="flex flex-col gap-6">
-                                <div className="flex flex-col md:flex-row gap-4">
-                                    <Input
-                                        label="Data Inicial"
-                                        type="date"
-                                        value={filters.startDate}
-                                        onChange={(e) => setFilters({ ...filters, startDate: e.target.value })}
-                                        containerClassName="flex-1"
-                                    />
-                                    <Input
-                                        label="Data Final"
-                                        type="date"
-                                        value={filters.endDate}
-                                        onChange={(e) => setFilters({ ...filters, endDate: e.target.value })}
-                                        containerClassName="flex-1"
-                                    />
-                                </div>
-                                <div className="flex flex-col md:flex-row gap-4">
-                                    <div className="flex flex-col gap-1.5 flex-1">
-                                        <label className="text-sm font-semibold text-slate-700 ml-1">Medicamento</label>
-                                        <select
-                                            value={filters.medicationId}
-                                            onChange={(e) => setFilters({ ...filters, medicationId: e.target.value })}
-                                            className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-slate-900 focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-200"
-                                        >
-                                            <option value="all">Todos os Medicamentos</option>
-                                            {medications.map(med => (
-                                                <option key={med.id} value={med.id}>{med.name} {med.dosage}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                    <div className="flex flex-col gap-1.5 flex-1">
-                                        <label className="text-sm font-semibold text-slate-700 ml-1">Paciente</label>
-                                        <select
-                                            value={filters.patientId}
-                                            onChange={(e) => setFilters({ ...filters, patientId: e.target.value })}
-                                            className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-slate-900 focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-200"
-                                        >
-                                            <option value="all">Todos os Pacientes</option>
-                                            {patients.map(p => (
-                                                <option key={p.id} value={p.id}>{p.name}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                </div>
-                                <Button onClick={fetchStockHistory} variant="outline" className="w-full">
-                                    <Filter size={18} className="mr-2" /> Atualizar Filtros
-                                </Button>
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    {stockData.length > 0 && (
-                        <div className="flex flex-wrap gap-3 no-print">
-                            <Button variant="outline" onClick={handlePrint}>
-                                <Printer size={18} className="mr-2" /> Imprimir
-                            </Button>
-                            {/* PDF generation for Stock is not yet implemented, maybe skip or add later? 
-                                   User asked for Email specifically. 
-                                */}
-                            <Button variant="outline" onClick={() => handleEmail('stock')}>
-                                <Mail size={18} className="mr-2" /> Email
-                            </Button>
-                            <Button variant="outline" onClick={handleWhatsApp}>
-                                <MessageCircle size={18} className="mr-2" /> WhatsApp
-                            </Button>
-                        </div>
-                    )}
-
-                    {loadingStock ? (
-                        <div className="py-12 text-center text-slate-500">Carregando movimentações...</div>
-                    ) : stockData.length === 0 ? (
-                        <div className="py-12 text-center text-slate-500 bg-white rounded-2xl border border-dashed border-slate-200">
-                            Nenhum registro encontrado para estes filtros.
-                        </div>
-                    ) : (
-                        <Card>
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-sm text-left">
-                                    <thead className="bg-slate-50 text-slate-500 font-medium border-b border-slate-100">
-                                        <tr>
-                                            <th className="px-6 py-4">Data/Hora</th>
-                                            <th className="px-6 py-4">Medicamento</th>
-                                            <th className="px-6 py-4">Qtd.</th>
-                                            <th className="px-6 py-4">Motivo</th>
-                                            <th className="px-6 py-4">Paciente</th>
-                                            <th className="px-6 py-4">Usuário</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-slate-100">
-                                        {stockData.map((item) => {
-                                            const isPositive = item.quantity_change > 0;
-                                            const reasonMap = {
-                                                'consumption': 'Consumo',
-                                                'refill': 'Compra/Entrada',
-                                                'adjustment': 'Ajuste Manual',
-                                                'correction': 'Correção'
-                                            };
-                                            return (
-                                                <tr key={item.id} className="hover:bg-slate-50 transition-colors">
-                                                    <td className="px-6 py-4 text-slate-600">
-                                                        {formatDateTime(item.created_at)}
-                                                    </td>
-                                                    <td className="px-6 py-4 font-medium text-slate-900">
-                                                        {item.medications?.name}
-                                                        <div className="flex gap-1 text-xs text-slate-500 font-normal mt-0.5">
-                                                            <span>{item.medications?.dosage}</span>
-                                                            {item.medications?.type && (
-                                                                <>
-                                                                    <span>•</span>
-                                                                    <span>{item.medications?.type}</span>
-                                                                </>
-                                                            )}
-                                                        </div>
-                                                    </td>
-                                                    <td className={`px-6 py-4 font-bold ${isPositive ? 'text-green-600' : 'text-orange-600'}`}>
-                                                        {isPositive ? '+' : ''}{item.quantity_change}
-                                                    </td>
-                                                    <td className="px-6 py-4 text-slate-600">
-                                                        <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium ${item.reason === 'consumption' ? 'bg-orange-50 text-orange-700' :
-                                                            item.reason === 'refill' ? 'bg-green-50 text-green-700' : 'bg-slate-100 text-slate-600'
-                                                            }`}>
-                                                            {reasonMap[item.reason] || item.reason}
-                                                        </span>
-                                                    </td>
-                                                    <td className="px-6 py-4 text-slate-600">
-                                                        {item.patients?.name || '-'}
-                                                    </td>
-                                                    <td className="px-6 py-4 text-slate-500 text-xs">
-                                                        {item.profiles?.full_name || 'Usuário'}
-                                                    </td>
-                                                </tr>
-                                            );
-                                        })}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </Card>
-                    )}
+    return (
+        <>
+            <div className="flex flex-col gap-8 pb-24 animate-in fade-in duration-500 print:hidden">
+                <div className="no-print">
+                    <h2 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Relatórios</h2>
+                    <p className="text-slate-500 dark:text-slate-400 mt-1">Visualize e imprima relatórios de medicações.</p>
                 </div>
-            )}
 
-            {activeTab === 'dashboard' && reportData && (
-                <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                    <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 text-slate-700 text-sm no-print">
-                        Acompanhe o desempenho geral do tratamento em um só lugar. Visualize métricas essenciais como taxas de adesão, total de doses tomadas e pendentes, além de gráficos interativos que ilustram sua atividade semanal e o sucesso do tratamento ao longo do tempo.
-                    </div>
-                    {/* Summary Cards */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-                            <CardContent className="p-6">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-12 h-12 rounded-xl bg-blue-500 flex items-center justify-center text-white">
-                                        <FileText size={24} />
-                                    </div>
-                                    <div>
-                                        <p className="text-sm text-blue-600 font-medium">Total</p>
-                                        <p className="text-2xl font-bold text-blue-900">{reportData.summary.total}</p>
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </Card>
-
-                        <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-                            <CardContent className="p-6">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-12 h-12 rounded-xl bg-green-500 flex items-center justify-center text-white">
-                                        <CheckCircle size={24} />
-                                    </div>
-                                    <div>
-                                        <p className="text-sm text-green-600 font-medium">Tomadas</p>
-                                        <p className="text-2xl font-bold text-green-900">{reportData.summary.taken}</p>
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </Card>
-
-                        <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
-                            <CardContent className="p-6">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-12 h-12 rounded-xl bg-orange-500 flex items-center justify-center text-white">
-                                        <Clock size={24} />
-                                    </div>
-                                    <div>
-                                        <p className="text-sm text-orange-600 font-medium">Pendentes</p>
-                                        <p className="text-2xl font-bold text-orange-900">{reportData.summary.pending}</p>
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </Card>
-
-                        <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
-                            <CardContent className="p-6">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-12 h-12 rounded-xl bg-purple-500 flex items-center justify-center text-white">
-                                        <Calendar size={24} />
-                                    </div>
-                                    <div>
-                                        <p className="text-sm text-purple-600 font-medium">Adesão</p>
-                                        <p className="text-2xl font-bold text-purple-900">{reportData.summary.adherenceRate}%</p>
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </div>
-
-                    {/* Charts Section - Now correctly placed in Dashboard */}
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 print:break-inside-avoid">
-                        <AdherenceChart data={dashboardData.adherence} />
-                        <ActivityChart data={dashboardData.activity} />
-                    </div>
+                {/* Tabs Navigation */}
+                <div className="flex gap-4 border-b border-slate-200 dark:border-slate-800 no-print overflow-x-auto">
+                    <button
+                        onClick={() => setActiveTab('dashboard')}
+                        className={`pb-4 px-2 font-medium text-sm transition-colors relative whitespace-nowrap ${activeTab === 'dashboard'
+                            ? 'text-primary'
+                            : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+                            }`}
+                    >
+                        <div className="flex items-center gap-2">
+                            <PieChart size={16} />
+                            Visão Geral
+                        </div>
+                        {activeTab === 'dashboard' && (
+                            <span className="absolute bottom-0 left-0 w-full h-0.5 bg-primary rounded-full" />
+                        )}
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('history')}
+                        className={`pb-4 px-2 font-medium text-sm transition-colors relative whitespace-nowrap ${activeTab === 'history'
+                            ? 'text-primary'
+                            : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+                            }`}
+                    >
+                        Histórico de Consumo
+                        {activeTab === 'history' && (
+                            <span className="absolute bottom-0 left-0 w-full h-0.5 bg-primary rounded-full" />
+                        )}
+                    </button>
+                    {/* ... other buttons ... */}
+                    <button
+                        onClick={() => setActiveTab('birthdays')}
+                        className={`pb-4 px-2 font-medium text-sm transition-colors relative ${activeTab === 'birthdays'
+                            ? 'text-primary'
+                            : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+                            }`}
+                    >
+                        Aniversariantes
+                        {activeTab === 'birthdays' && (
+                            <span className="absolute bottom-0 left-0 w-full h-0.5 bg-primary rounded-full" />
+                        )}
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('stock')}
+                        className={`pb-4 px-2 font-medium text-sm transition-colors relative ${activeTab === 'stock'
+                            ? 'text-primary'
+                            : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+                            }`}
+                    >
+                        Movimentações
+                        {activeTab === 'stock' && (
+                            <span className="absolute bottom-0 left-0 w-full h-0.5 bg-primary rounded-full" />
+                        )}
+                    </button>
                 </div>
-            )}
 
-            {activeTab === 'history' && (
-                <div className="flex flex-col gap-6">
-                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 text-slate-600 text-sm no-print">
-                        Consulte o histórico detalhado de todas as doses prescritas e consumidas. Utilize os filtros avançados para buscar registros por paciente, período específico ou status da medicação, e exporte os dados para impressão ou arquivo PDF para levar ao médico.
-                    </div>
-                    <Card className="no-print">
-                        <CardHeader>
-                            <h3 className="font-bold text-xl text-slate-900 dark:text-white">Filtros do Relatório</h3>
-                            <p className="text-sm text-slate-500 dark:text-slate-400">Selecione o paciente, período e status desejado</p>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="flex flex-col gap-6">
-                                <div className="flex flex-col md:flex-row gap-4">
-                                    <div className="flex flex-col gap-1.5 flex-1">
-                                        <label className="text-sm font-semibold text-slate-700 ml-1">Paciente</label>
-                                        <select
-                                            value={filters.patientId}
-                                            onChange={(e) => setFilters({ ...filters, patientId: e.target.value })}
-                                            className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-slate-900 focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-200"
-                                        >
-                                            <option value="all">Todos os Pacientes</option>
-                                            {patients.map(patient => (
-                                                <option key={patient.id} value={patient.id}>{patient.name}</option>
-                                            ))}
-                                        </select>
+                {activeTab === 'stock' && (
+                    <div className="flex flex-col gap-6">
+                        <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 text-slate-600 text-sm no-print">
+                            Gerencie o fluxo do seu estoque de medicamentos. Aqui você pode visualizar todas as entradas (compras) e saídas (consumo ou ajustes), permitindo um controle preciso do inventário e identificação de quando é necessário repor seus medicamentos.
+                        </div>
+                        <Card className="no-print">
+                            <CardHeader>
+                                <h3 className="font-bold text-xl text-slate-900 dark:text-white">Filtros de Estoque</h3>
+                                <p className="text-sm text-slate-500 dark:text-slate-400">Visualize a movimentação de entrada e saída.</p>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="flex flex-col gap-6">
+                                    <div className="flex flex-col md:flex-row gap-4">
+                                        <Input
+                                            label="Data Inicial"
+                                            type="date"
+                                            value={filters.startDate}
+                                            onChange={(e) => setFilters({ ...filters, startDate: e.target.value })}
+                                            containerClassName="flex-1"
+                                        />
+                                        <Input
+                                            label="Data Final"
+                                            type="date"
+                                            value={filters.endDate}
+                                            onChange={(e) => setFilters({ ...filters, endDate: e.target.value })}
+                                            containerClassName="flex-1"
+                                        />
                                     </div>
+                                    <div className="flex flex-col md:flex-row gap-4">
+                                        <div className="flex flex-col gap-1.5 flex-1">
+                                            <label className="text-sm font-semibold text-slate-700 ml-1">Medicamento</label>
+                                            <select
+                                                value={filters.medicationId}
+                                                onChange={(e) => setFilters({ ...filters, medicationId: e.target.value })}
+                                                className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-slate-900 focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-200"
+                                            >
+                                                <option value="all">Todos os Medicamentos</option>
+                                                {medications.map(med => (
+                                                    <option key={med.id} value={med.id}>{med.name} {med.dosage}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        <div className="flex flex-col gap-1.5 flex-1">
+                                            <label className="text-sm font-semibold text-slate-700 ml-1">Paciente</label>
+                                            <select
+                                                value={filters.patientId}
+                                                onChange={(e) => setFilters({ ...filters, patientId: e.target.value })}
+                                                className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-slate-900 focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-200"
+                                            >
+                                                <option value="all">Todos os Pacientes</option>
+                                                {patients.map(p => (
+                                                    <option key={p.id} value={p.id}>{p.name}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <Button onClick={fetchStockHistory} variant="outline" className="w-full">
+                                        <Filter size={18} className="mr-2" /> Atualizar Filtros
+                                    </Button>
                                 </div>
+                            </CardContent>
+                        </Card>
 
-                                <div className="flex flex-col md:flex-row gap-4">
-                                    <Input
-                                        label="Data Inicial"
-                                        type="date"
-                                        value={filters.startDate}
-                                        onChange={(e) => setFilters({ ...filters, startDate: e.target.value })}
-                                        containerClassName="flex-1"
-                                    />
-                                    <Input
-                                        label="Data Final"
-                                        type="date"
-                                        value={filters.endDate}
-                                        onChange={(e) => setFilters({ ...filters, endDate: e.target.value })}
-                                        containerClassName="flex-1"
-                                    />
-                                </div>
-
-                                <div className="flex flex-col gap-1.5">
-                                    <label className="text-sm font-semibold text-slate-700 ml-1">Status</label>
-                                    <select
-                                        value={filters.status}
-                                        onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-                                        className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-slate-900 focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-200"
-                                    >
-                                        <option value="all">Todos os Status</option>
-                                        <option value="taken">Tomadas</option>
-                                        <option value="pending">Pendentes</option>
-                                    </select>
-                                </div>
-
-                                <Button onClick={generateReport} className="w-full">
-                                    <FileText size={18} className="mr-2" /> Gerar Relatório
-                                </Button>
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    {/* History Table Results */}
-                    {reportData && (
-                        <>
-                            <div className="flex flex-wrap gap-3 no-print justify-end">
+                        {stockData.length > 0 && (
+                            <div className="flex flex-wrap gap-3 no-print">
                                 <Button variant="outline" onClick={handlePrint}>
                                     <Printer size={18} className="mr-2" /> Imprimir
                                 </Button>
-                                <Button variant="outline" onClick={handleDownloadPDF}>
-                                    <Download size={18} className="mr-2" /> PDF
+                                {/* PDF generation for Stock is not yet implemented, maybe skip or add later? 
+                                   User asked for Email specifically. 
+                                */}
+                                <Button variant="outline" onClick={() => handleEmail('stock')}>
+                                    <Mail size={18} className="mr-2" /> Email
                                 </Button>
                                 <Button variant="outline" onClick={handleWhatsApp}>
                                     <MessageCircle size={18} className="mr-2" /> WhatsApp
                                 </Button>
-                                <Button variant="outline" onClick={handleEmail}>
-                                    <Mail size={18} className="mr-2" /> Email
-                                </Button>
                             </div>
+                        )}
 
-                            {paginatedItems.length > 0 ? (
-                                <>
-                                    <div className="grid gap-3">
-                                        {paginatedItems.map((item, idx) => (
-                                            <Card key={idx} className={`${item.status === 'taken' ? 'border-green-200 bg-green-50/30' : 'border-orange-200 bg-orange-50/30'}`}>
-                                                <CardContent className="p-4">
-                                                    <div className="flex items-center justify-between">
-                                                        <div className="flex items-center gap-4">
-                                                            <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${item.status === 'taken' ? 'bg-green-500' : 'bg-orange-500'} text-white`}>
-                                                                {item.status === 'taken' ? <CheckCircle size={24} /> : <Clock size={24} />}
-                                                            </div>
-                                                            <div>
-                                                                <p className="font-semibold text-slate-900">{item.medication}</p>
-                                                                <p className="text-sm text-slate-600">{item.patient}</p>
-                                                                <p className="text-xs text-slate-400">
-                                                                    {formatDate(item.date)} às {item.time}
-                                                                </p>
-                                                            </div>
-                                                        </div>
-                                                        <span className={`px-3 py-1 rounded-full text-sm font-medium ${item.status === 'taken' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
-                                                            {item.status === 'taken' ? 'Tomado' : 'Pendente'}
-                                                        </span>
-                                                    </div>
-                                                </CardContent>
-                                            </Card>
-                                        ))}
-                                    </div>
-
-                                    <Pagination
-                                        currentPage={currentPage}
-                                        totalPages={totalPages}
-                                        onPageChange={setCurrentPage}
-                                    />
-                                </>
-                            ) : (
-                                <Card>
-                                    <CardContent className="p-12 text-center">
-                                        <FileText size={48} className="mx-auto text-slate-300 mb-4" />
-                                        <p className="text-slate-500">Nenhum item encontrado para os filtros selecionados.</p>
-                                    </CardContent>
-                                </Card>
-                            )}
-                        </>
-                    )}
-                </div>
-            )}
-
-            {activeTab === 'birthdays' && (
-                <div className="flex flex-col gap-6">
-                    <div className="bg-pink-50 border border-pink-100 rounded-xl p-4 text-pink-700 text-sm no-print">
-                        Não esqueça nenhuma data importante! Identifique rapidamente os pacientes que fazem aniversário no dia selecionado, veja a idade completa e utilize os atalhos para enviar mensagens carinhosas de felicitações via WhatsApp ou E-mail diretamente por aqui.
-                    </div>
-                    <Card className="no-print">
-                        <CardHeader>
-                            <h3 className="font-bold text-xl text-slate-900 dark:text-white">Buscar Aniversariantes</h3>
-                            <p className="text-sm text-slate-500 dark:text-slate-400">Selecione uma data para ver os aniversariantes do dia</p>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="flex flex-col md:flex-row gap-4 items-end">
-                                <div className="flex-1 flex gap-4">
-                                    <div className="flex-1">
-                                        <label className="text-sm font-semibold text-slate-700 ml-1 mb-1.5 block">Dia</label>
-                                        <select
-                                            value={selectedDay}
-                                            onChange={(e) => setSelectedDay(Number(e.target.value))}
-                                            className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-slate-900 focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-200"
-                                        >
-                                            {Array.from({ length: 31 }, (_, i) => i + 1).map(day => (
-                                                <option key={day} value={day}>{day}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                    <div className="flex-[2]">
-                                        <label className="text-sm font-semibold text-slate-700 ml-1 mb-1.5 block">Mês</label>
-                                        <select
-                                            value={selectedMonth}
-                                            onChange={(e) => setSelectedMonth(Number(e.target.value))}
-                                            className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-slate-900 focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-200"
-                                        >
-                                            {['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'].map((month, idx) => (
-                                                <option key={idx} value={idx + 1}>{month}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                </div>
-                                <Button
-                                    variant="outline"
-                                    onClick={() => {
-                                        const today = new Date();
-                                        setSelectedDay(today.getDate());
-                                        setSelectedMonth(today.getMonth() + 1);
-                                    }}
-                                    className="mb-0.5"
-                                >
-                                    Hoje
-                                </Button>
+                        {loadingStock ? (
+                            <div className="py-12 text-center text-slate-500">Carregando movimentações...</div>
+                        ) : stockData.length === 0 ? (
+                            <div className="py-12 text-center text-slate-500 bg-white rounded-2xl border border-dashed border-slate-200">
+                                Nenhum registro encontrado para estes filtros.
                             </div>
-                        </CardContent>
-                    </Card>
-
-                    <div className="grid gap-3">
-                        {birthdayData.length > 0 ? (
-                            birthdayData.map(patient => (
-                                <Card key={patient.id} className="border-pink-200 bg-pink-50/30">
-                                    <CardContent className="p-4">
-                                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                                            <div className="flex items-center gap-4">
-                                                <div className="w-12 h-12 rounded-xl bg-pink-500 shrink-0 flex items-center justify-center text-white">
-                                                    <Gift size={24} />
-                                                </div>
-                                                <div>
-                                                    <p className="font-semibold text-slate-900">{patient.name}</p>
-                                                    <p className="text-sm text-slate-600">
-                                                        {formatDate(patient.birthDate)} <span className="text-pink-500 font-medium">• {patient.detailedAge}</span>
-                                                    </p>
-                                                    {patient.phone && (
-                                                        <p className="text-xs text-slate-500 mt-0.5 flex items-center gap-1">
-                                                            <MessageCircle size={12} /> {patient.phone}
-                                                        </p>
-                                                    )}
-                                                </div>
-                                            </div>
-                                            <div className="flex gap-2 w-full md:w-auto">
-                                                <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    onClick={() => {
-                                                        const msg = `Olá ${patient.name}, feliz aniversário! 🎂🎉🥳 Que seu dia seja iluminado e cheio de alegria! Desejamos muita saúde, paz e felicidades! ✨🎈`;
-                                                        window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
-                                                    }}
-                                                    className="text-pink-600 hover:text-pink-700 hover:bg-pink-50 border-pink-200 flex-1 md:flex-none"
-                                                >
-                                                    <MessageCircle size={16} className="mr-2" /> WhatsApp
-                                                </Button>
-                                                <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    onClick={() => openBirthdayEmailModal(patient)}
-                                                    className="text-purple-600 hover:text-purple-700 hover:bg-purple-50 border-purple-200"
-                                                >
-                                                    <Mail size={16} className="mr-2" /> Email
-                                                </Button>
-                                            </div>
-                                        </div>
-                                    </CardContent>
-                                </Card>
-                            ))
                         ) : (
                             <Card>
-                                <CardContent className="p-12 text-center">
-                                    <Gift size={48} className="mx-auto text-slate-300 mb-4" />
-                                    <p className="text-slate-500">Nenhum aniversariante encontrado nesta data.</p>
-                                </CardContent>
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-sm text-left">
+                                        <thead className="bg-slate-50 text-slate-500 font-medium border-b border-slate-100">
+                                            <tr>
+                                                <th className="px-6 py-4">Data/Hora</th>
+                                                <th className="px-6 py-4">Medicamento</th>
+                                                <th className="px-6 py-4">Qtd.</th>
+                                                <th className="px-6 py-4">Motivo</th>
+                                                <th className="px-6 py-4">Paciente</th>
+                                                <th className="px-6 py-4">Usuário</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-100">
+                                            {stockData.map((item) => {
+                                                const isPositive = item.quantity_change > 0;
+                                                const reasonMap = {
+                                                    'consumption': 'Consumo',
+                                                    'refill': 'Compra/Entrada',
+                                                    'adjustment': 'Ajuste Manual',
+                                                    'correction': 'Correção'
+                                                };
+                                                return (
+                                                    <tr key={item.id} className="hover:bg-slate-50 transition-colors">
+                                                        <td className="px-6 py-4 text-slate-600">
+                                                            {formatDateTime(item.created_at)}
+                                                        </td>
+                                                        <td className="px-6 py-4 font-medium text-slate-900">
+                                                            {item.medications?.name}
+                                                            <div className="flex gap-1 text-xs text-slate-500 font-normal mt-0.5">
+                                                                <span>{item.medications?.dosage}</span>
+                                                                {item.medications?.type && (
+                                                                    <>
+                                                                        <span>•</span>
+                                                                        <span>{item.medications?.type}</span>
+                                                                    </>
+                                                                )}
+                                                            </div>
+                                                        </td>
+                                                        <td className={`px-6 py-4 font-bold ${isPositive ? 'text-green-600' : 'text-orange-600'}`}>
+                                                            {isPositive ? '+' : ''}{item.quantity_change}
+                                                        </td>
+                                                        <td className="px-6 py-4 text-slate-600">
+                                                            <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium ${item.reason === 'consumption' ? 'bg-orange-50 text-orange-700' :
+                                                                item.reason === 'refill' ? 'bg-green-50 text-green-700' : 'bg-slate-100 text-slate-600'
+                                                                }`}>
+                                                                {reasonMap[item.reason] || item.reason}
+                                                            </span>
+                                                        </td>
+                                                        <td className="px-6 py-4 text-slate-600">
+                                                            {item.patients?.name || '-'}
+                                                        </td>
+                                                        <td className="px-6 py-4 text-slate-500 text-xs">
+                                                            {item.profiles?.full_name || 'Usuário'}
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
+                                </div>
                             </Card>
                         )}
                     </div>
-                </div>
-            )}
+                )}
+
+                {activeTab === 'dashboard' && reportData && (
+                    <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 text-slate-700 text-sm no-print">
+                            Acompanhe o desempenho geral do tratamento em um só lugar. Visualize métricas essenciais como taxas de adesão, total de doses tomadas e pendentes, além de gráficos interativos que ilustram sua atividade semanal e o sucesso do tratamento ao longo do tempo.
+                        </div>
+                        {/* Summary Cards */}
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
+                                <CardContent className="p-6">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-12 h-12 rounded-xl bg-blue-500 flex items-center justify-center text-white">
+                                            <FileText size={24} />
+                                        </div>
+                                        <div>
+                                            <p className="text-sm text-blue-600 font-medium">Total</p>
+                                            <p className="text-2xl font-bold text-blue-900">{reportData.summary.total}</p>
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                            <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
+                                <CardContent className="p-6">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-12 h-12 rounded-xl bg-green-500 flex items-center justify-center text-white">
+                                            <CheckCircle size={24} />
+                                        </div>
+                                        <div>
+                                            <p className="text-sm text-green-600 font-medium">Tomadas</p>
+                                            <p className="text-2xl font-bold text-green-900">{reportData.summary.taken}</p>
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                            <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
+                                <CardContent className="p-6">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-12 h-12 rounded-xl bg-orange-500 flex items-center justify-center text-white">
+                                            <Clock size={24} />
+                                        </div>
+                                        <div>
+                                            <p className="text-sm text-orange-600 font-medium">Pendentes</p>
+                                            <p className="text-2xl font-bold text-orange-900">{reportData.summary.pending}</p>
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                            <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
+                                <CardContent className="p-6">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-12 h-12 rounded-xl bg-purple-500 flex items-center justify-center text-white">
+                                            <Calendar size={24} />
+                                        </div>
+                                        <div>
+                                            <p className="text-sm text-purple-600 font-medium">Adesão</p>
+                                            <p className="text-2xl font-bold text-purple-900">{reportData.summary.adherenceRate}%</p>
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </div>
+
+                        {/* Charts Section - Now correctly placed in Dashboard */}
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 print:break-inside-avoid">
+                            <AdherenceChart data={dashboardData.adherence} />
+                            <ActivityChart data={dashboardData.activity} />
+                        </div>
+                    </div>
+                )}
+
+                {activeTab === 'history' && (
+                    <div className="flex flex-col gap-6">
+                        <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 text-slate-600 text-sm no-print">
+                            Consulte o histórico detalhado de todas as doses prescritas e consumidas. Utilize os filtros avançados para buscar registros por paciente, período específico ou status da medicação, e exporte os dados para impressão ou arquivo PDF para levar ao médico.
+                        </div>
+                        <Card className="no-print">
+                            <CardHeader>
+                                <h3 className="font-bold text-xl text-slate-900 dark:text-white">Filtros do Relatório</h3>
+                                <p className="text-sm text-slate-500 dark:text-slate-400">Selecione o paciente, período e status desejado</p>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="flex flex-col gap-6">
+                                    <div className="flex flex-col md:flex-row gap-4">
+                                        <div className="flex flex-col gap-1.5 flex-1">
+                                            <label className="text-sm font-semibold text-slate-700 ml-1">Paciente</label>
+                                            <select
+                                                value={filters.patientId}
+                                                onChange={(e) => setFilters({ ...filters, patientId: e.target.value })}
+                                                className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-slate-900 focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-200"
+                                            >
+                                                <option value="all">Todos os Pacientes</option>
+                                                {patients.map(patient => (
+                                                    <option key={patient.id} value={patient.id}>{patient.name}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex flex-col md:flex-row gap-4">
+                                        <Input
+                                            label="Data Inicial"
+                                            type="date"
+                                            value={filters.startDate}
+                                            onChange={(e) => setFilters({ ...filters, startDate: e.target.value })}
+                                            containerClassName="flex-1"
+                                        />
+                                        <Input
+                                            label="Data Final"
+                                            type="date"
+                                            value={filters.endDate}
+                                            onChange={(e) => setFilters({ ...filters, endDate: e.target.value })}
+                                            containerClassName="flex-1"
+                                        />
+                                    </div>
+
+                                    <div className="flex flex-col gap-1.5">
+                                        <label className="text-sm font-semibold text-slate-700 ml-1">Status</label>
+                                        <select
+                                            value={filters.status}
+                                            onChange={(e) => setFilters({ ...filters, status: e.target.value })}
+                                            className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-slate-900 focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-200"
+                                        >
+                                            <option value="all">Todos os Status</option>
+                                            <option value="taken">Tomadas</option>
+                                            <option value="pending">Pendentes</option>
+                                        </select>
+                                    </div>
+
+                                    <Button onClick={generateReport} className="w-full">
+                                        <FileText size={18} className="mr-2" /> Gerar Relatório
+                                    </Button>
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        {/* History Table Results */}
+                        {reportData && (
+                            <>
+                                <div className="flex flex-wrap gap-3 no-print justify-end">
+                                    <Button variant="outline" onClick={handlePrint}>
+                                        <Printer size={18} className="mr-2" /> Imprimir
+                                    </Button>
+                                    <Button variant="outline" onClick={handleDownloadPDF}>
+                                        <Download size={18} className="mr-2" /> PDF
+                                    </Button>
+                                    <Button variant="outline" onClick={handleWhatsApp}>
+                                        <MessageCircle size={18} className="mr-2" /> WhatsApp
+                                    </Button>
+                                    <Button variant="outline" onClick={handleEmail}>
+                                        <Mail size={18} className="mr-2" /> Email
+                                    </Button>
+                                </div>
+
+                                {paginatedItems.length > 0 ? (
+                                    <>
+                                        <div className="grid gap-3">
+                                            {paginatedItems.map((item, idx) => (
+                                                <Card key={idx} className={`${item.status === 'taken' ? 'border-green-200 bg-green-50/30' : 'border-orange-200 bg-orange-50/30'}`}>
+                                                    <CardContent className="p-4">
+                                                        <div className="flex items-center justify-between">
+                                                            <div className="flex items-center gap-4">
+                                                                <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${item.status === 'taken' ? 'bg-green-500' : 'bg-orange-500'} text-white`}>
+                                                                    {item.status === 'taken' ? <CheckCircle size={24} /> : <Clock size={24} />}
+                                                                </div>
+                                                                <div>
+                                                                    <p className="font-semibold text-slate-900">{item.medication}</p>
+                                                                    <p className="text-sm text-slate-600">{item.patient}</p>
+                                                                    <p className="text-xs text-slate-400">
+                                                                        {formatDate(item.date)} às {item.time}
+                                                                    </p>
+                                                                </div>
+                                                            </div>
+                                                            <span className={`px-3 py-1 rounded-full text-sm font-medium ${item.status === 'taken' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
+                                                                {item.status === 'taken' ? 'Tomado' : 'Pendente'}
+                                                            </span>
+                                                        </div>
+                                                    </CardContent>
+                                                </Card>
+                                            ))}
+                                        </div>
+
+                                        <Pagination
+                                            currentPage={currentPage}
+                                            totalPages={totalPages}
+                                            onPageChange={setCurrentPage}
+                                        />
+                                    </>
+                                ) : (
+                                    <Card>
+                                        <CardContent className="p-12 text-center">
+                                            <FileText size={48} className="mx-auto text-slate-300 mb-4" />
+                                            <p className="text-slate-500">Nenhum item encontrado para os filtros selecionados.</p>
+                                        </CardContent>
+                                    </Card>
+                                )}
+                            </>
+                        )}
+                    </div>
+                )}
+
+                {activeTab === 'birthdays' && (
+                    <div className="flex flex-col gap-6">
+                        <div className="bg-pink-50 border border-pink-100 rounded-xl p-4 text-pink-700 text-sm no-print">
+                            Não esqueça nenhuma data importante! Identifique rapidamente os pacientes que fazem aniversário no dia selecionado, veja a idade completa e utilize os atalhos para enviar mensagens carinhosas de felicitações via WhatsApp ou E-mail diretamente por aqui.
+                        </div>
+                        <Card className="no-print">
+                            <CardHeader>
+                                <h3 className="font-bold text-xl text-slate-900 dark:text-white">Buscar Aniversariantes</h3>
+                                <p className="text-sm text-slate-500 dark:text-slate-400">Selecione uma data para ver os aniversariantes do dia</p>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="flex flex-col md:flex-row gap-4 items-end">
+                                    <div className="flex-1 flex gap-4">
+                                        <div className="flex-1">
+                                            <label className="text-sm font-semibold text-slate-700 ml-1 mb-1.5 block">Dia</label>
+                                            <select
+                                                value={selectedDay}
+                                                onChange={(e) => setSelectedDay(Number(e.target.value))}
+                                                className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-slate-900 focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-200"
+                                            >
+                                                {Array.from({ length: 31 }, (_, i) => i + 1).map(day => (
+                                                    <option key={day} value={day}>{day}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        <div className="flex-[2]">
+                                            <label className="text-sm font-semibold text-slate-700 ml-1 mb-1.5 block">Mês</label>
+                                            <select
+                                                value={selectedMonth}
+                                                onChange={(e) => setSelectedMonth(Number(e.target.value))}
+                                                className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-slate-900 focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-200"
+                                            >
+                                                {['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'].map((month, idx) => (
+                                                    <option key={idx} value={idx + 1}>{month}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => {
+                                            const today = new Date();
+                                            setSelectedDay(today.getDate());
+                                            setSelectedMonth(today.getMonth() + 1);
+                                        }}
+                                        className="mb-0.5"
+                                    >
+                                        Hoje
+                                    </Button>
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        <div className="grid gap-3">
+                            {birthdayData.length > 0 ? (
+                                birthdayData.map(patient => (
+                                    <Card key={patient.id} className="border-pink-200 bg-pink-50/30">
+                                        <CardContent className="p-4">
+                                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                                <div className="flex items-center gap-4">
+                                                    <div className="w-12 h-12 rounded-xl bg-pink-500 shrink-0 flex items-center justify-center text-white">
+                                                        <Gift size={24} />
+                                                    </div>
+                                                    <div>
+                                                        <p className="font-semibold text-slate-900">{patient.name}</p>
+                                                        <p className="text-sm text-slate-600">
+                                                            {formatDate(patient.birthDate)} <span className="text-pink-500 font-medium">• {patient.detailedAge}</span>
+                                                        </p>
+                                                        {patient.phone && (
+                                                            <p className="text-xs text-slate-500 mt-0.5 flex items-center gap-1">
+                                                                <MessageCircle size={12} /> {patient.phone}
+                                                            </p>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                <div className="flex gap-2 w-full md:w-auto">
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={() => {
+                                                            const msg = `Olá ${patient.name}, feliz aniversário! 🎂🎉🥳 Que seu dia seja iluminado e cheio de alegria! Desejamos muita saúde, paz e felicidades! ✨🎈`;
+                                                            window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+                                                        }}
+                                                        className="text-pink-600 hover:text-pink-700 hover:bg-pink-50 border-pink-200 flex-1 md:flex-none"
+                                                    >
+                                                        <MessageCircle size={16} className="mr-2" /> WhatsApp
+                                                    </Button>
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={() => openBirthdayEmailModal(patient)}
+                                                        className="text-purple-600 hover:text-purple-700 hover:bg-purple-50 border-purple-200"
+                                                    >
+                                                        <Mail size={16} className="mr-2" /> Email
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                ))
+                            ) : (
+                                <Card>
+                                    <CardContent className="p-12 text-center">
+                                        <Gift size={48} className="mx-auto text-slate-300 mb-4" />
+                                        <p className="text-slate-500">Nenhum aniversariante encontrado nesta data.</p>
+                                    </CardContent>
+                                </Card>
+                            )}
+                        </div>
+                    </div>
+                )}
 
 
 
-            <Modal
-                isOpen={showEmailModal}
-                onClose={() => setShowEmailModal(false)}
-                title={emailType === 'birthday' ? "Enviar Cartão de Aniversário" : "Enviar Relatório por Email"}
-            >
-                <div className="flex flex-col gap-4">
-                    <Input
-                        label="Para:"
-                        type="text" // Changed to text to allow multiple comma-separated emails
-                        placeholder="exemplo@email.com, outro@email.com"
-                        value={emailData.to}
-                        onChange={(e) => setEmailData({ ...emailData, to: e.target.value })}
-                    />
-                    <p className="text-xs text-slate-400 -mt-3 mb-2 ml-1">
-                        Dica: Separe múltiplos emails com vírgula (,)
-                    </p>
-                    <div className="flex flex-col gap-1.5">
-                        <label className="text-sm font-semibold text-slate-700 ml-1">Observações (opcional)</label>
-                        <textarea
-                            className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-200 resize-none"
-                            placeholder="Informações adicionais..."
-                            rows={3}
-                            value={emailData.observations}
-                            onChange={(e) => setEmailData({ ...emailData, observations: e.target.value })}
+                <Modal
+                    isOpen={showEmailModal}
+                    onClose={() => setShowEmailModal(false)}
+                    title={emailType === 'birthday' ? "Enviar Cartão de Aniversário" : "Enviar Relatório por Email"}
+                >
+                    <div className="flex flex-col gap-4">
+                        <Input
+                            label="Para:"
+                            type="text" // Changed to text to allow multiple comma-separated emails
+                            placeholder="exemplo@email.com, outro@email.com"
+                            value={emailData.to}
+                            onChange={(e) => setEmailData({ ...emailData, to: e.target.value })}
                         />
+                        <p className="text-xs text-slate-400 -mt-3 mb-2 ml-1">
+                            Dica: Separe múltiplos emails com vírgula (,)
+                        </p>
+                        <div className="flex flex-col gap-1.5">
+                            <label className="text-sm font-semibold text-slate-700 ml-1">Observações (opcional)</label>
+                            <textarea
+                                className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-200 resize-none"
+                                placeholder="Informações adicionais..."
+                                rows={3}
+                                value={emailData.observations}
+                                onChange={(e) => setEmailData({ ...emailData, observations: e.target.value })}
+                            />
+                        </div>
+                        <div className="flex gap-3 mt-2">
+                            <Button variant="ghost" onClick={() => setShowEmailModal(false)} className="flex-1">
+                                Cancelar
+                            </Button>
+                            <Button onClick={handleSendEmail} disabled={sendingEmail} className="flex-1">
+                                {sendingEmail ? 'Enviando...' : 'Enviar Email'}
+                            </Button>
+                        </div>
                     </div>
-                    <div className="flex gap-3 mt-2">
-                        <Button variant="ghost" onClick={() => setShowEmailModal(false)} className="flex-1">
-                            Cancelar
-                        </Button>
-                        <Button onClick={handleSendEmail} disabled={sendingEmail} className="flex-1">
-                            {sendingEmail ? 'Enviando...' : 'Enviar Email'}
-                        </Button>
+                </Modal>
+
+
+            </div >
+
+            {/* Print Only View */}
+            < div className="hidden print:block" >
+                <div className="mb-8 text-center">
+                    <h1 className="text-2xl font-bold text-slate-900">Relatório de Medicamentos</h1>
+                    <p className="text-slate-600">
+                        {(() => {
+                            const [startYear, startMonth, startDay] = filters.startDate.split('-').map(Number);
+                            const [endYear, endMonth, endDay] = filters.endDate.split('-').map(Number);
+                            const start = new Date(startYear, startMonth - 1, startDay);
+                            const end = new Date(endYear, endMonth - 1, endDay);
+                            return `${formatDate(start)} até ${formatDate(end)}`;
+                        })()}
+                    </p>
+                    {filters.patientId !== 'all' && (
+                        <p className="text-slate-500 mt-1">
+                            Paciente: {patients.find(p => p.id === filters.patientId)?.name}
+                        </p>
+                    )}
+                    <p className="text-slate-500 mt-1">
+                        Status: {filters.status === 'all' ? 'Todos' : filters.status === 'taken' ? 'Tomadas' : 'Pendentes'}
+                    </p>
+                </div>
+
+                <div className="mb-8">
+                    <h3 className="font-bold text-lg mb-4 text-slate-900">Resumo</h3>
+                    <div className="grid grid-cols-4 gap-4">
+                        <div className="p-4 border rounded-lg bg-blue-50 border-blue-100">
+                            <div className="text-sm text-blue-600">Total</div>
+                            <div className="text-xl font-bold text-blue-900">{reportData?.summary.total}</div>
+                        </div>
+                        <div className="p-4 border rounded-lg bg-green-50">
+                            <div className="text-sm text-green-600">Tomadas</div>
+                            <div className="text-xl font-bold text-green-900">{reportData?.summary.taken}</div>
+                        </div>
+                        <div className="p-4 border rounded-lg bg-orange-50">
+                            <div className="text-sm text-orange-600">Pendentes</div>
+                            <div className="text-xl font-bold text-orange-900">{reportData?.summary.pending}</div>
+                        </div>
+                        <div className="p-4 border rounded-lg bg-purple-50">
+                            <div className="text-sm text-purple-600">Adesão</div>
+                            <div className="text-xl font-bold text-purple-900">{reportData?.summary.adherenceRate}%</div>
+                        </div>
                     </div>
                 </div>
-            </Modal>
 
+                <div>
+                    <h3 className="font-bold text-lg mb-4 text-slate-900">Detalhamento</h3>
+                    <table className="w-full text-sm text-left">
+                        <thead className="bg-slate-100 text-slate-700 uppercase font-medium">
+                            <tr>
+                                <th className="px-4 py-3 rounded-l-lg">Data/Hora</th>
+                                <th className="px-4 py-3">Medicamento</th>
+                                <th className="px-4 py-3">Paciente</th>
+                                <th className="px-4 py-3 rounded-r-lg">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                            {filteredReportItems.map((item, idx) => (
+                                <tr key={idx}>
+                                    <td className="px-4 py-3 text-slate-600">
+                                        <div className="font-medium text-slate-900">
+                                            {(() => {
+                                                const [year, month, day] = item.date.split('-').map(Number);
+                                                const date = new Date(year, month - 1, day);
+                                                return formatDate(date);
+                                            })()}
+                                        </div>
+                                        <div className="text-xs">{item.time}</div>
+                                    </td>
+                                    <td className="px-4 py-3 font-medium text-slate-900">
+                                        {item.medication}
+                                    </td>
+                                    <td className="px-4 py-3 text-slate-600">
+                                        {item.patient}
+                                    </td>
+                                    <td className="px-4 py-3">
+                                        <span className={`px-2 py-1 rounded-full text-xs font-bold ${item.status === 'taken'
+                                            ? 'bg-green-100 text-green-700'
+                                            : 'bg-orange-100 text-orange-700'
+                                            }`}>
+                                            {item.status === 'taken' ? 'TOMADO' : 'PENDENTE'}
+                                        </span>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
 
-        </div >
-
-
-    </>
-);
+                <div className="mt-8 pt-8 border-t text-center text-slate-400 text-xs">
+                    Gerado em {formatDateTime(new Date())}
+                </div>
+            </div >
+        </>
+    );
 };
 
 export default Reports;
