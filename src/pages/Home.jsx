@@ -14,13 +14,14 @@ import confetti from 'canvas-confetti';
 import { generateICS, generateFutureSchedule } from '../utils/icsGenerator';
 import VoiceCommand from '../components/features/VoiceCommand';
 import OnboardingTour from '../components/OnboardingTour';
-import { Calendar as CalendarIcon, DownloadCloud } from 'lucide-react';
+import { Calendar as CalendarIcon, DownloadCloud, HelpCircle } from 'lucide-react';
 
 const Home = () => {
     const { user, prescriptions, medications, patients, consumptionLog, logConsumption, removeConsumption, pendingShares, calculateStockDays } = useApp();
     const { permission, requestPermission } = useNotifications();
     const [todaysSchedule, setTodaysSchedule] = useState([]);
     const [currentPage, setCurrentPage] = useState(1);
+    const [startTour, setStartTour] = useState(false);
 
     // ... (filters state)
     // We only need to replace the top destructuring line but replace_file_content needs context.
@@ -165,11 +166,20 @@ const Home = () => {
 
     return (
         <div className="flex flex-col gap-6 pb-20">
-            <div className="flex flex-col gap-1 w-full overflow-hidden">
-                <h1 id="tour-welcome" className="text-2xl font-bold text-slate-900 dark:text-white break-words line-clamp-2">
-                    Olá, {getDisplayName()}
-                </h1>
-                <p className="text-slate-500 dark:text-slate-400 capitalize">{todayDate}</p>
+            <div className="flex items-center justify-between w-full">
+                <div className="flex flex-col gap-1 overflow-hidden">
+                    <h1 id="tour-welcome" className="text-2xl font-bold text-slate-900 dark:text-white break-words line-clamp-2">
+                        Olá, {getDisplayName()}
+                    </h1>
+                    <p className="text-slate-500 dark:text-slate-400 capitalize">{todayDate}</p>
+                </div>
+                <button
+                    onClick={() => setStartTour(true)}
+                    className="p-2 text-slate-400 hover:text-primary transition-colors rounded-full hover:bg-slate-100"
+                    title="Ajuda / Tour"
+                >
+                    <HelpCircle size={24} />
+                </button>
             </div>
             {/* Low Stock Alert - Moved to Top */}
             {(() => {
