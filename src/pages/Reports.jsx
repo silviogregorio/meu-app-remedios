@@ -1311,9 +1311,9 @@ const Reports = () => {
                 <div className="mb-8">
                     <h3 className="font-bold text-lg mb-4 text-slate-900">Resumo</h3>
                     <div className="grid grid-cols-4 gap-4">
-                        <div className="p-4 border rounded-lg bg-slate-50">
-                            <div className="text-sm text-slate-500">Total</div>
-                            <div className="text-xl font-bold text-slate-900">{reportData?.summary.total}</div>
+                        <div className="p-4 border rounded-lg bg-blue-50 border-blue-100">
+                            <div className="text-sm text-blue-600">Total</div>
+                            <div className="text-xl font-bold text-blue-900">{reportData?.summary.total}</div>
                         </div>
                         <div className="p-4 border rounded-lg bg-green-50">
                             <div className="text-sm text-green-600">Tomadas</div>
