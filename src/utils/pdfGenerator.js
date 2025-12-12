@@ -179,12 +179,26 @@ export const generatePDFReport = async (reportData, filters, patients) => {
     doc.setTextColor(71, 85, 105); // Slate-600
 
     // Column 1
-    doc.text('• Total: Quantidade total de doses prescritas para o período selecionado.', 14, legendY + legendLineHeight);
-    doc.text('• Tomadas: Doses confirmadas e registradas pelo paciente/cuidador.', 14, legendY + (legendLineHeight * 2));
+    doc.setFont('helvetica', 'bold');
+    doc.text('• Total:', 14, legendY + legendLineHeight);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Quantidade total de doses prescritas para o período selecionado.', 26, legendY + legendLineHeight);
+
+    doc.setFont('helvetica', 'bold');
+    doc.text('• Tomadas:', 14, legendY + (legendLineHeight * 2));
+    doc.setFont('helvetica', 'normal');
+    doc.text('Doses confirmadas e registradas pelo paciente/cuidador.', 33, legendY + (legendLineHeight * 2));
 
     // Column 2 (Approx)
-    doc.text('• Pendentes: Doses agendadas que ainda não foram marcadas ou estão atrasadas.', 110, legendY + legendLineHeight);
-    doc.text('• Adesão: Porcentagem de sucesso do tratamento (Tomadas ÷ Total).', 110, legendY + (legendLineHeight * 2));
+    doc.setFont('helvetica', 'bold');
+    doc.text('• Pendentes:', 110, legendY + legendLineHeight);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Doses agendadas que ainda não foram marcadas ou estão atrasadas.', 129, legendY + legendLineHeight);
+
+    doc.setFont('helvetica', 'bold');
+    doc.text('• Adesão:', 110, legendY + (legendLineHeight * 2));
+    doc.setFont('helvetica', 'normal');
+    doc.text('Porcentagem de sucesso do tratamento (Tomadas ÷ Total).', 126, legendY + (legendLineHeight * 2));
 
     yPos += 25;
 
