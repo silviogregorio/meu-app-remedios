@@ -1148,6 +1148,12 @@ const Reports = () => {
                             </Card>
                         </div>
 
+                        {/* Charts Section */}
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6 print:break-inside-avoid">
+                            <AdherenceChart data={dashboardData.adherence} />
+                            <ActivityChart data={dashboardData.activity} />
+                        </div>
+
                         <div className="flex flex-wrap gap-3 no-print">
                             <Button variant="outline" onClick={handlePrint}>
                                 <Printer size={18} className="mr-2" /> Imprimir
