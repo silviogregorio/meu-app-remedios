@@ -6,6 +6,8 @@ import Input from '../components/ui/Input';
 import Modal from '../components/ui/Modal';
 import { Heart, Activity, Thermometer, Weight, Plus, Trash2, Calendar, FileText, Mail, Printer, MessageCircle } from 'lucide-react';
 import { formatDate, formatDateTime, formatTime } from '../utils/dateFormatter';
+import { generatePDFHealthDiary } from '../utils/pdfGenerator';
+import { format } from 'date-fns';
 import {
     LineChart,
     Line,
@@ -161,14 +163,39 @@ const HealthDiary = () => {
         }
         setSendingEmail(true);
         try {
-            await supabase.functions.invoke('send-email', {
-                body: {
+            // Generate PDF
+            const doc = await generatePDFHealthDiary(filteredLogs, { patientId: selectedPatientId }, patients);
+            const pdfBase64 = doc.output('datauristring').split(',')[1];
+            const filename = `diario-saude-${format(new Date(), 'dd-MM')}.pdf`;
+
+            const html = `
+                <div style="font-family: sans-serif; color: #333;">
+                    <h2>Diário de Saúde</h2>
+                    <p>Olá,</p>
+                    <p>Segue em anexo o seu histórico de saúde (PDF).</p>
+                    <br/>
+                    <p>Atenciosamente,<br/>Equipe SiG Remédios</p>
+                </div>
+            `;
+
+            const response = await fetch('/api/send-email', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
                     to: emailData.to,
-                    subject: 'Diário de Saúde',
-                    text: generateHealthReportText(),
-                    html: generateHealthReportHtml()
-                }
+                    subject: 'Diário de Saúde - SiG Remédios',
+                    text: 'Segue em anexo o relatório de saúde.',
+                    html: html,
+                    attachments: [{
+                        filename: filename,
+                        content: pdfBase64,
+                        encoding: 'base64'
+                    }]
+                })
             });
+
+            if (!response.ok) throw new Error('Falha no envio');
+
             showToast('Email enviado!', 'success');
             setShowEmailModal(false);
         } catch (error) {
@@ -184,7 +211,16 @@ const HealthDiary = () => {
         window.open(`https://wa.me/?text=${text}`, '_blank');
     };
 
-    const handlePrint = () => window.print();
+    const handlePrint = async () => {
+        try {
+            const doc = await generatePDFHealthDiary(filteredLogs, { patientId: selectedPatientId }, patients);
+            doc.autoPrint();
+            window.open(doc.output('bloburl'));
+        } catch (error) {
+            console.error(error);
+            showToast('Erro ao imprimir', 'error');
+        }
+    };
 
 
     return (

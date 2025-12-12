@@ -279,3 +279,162 @@ export const generatePDFReport = async (reportData, filters, patients) => {
     // Return doc instead of saving directly, allowing the caller to decide (print or save)
     return doc;
 };
+
+/**
+ * Generates a professional PDF report for Health Diary
+ * @param {Array} logs - Filtered health logs
+ * @param {Object} filters - Current filters (patientId, etc)
+ * @param {Array} patients - List of patients
+ */
+export const generatePDFHealthDiary = async (logs, filters, patients) => {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.width;
+    const pageHeight = doc.internal.pageSize.height;
+
+    // Brand Colors (Reused)
+    const colors = {
+        primary: [15, 118, 110], // Teal-700
+        heading: [30, 41, 59], // Slate-800
+        text: [51, 65, 85], // Slate-700
+        border: [226, 232, 240], // Slate-200
+        lightBg: [248, 250, 252] // Slate-50
+    };
+
+    // Load Logo
+    let logoData = null;
+    try {
+        logoData = await loadImage('/assets/logo.png');
+    } catch (error) {
+        console.error("Erro ao carregar logo:", error);
+    }
+
+    // --- Header ---
+    const drawHeader = () => {
+        doc.setFillColor(...colors.primary);
+        doc.rect(0, 0, pageWidth, 40, 'F');
+
+        if (logoData) {
+            doc.setFillColor(255, 255, 255);
+            doc.circle(25, 20, 14, 'F');
+            doc.addImage(logoData, 'PNG', 16, 11, 18, 18);
+        } else {
+            doc.setFillColor(255, 255, 255);
+            doc.circle(25, 20, 12, 'F');
+            doc.setTextColor(...colors.primary);
+            doc.setFontSize(14);
+            doc.setFont('helvetica', 'bold');
+            doc.text('SiG', 20, 22);
+        }
+
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(22);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Diário de Saúde', 45, 20);
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        doc.text('Acompanhamento de Sinais Vitais', 45, 28);
+
+        doc.setFontSize(9);
+        doc.text(`Gerado em: ${format(new Date(), "dd/MM/yyyy HH:mm")}`, pageWidth - 15, 18, { align: 'right' });
+    };
+
+    drawHeader();
+    let yPos = 55;
+
+    // --- Patient Info ---
+    if (filters.patientId !== 'all') {
+        const patient = patients.find(p => p.id === filters.patientId);
+        if (patient) {
+            doc.setDrawColor(...colors.border);
+            doc.setFillColor(...colors.lightBg);
+            doc.roundedRect(14, yPos, pageWidth - 28, 25, 3, 3, 'FD');
+
+            doc.setTextColor(...colors.text);
+            doc.setFontSize(10);
+            doc.setFont('helvetica', 'bold');
+            doc.text('PACIENTE', 20, yPos + 8);
+
+            doc.setFontSize(12);
+            doc.setTextColor(...colors.heading);
+            doc.text(patient.name, 20, yPos + 18);
+            yPos += 35;
+        }
+    } else {
+        doc.setFontSize(14);
+        doc.setTextColor(...colors.heading);
+        doc.text('Histórico Geral', 14, yPos);
+        yPos += 15;
+    }
+
+    // --- Table ---
+    const getCategoryLabel = (catId) => {
+        const map = {
+            'pressure': 'Pressão Arterial',
+            'glucose': 'Glicemia',
+            'weight': 'Peso',
+            'temperature': 'Temperatura',
+            'heart_rate': 'Batimentos'
+        };
+        return map[catId] || 'Outro';
+    };
+
+    const getUnit = (catId) => {
+        const map = { 'pressure': 'mmHg', 'glucose': 'mg/dL', 'weight': 'kg', 'temperature': '°C', 'heart_rate': 'bpm' };
+        return map[catId] || '';
+    };
+
+    const tableData = logs.map(log => {
+        let val = `${log.value}`;
+        if (log.value_secondary) val += ` / ${log.value_secondary}`;
+        val += ` ${getUnit(log.category)}`;
+
+        return [
+            format(new Date(log.measured_at), "dd/MM/yyyy HH:mm", { locale: ptBR }),
+            getCategoryLabel(log.category),
+            val,
+            patients.find(p => p.id === log.patient_id)?.name || 'N/A',
+            log.notes || '-'
+        ];
+    });
+
+    autoTable(doc, {
+        startY: yPos,
+        head: [['Data/Hora', 'Categoria', 'Valor', 'Paciente', 'Observações']],
+        body: tableData,
+        theme: 'striped',
+        styles: {
+            font: 'helvetica',
+            fontSize: 9,
+            cellPadding: 3,
+            textColor: colors.text
+        },
+        headStyles: {
+            fillColor: [241, 245, 249],
+            textColor: colors.heading,
+            fontStyle: 'bold',
+            lineColor: colors.border,
+            lineWidth: 0.1
+        },
+        columnStyles: {
+            0: { cellWidth: 35 },
+            1: { cellWidth: 35 },
+            2: { cellWidth: 30 },
+            3: { cellWidth: 35 },
+            4: { cellWidth: 'auto' }
+        },
+        margin: { top: 10, left: 14, right: 14 }
+    });
+
+    // --- Footer ---
+    const pageCount = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.setTextColor(148, 163, 184);
+        doc.line(14, pageHeight - 15, pageWidth - 14, pageHeight - 15);
+        doc.text('SiG Remédios - Diário de Saúde', 14, pageHeight - 10);
+        doc.text(`Página ${i} de ${pageCount}`, pageWidth - 14, pageHeight - 10, { align: 'right' });
+    }
+
+    return doc;
+};
