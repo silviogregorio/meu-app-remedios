@@ -7,11 +7,15 @@ import Card, { CardContent } from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Modal from '../components/ui/Modal';
-import { User, Settings, LogOut, Bell, LogIn, Database, Trash2, Mail, Phone, MapPin, Camera, Shield, Share2, Activity } from 'lucide-react';
+import { User, Settings, LogOut, Bell, LogIn, Database, Trash2, Mail, Phone, MapPin, Camera, Shield, Share2, Activity, Download } from 'lucide-react';
+import { downloadJSON, prepareBackupData } from '../utils/dataExporter';
 
 const Profile = () => {
     const { user } = useAuth(); // AuthContext for user
-    const { showToast, runCaregiverCheck, logout } = useApp(); // AppContext for app features
+    const {
+        patients, medications, prescriptions, consumptionLog, healthLogs, // Data for backup
+        showToast, runCaregiverCheck, logout
+    } = useApp(); // AppContext for app features
     const navigate = useNavigate();
 
     const [isEditing, setIsEditing] = useState(false);
@@ -285,7 +289,7 @@ const Profile = () => {
                     <CardContent className="p-0">
                         <button
                             onClick={() => setIsChangingPassword(true)}
-                            className="w-full flex items-center gap-4 p-4 hover:bg-[#f8fafc] dark:hover:bg-slate-800/50 text-left transition-colors"
+                            className="w-full flex items-center gap-4 p-4 border-b border-[#e2e8f0] dark:border-slate-800 hover:bg-[#f8fafc] dark:hover:bg-slate-800/50 text-left transition-colors"
                         >
                             <div className="w-10 h-10 rounded-full bg-[#f1f5f9] dark:bg-slate-800 flex items-center justify-center text-[#64748b] dark:text-slate-400">
                                 <Shield size={20} />
@@ -293,6 +297,30 @@ const Profile = () => {
                             <div className="flex-1">
                                 <h3 className="font-medium text-[#0f172a] dark:text-white">Alterar Senha</h3>
                                 <p className="text-sm text-[#64748b] dark:text-slate-400">Trocar sua senha de acesso</p>
+                            </div>
+                        </button>
+                    </CardContent>
+                </Card>
+
+                {/* Data Export / Backup */}
+                <Card>
+                    <CardContent className="p-0">
+                        <button
+                            onClick={() => {
+                                const backupData = prepareBackupData({
+                                    patients, medications, prescriptions, consumptionLog, healthLogs
+                                }, user);
+                                downloadJSON(backupData);
+                                showToast('Backup gerado com sucesso!', 'success');
+                            }}
+                            className="w-full flex items-center gap-4 p-4 hover:bg-[#f8fafc] dark:hover:bg-slate-800/50 text-left transition-colors"
+                        >
+                            <div className="w-10 h-10 rounded-full bg-emerald-50 dark:bg-emerald-900/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+                                <Download size={20} />
+                            </div>
+                            <div className="flex-1">
+                                <h3 className="font-medium text-[#0f172a] dark:text-white">Baixar MEUS Dados</h3>
+                                <p className="text-sm text-[#64748b] dark:text-slate-400">Fazer backup completo em JSON</p>
                             </div>
                         </button>
                     </CardContent>
