@@ -23,7 +23,9 @@ const ActivityChart = ({ data }) => {
         return null;
     };
 
-    if (!data || data.length === 0) {
+    const hasActivity = data && data.length > 0 && data.some(item => item.count > 0);
+
+    if (!hasActivity) {
         return (
             <div className="h-64 flex items-center justify-center text-slate-400 bg-slate-50 rounded-xl border border-dashed border-slate-200">
                 Sem atividade registrada nesta semana
