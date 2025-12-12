@@ -1182,9 +1182,9 @@ const Reports = () => {
                                 birthdayData.map(patient => (
                                     <Card key={patient.id} className="border-pink-200 bg-pink-50/30">
                                         <CardContent className="p-4">
-                                            <div className="flex items-center justify-between">
+                                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                                                 <div className="flex items-center gap-4">
-                                                    <div className="w-12 h-12 rounded-xl bg-pink-500 flex items-center justify-center text-white">
+                                                    <div className="w-12 h-12 rounded-xl bg-pink-500 shrink-0 flex items-center justify-center text-white">
                                                         <Gift size={24} />
                                                     </div>
                                                     <div>
@@ -1199,7 +1199,7 @@ const Reports = () => {
                                                         )}
                                                     </div>
                                                 </div>
-                                                <div className="flex gap-2">
+                                                <div className="flex gap-2 w-full md:w-auto">
                                                     <Button
                                                         variant="outline"
                                                         size="sm"
@@ -1207,7 +1207,7 @@ const Reports = () => {
                                                             const msg = `Olá ${patient.name}, feliz aniversário! 🎂🎉🥳 Que seu dia seja iluminado e cheio de alegria! Desejamos muita saúde, paz e felicidades! ✨🎈`;
                                                             window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
                                                         }}
-                                                        className="text-pink-600 hover:text-pink-700 hover:bg-pink-50 border-pink-200"
+                                                        className="text-pink-600 hover:text-pink-700 hover:bg-pink-50 border-pink-200 flex-1 md:flex-none"
                                                     >
                                                         <MessageCircle size={16} className="mr-2" /> WhatsApp
                                                     </Button>
