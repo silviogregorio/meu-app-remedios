@@ -276,6 +276,6 @@ export const generatePDFReport = async (reportData, filters, patients) => {
     }
 
     // Save
-    const filename = `relatorio-sig-remedios-${format(new Date(), 'dd-MM-yyyy-HHmm')}.pdf`;
-    doc.save(filename);
+    // Return doc instead of saving directly, allowing the caller to decide (print or save)
+    return doc;
 };
