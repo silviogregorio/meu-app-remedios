@@ -13,6 +13,7 @@ import { useNotifications } from '../hooks/useNotifications';
 import confetti from 'canvas-confetti';
 import { generateICS, generateFutureSchedule } from '../utils/icsGenerator';
 import VoiceCommand from '../components/features/VoiceCommand';
+import OnboardingTour from '../components/OnboardingTour';
 import { Calendar as CalendarIcon, DownloadCloud } from 'lucide-react';
 
 const Home = () => {
@@ -165,7 +166,7 @@ const Home = () => {
     return (
         <div className="flex flex-col gap-6 pb-20">
             <div className="flex flex-col gap-1 w-full overflow-hidden">
-                <h1 className="text-2xl font-bold text-slate-900 dark:text-white break-words line-clamp-2">
+                <h1 id="tour-welcome" className="text-2xl font-bold text-slate-900 dark:text-white break-words line-clamp-2">
                     Olá, {getDisplayName()}
                 </h1>
                 <p className="text-slate-500 dark:text-slate-400 capitalize">{todayDate}</p>
@@ -326,303 +327,308 @@ const Home = () => {
                     </CardContent>
                 </Card>
 
-                <Card className="bg-white border-slate-200 shadow-sm">
-                    <CardContent className="p-6 h-full flex flex-col justify-between">
-                        <div>
-                            <h3 className="font-bold text-slate-900 dark:text-slate-100 mb-1">Progresso Diário</h3>
-                            <p className="text-sm text-slate-500">
-                                {formatDate(new Date())}
-                            </p>
-                        </div>
+            </Card>
 
-                        {(() => {
-                            const total = todaysSchedule.length;
-                            const taken = todaysSchedule.filter(i => i.isTaken).length;
-                            const percentage = total > 0 ? Math.round((taken / total) * 100) : 0;
+            <Card id="tour-summary-card" className="bg-white border-slate-200 shadow-sm">
+                <CardContent className="p-6 h-full flex flex-col justify-between">
+                    <div>
+                        <h3 className="font-bold text-slate-900 dark:text-slate-100 mb-1">Progresso Diário</h3>
+                        <p className="text-sm text-slate-500">
+                            {formatDate(new Date())}
+                        </p>
+                    </div>
 
-                            return (
-                                <div className="flex flex-col gap-4 mt-4">
-                                    <div className="relative pt-2">
-                                        <div className="flex mb-2 items-center justify-between">
-                                            <div className="text-right w-full">
-                                                <span className="text-xs font-semibold inline-block text-primary">
-                                                    {percentage}%
-                                                </span>
-                                            </div>
-                                        </div>
-                                        <div className="overflow-hidden h-2 mb-4 text-xs flex rounded bg-slate-100">
-                                            <div
-                                                style={{ width: `${percentage}%` }}
-                                                className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-primary transition-all duration-500"
-                                            ></div>
-                                        </div>
-                                        <div className="flex justify-between text-sm">
-                                            <span className="text-slate-600 font-medium">{taken} tomados</span>
-                                            <span className="text-slate-400">de {total}</span>
+                    {(() => {
+                        const total = todaysSchedule.length;
+                        const taken = todaysSchedule.filter(i => i.isTaken).length;
+                        const percentage = total > 0 ? Math.round((taken / total) * 100) : 0;
+
+                        return (
+                            <div className="flex flex-col gap-4 mt-4">
+                                <div className="relative pt-2">
+                                    <div className="flex mb-2 items-center justify-between">
+                                        <div className="text-right w-full">
+                                            <span className="text-xs font-semibold inline-block text-primary">
+                                                {percentage}%
+                                            </span>
                                         </div>
                                     </div>
-                                </div>
-                            );
-                        })()}
-                    </CardContent>
-                </Card>
-            </div>
-
-            {/* Late Doses Alert */}
-            {(() => {
-                const now = new Date();
-                const currentTime = formatTime(now);
-                const lateDoses = todaysSchedule.filter(item =>
-                    !item.isTaken && item.time < currentTime
-                );
-
-                if (lateDoses.length > 0) {
-                    return (
-                        <div className="bg-red-50 border border-red-200 rounded-xl p-4 animate-in slide-in-from-top-2">
-                            <div className="flex items-start gap-3">
-                                <div className="p-2 bg-red-100 rounded-lg text-red-600">
-                                    <AlertCircle size={20} />
-                                </div>
-                                <div className="flex-1">
-                                    <h3 className="font-bold text-red-900">Atenção: Doses Atrasadas</h3>
-                                    <p className="text-sm text-red-700 mb-3">
-                                        Você tem {lateDoses.length} medicamento{lateDoses.length > 1 ? 's' : ''} pendente{lateDoses.length > 1 ? 's' : ''} de horários passados.
-                                    </p>
-                                    <div className="flex flex-col gap-2">
-                                        {lateDoses.map(dose => (
-                                            <div key={dose.id} className="flex items-center justify-between bg-white/50 p-2 rounded-lg border border-red-100">
-                                                <div className="flex items-center gap-2">
-                                                    <span className="font-bold text-red-800">{dose.time}</span>
-                                                    <span className="text-red-900">{dose.medicationName}</span>
-                                                </div>
-                                                <button
-                                                    onClick={() => handleToggleStatus(dose)}
-                                                    className="text-xs bg-red-600 text-white px-3 py-1.5 rounded-md font-medium hover:bg-red-700 transition-colors"
-                                                >
-                                                    Tomar Agora
-                                                </button>
-                                            </div>
-                                        ))}
+                                    <div className="overflow-hidden h-2 mb-4 text-xs flex rounded bg-slate-100">
+                                        <div
+                                            style={{ width: `${percentage}%` }}
+                                            className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-primary transition-all duration-500"
+                                        ></div>
+                                    </div>
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-slate-600 font-medium">{taken} tomados</span>
+                                        <span className="text-slate-400">de {total}</span>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                    );
-                }
-                return null;
-            })()}
-
-
-
-            {/* Filters Section */}
-            <Card className="border-l-4 border-l-primary">
-                <CardContent className="p-4">
-                    <div className="flex items-center justify-between mb-3">
-                        <h3 className="font-bold text-slate-900 flex items-center gap-2">
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-                            </svg>
-                            Filtros
-                        </h3>
-                        <div className="flex items-center gap-2">
-                            <button
-                                onClick={() => {
-                                    const future = generateFutureSchedule(prescriptions, medications, patients, 7);
-                                    if (future.length === 0) {
-                                        alert('Nenhum horário encontrado para os próximos 7 dias.');
-                                        return;
-                                    }
-                                    generateICS(future);
-                                }}
-                                className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg font-medium flex items-center gap-1 transition-colors"
-                            >
-                                <DownloadCloud size={14} />
-                                Exportar Agenda
-                            </button>
-                            {hasActiveFilters && (
-                                <button
-                                    onClick={clearFilters}
-                                    className="text-xs text-slate-500 hover:text-primary flex items-center gap-1"
-                                >
-                                    <X size={14} />
-                                    Limpar
-                                </button>
-                            )}
-                        </div>
-                    </div>
-                    {/* The closing div and brace were added here */}
-
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-                        {/* Date Filter */}
-                        <div className="flex flex-col gap-1.5">
-                            <label className="text-xs font-medium text-slate-600 flex items-center gap-1">
-                                <Calendar size={14} />
-                                Data
-                            </label>
-                            <input
-                                type="date"
-                                value={selectedDate}
-                                onChange={(e) => setSelectedDate(e.target.value)}
-                                className="px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                            />
-                        </div>
-
-                        {/* Patient Filter */}
-                        <div className="flex flex-col gap-1.5">
-                            <label className="text-xs font-medium text-slate-600 flex items-center gap-1">
-                                <User size={14} />
-                                Paciente
-                            </label>
-                            <select
-                                value={selectedPatient}
-                                onChange={(e) => setSelectedPatient(e.target.value)}
-                                className="px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                            >
-                                <option value="all">Todos os pacientes</option>
-                                {patients.map(patient => (
-                                    <option key={patient.id} value={patient.id}>{patient.name}</option>
-                                ))}
-                            </select>
-                        </div>
-
-                        {/* Medication Filter */}
-                        <div className="flex flex-col gap-1.5">
-                            <label className="text-xs font-medium text-slate-600 flex items-center gap-1">
-                                <Pill size={14} />
-                                Medicamento
-                            </label>
-                            <select
-                                value={selectedMedication}
-                                onChange={(e) => setSelectedMedication(e.target.value)}
-                                className="px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                            >
-                                <option value="all">Todos os medicamentos</option>
-                                {medications.map(med => (
-                                    <option key={med.id} value={med.id}>{med.name} {med.dosage}</option>
-                                ))}
-                            </select>
-                        </div>
-
-                        {/* Status Filter */}
-                        <div className="flex flex-col gap-1.5">
-                            <label className="text-xs font-medium text-slate-600 flex items-center gap-1">
-                                <Clock size={14} />
-                                Status
-                            </label>
-                            <select
-                                value={selectedStatus}
-                                onChange={(e) => setSelectedStatus(e.target.value)}
-                                className="px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                            >
-                                <option value="all">Todos</option>
-                                <option value="taken">Tomados</option>
-                                <option value="pending">Pendentes</option>
-                            </select>
-                        </div>
-                    </div>
-                </CardContent>
-            </Card>
-
-            {/* Schedule List */}
-            <div>
-                <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-4">
-                    {selectedDate === new Date().toISOString().split('T')[0] ? 'Próximos Horários' : 'Horários do Dia'}
-                </h2>
-                <div className="flex flex-col gap-3">
-                    {(() => {
-                        const totalPages = Math.ceil(todaysSchedule.length / ITEMS_PER_PAGE);
-                        const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-                        const paginatedSchedule = todaysSchedule.slice(startIndex, startIndex + ITEMS_PER_PAGE);
-
-                        return todaysSchedule.length === 0 ? (
-                            <Card className="border-dashed">
-                                <CardContent className="py-8 text-center">
-                                    <p className="text-[#64748b]">
-                                        {hasActiveFilters
-                                            ? 'Nenhum medicamento encontrado com estes filtros.'
-                                            : 'Nenhum medicamento agendado para esta data.'}
-                                    </p>
-                                </CardContent>
-                            </Card>
-                        ) : (
-                            <>
-                                {paginatedSchedule.map(item => {
-                                    const patient = patients.find(p => p.id === item.patientId);
-                                    const isOwner = patient?.userId === user?.id;
-                                    const canEdit = isOwner || patient?.sharedWith?.some(s =>
-                                        s.email?.toLowerCase() === user?.email?.toLowerCase() && s.permission === 'edit'
-                                    );
-
-                                    return (
-                                        <Card key={item.id} className={clsx("transition-all", item.isTaken && "opacity-60 bg-[#f8fafc]")}>
-                                            <CardContent className="flex items-center justify-between p-4">
-                                                <div className="flex items-center gap-4 flex-1">
-                                                    <div className={clsx(
-                                                        "w-12 h-12 rounded-xl flex flex-col items-center justify-center font-bold border",
-                                                        item.isTaken
-                                                            ? "bg-[#d1fae5] text-[#059669] border-[#d1fae5]"
-                                                            : "bg-white text-[#0f172a] border-[#e2e8f0]"
-                                                    )}>
-                                                        <span className="text-sm">{item.time}</span>
-                                                    </div>
-                                                    <div className="flex-1 min-w-0">
-                                                        <h3 className={clsx("font-bold", item.isTaken ? "text-[#64748b] line-through" : "text-[#0f172a]")}>
-                                                            {Number(item.doseAmount)}x {item.medicationName} {item.dosage}
-                                                        </h3>
-                                                        <p className="text-sm text-[#64748b]">{item.patientName}</p>
-                                                        {item.isTaken && item.takenByName && (
-                                                            <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
-                                                                <User size={12} />
-                                                                Tomado por {item.takenByName}
-                                                            </p>
-                                                        )}
-                                                    </div>
-                                                </div>
-
-                                                {canEdit ? (
-                                                    <button
-                                                        onClick={() => handleToggleStatus(item)}
-                                                        className={clsx(
-                                                            "w-10 h-10 rounded-full flex items-center justify-center transition-all shrink-0",
-                                                            item.isTaken
-                                                                ? "bg-[#10b981] text-white hover:bg-[#059669]"
-                                                                : "bg-[#f1f5f9] text-[#94a3b8] hover:bg-[#e2e8f0] hover:text-[#64748b]"
-                                                        )}
-                                                        title={item.isTaken ? "Marcar como não tomado" : "Marcar como tomado"}
-                                                    >
-                                                        <Check size={20} />
-                                                    </button>
-                                                ) : (
-                                                    <div
-                                                        className="w-10 h-10 rounded-full flex items-center justify-center bg-slate-100 text-slate-400 shrink-0 cursor-not-allowed"
-                                                        title="Modo Leitura: Você não pode alterar este status"
-                                                    >
-                                                        <User size={16} />
-                                                    </div>
-                                                )}
-                                            </CardContent>
-                                        </Card>
-                                    );
-                                })}
-
-                                {/* Pagination */}
-                                <Pagination
-                                    currentPage={currentPage}
-                                    totalPages={totalPages}
-                                    onPageChange={setCurrentPage}
-                                />
-                            </>
                         );
                     })()}
+                </CardContent>
+            </Card>
+        </div>
+
+            {/* Late Doses Alert */ }
+    {
+        (() => {
+            const now = new Date();
+            const currentTime = formatTime(now);
+            const lateDoses = todaysSchedule.filter(item =>
+                !item.isTaken && item.time < currentTime
+            );
+
+            if (lateDoses.length > 0) {
+                return (
+                    <div className="bg-red-50 border border-red-200 rounded-xl p-4 animate-in slide-in-from-top-2">
+                        <div className="flex items-start gap-3">
+                            <div className="p-2 bg-red-100 rounded-lg text-red-600">
+                                <AlertCircle size={20} />
+                            </div>
+                            <div className="flex-1">
+                                <h3 className="font-bold text-red-900">Atenção: Doses Atrasadas</h3>
+                                <p className="text-sm text-red-700 mb-3">
+                                    Você tem {lateDoses.length} medicamento{lateDoses.length > 1 ? 's' : ''} pendente{lateDoses.length > 1 ? 's' : ''} de horários passados.
+                                </p>
+                                <div className="flex flex-col gap-2">
+                                    {lateDoses.map(dose => (
+                                        <div key={dose.id} className="flex items-center justify-between bg-white/50 p-2 rounded-lg border border-red-100">
+                                            <div className="flex items-center gap-2">
+                                                <span className="font-bold text-red-800">{dose.time}</span>
+                                                <span className="text-red-900">{dose.medicationName}</span>
+                                            </div>
+                                            <button
+                                                onClick={() => handleToggleStatus(dose)}
+                                                className="text-xs bg-red-600 text-white px-3 py-1.5 rounded-md font-medium hover:bg-red-700 transition-colors"
+                                            >
+                                                Tomar Agora
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+            return null;
+        })()
+    }
+
+
+
+    {/* Filters Section */ }
+    <Card className="border-l-4 border-l-primary">
+        <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-3">
+                <h3 className="font-bold text-slate-900 flex items-center gap-2">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                    </svg>
+                    Filtros
+                </h3>
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={() => {
+                            const future = generateFutureSchedule(prescriptions, medications, patients, 7);
+                            if (future.length === 0) {
+                                alert('Nenhum horário encontrado para os próximos 7 dias.');
+                                return;
+                            }
+                            generateICS(future);
+                        }}
+                        className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg font-medium flex items-center gap-1 transition-colors"
+                    >
+                        <DownloadCloud size={14} />
+                        Exportar Agenda
+                    </button>
+                    {hasActiveFilters && (
+                        <button
+                            onClick={clearFilters}
+                            className="text-xs text-slate-500 hover:text-primary flex items-center gap-1"
+                        >
+                            <X size={14} />
+                            Limpar
+                        </button>
+                    )}
                 </div>
             </div>
-            {/* Voice Command FAB */}
+            {/* The closing div and brace were added here */}
+
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                {/* Date Filter */}
+                <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-medium text-slate-600 flex items-center gap-1">
+                        <Calendar size={14} />
+                        Data
+                    </label>
+                    <input
+                        type="date"
+                        value={selectedDate}
+                        onChange={(e) => setSelectedDate(e.target.value)}
+                        className="px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                    />
+                </div>
+
+                {/* Patient Filter */}
+                <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-medium text-slate-600 flex items-center gap-1">
+                        <User size={14} />
+                        Paciente
+                    </label>
+                    <select
+                        value={selectedPatient}
+                        onChange={(e) => setSelectedPatient(e.target.value)}
+                        className="px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                    >
+                        <option value="all">Todos os pacientes</option>
+                        {patients.map(patient => (
+                            <option key={patient.id} value={patient.id}>{patient.name}</option>
+                        ))}
+                    </select>
+                </div>
+
+                {/* Medication Filter */}
+                <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-medium text-slate-600 flex items-center gap-1">
+                        <Pill size={14} />
+                        Medicamento
+                    </label>
+                    <select
+                        value={selectedMedication}
+                        onChange={(e) => setSelectedMedication(e.target.value)}
+                        className="px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                    >
+                        <option value="all">Todos os medicamentos</option>
+                        {medications.map(med => (
+                            <option key={med.id} value={med.id}>{med.name} {med.dosage}</option>
+                        ))}
+                    </select>
+                </div>
+
+                {/* Status Filter */}
+                <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-medium text-slate-600 flex items-center gap-1">
+                        <Clock size={14} />
+                        Status
+                    </label>
+                    <select
+                        value={selectedStatus}
+                        onChange={(e) => setSelectedStatus(e.target.value)}
+                        className="px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                    >
+                        <option value="all">Todos</option>
+                        <option value="taken">Tomados</option>
+                        <option value="pending">Pendentes</option>
+                    </select>
+                </div>
+            </div>
+        </CardContent>
+    </Card>
+
+    {/* Schedule List */ }
+    <div id="tour-schedule-list">
+        <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-4">
+            {selectedDate === new Date().toISOString().split('T')[0] ? 'Próximos Horários' : 'Horários do Dia'}
+        </h2>
+        <div className="flex flex-col gap-3">
+            {(() => {
+                const totalPages = Math.ceil(todaysSchedule.length / ITEMS_PER_PAGE);
+                const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+                const paginatedSchedule = todaysSchedule.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+
+                return todaysSchedule.length === 0 ? (
+                    <Card className="border-dashed">
+                        <CardContent className="py-8 text-center">
+                            <p className="text-[#64748b]">
+                                {hasActiveFilters
+                                    ? 'Nenhum medicamento encontrado com estes filtros.'
+                                    : 'Nenhum medicamento agendado para esta data.'}
+                            </p>
+                        </CardContent>
+                    </Card>
+                ) : (
+                    <>
+                        {paginatedSchedule.map(item => {
+                            const patient = patients.find(p => p.id === item.patientId);
+                            const isOwner = patient?.userId === user?.id;
+                            const canEdit = isOwner || patient?.sharedWith?.some(s =>
+                                s.email?.toLowerCase() === user?.email?.toLowerCase() && s.permission === 'edit'
+                            );
+
+                            return (
+                                <Card key={item.id} className={clsx("transition-all", item.isTaken && "opacity-60 bg-[#f8fafc]")}>
+                                    <CardContent className="flex items-center justify-between p-4">
+                                        <div className="flex items-center gap-4 flex-1">
+                                            <div className={clsx(
+                                                "w-12 h-12 rounded-xl flex flex-col items-center justify-center font-bold border",
+                                                item.isTaken
+                                                    ? "bg-[#d1fae5] text-[#059669] border-[#d1fae5]"
+                                                    : "bg-white text-[#0f172a] border-[#e2e8f0]"
+                                            )}>
+                                                <span className="text-sm">{item.time}</span>
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <h3 className={clsx("font-bold", item.isTaken ? "text-[#64748b] line-through" : "text-[#0f172a]")}>
+                                                    {Number(item.doseAmount)}x {item.medicationName} {item.dosage}
+                                                </h3>
+                                                <p className="text-sm text-[#64748b]">{item.patientName}</p>
+                                                {item.isTaken && item.takenByName && (
+                                                    <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
+                                                        <User size={12} />
+                                                        Tomado por {item.takenByName}
+                                                    </p>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {canEdit ? (
+                                            <button
+                                                onClick={() => handleToggleStatus(item)}
+                                                className={clsx(
+                                                    "w-10 h-10 rounded-full flex items-center justify-center transition-all shrink-0",
+                                                    item.isTaken
+                                                        ? "bg-[#10b981] text-white hover:bg-[#059669]"
+                                                        : "bg-[#f1f5f9] text-[#94a3b8] hover:bg-[#e2e8f0] hover:text-[#64748b]"
+                                                )}
+                                                title={item.isTaken ? "Marcar como não tomado" : "Marcar como tomado"}
+                                            >
+                                                <Check size={20} />
+                                            </button>
+                                        ) : (
+                                            <div
+                                                className="w-10 h-10 rounded-full flex items-center justify-center bg-slate-100 text-slate-400 shrink-0 cursor-not-allowed"
+                                                title="Modo Leitura: Você não pode alterar este status"
+                                            >
+                                                <User size={16} />
+                                            </div>
+                                        )}
+                                    </CardContent>
+                                </Card>
+                            );
+                        })}
+
+                        {/* Pagination */}
+                        <Pagination
+                            currentPage={currentPage}
+                            totalPages={totalPages}
+                            onPageChange={setCurrentPage}
+                        />
+                    </>
+                );
+            })()}
+        </div>
+    </div>
+    {/* Voice Command FAB */ }
             <VoiceCommand schedule={todaysSchedule} onToggle={handleToggleStatus} />
 
             <div className="text-center pb-20 pt-4 text-[10px] text-slate-300">
                 v{__APP_VERSION__}
             </div>
-        </div>
+            <OnboardingTour />
+        </div >
     );
 };
 

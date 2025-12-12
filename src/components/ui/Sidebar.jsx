@@ -70,6 +70,7 @@ const Sidebar = ({ isOpen, onClose, isPinned, onTogglePin }) => {
                             key={path}
                             to={path}
                             onClick={onClose}
+                            id={`tour-nav-${path.replace('/', '')}`}
                             className={({ isActive }) => clsx(
                                 "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200",
                                 isActive
