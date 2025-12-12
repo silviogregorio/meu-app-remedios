@@ -3,11 +3,6 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from './AuthContext';
 import Toast from '../components/ui/Toast';
 
-import { PatientService } from '../services/patientService';
-import { MedicationService } from '../services/medicationService';
-import { PrescriptionService } from '../services/prescriptionService';
-import { LogService } from '../services/logService';
-
 const AppContext = createContext();
 
 export const AppProvider = ({ children }) => {
@@ -33,8 +28,41 @@ export const AppProvider = ({ children }) => {
     };
 
     // Helpers de Transformação de Dados
-    // Services now handle transformation
-    // Kept here momentarily if needed, but fetchAllData will use Services.
+    const transformPatient = (p) => ({
+        ...p,
+        userId: p.user_id,
+        birthDate: p.birth_date,
+        sharedWith: p.patient_shares ? p.patient_shares.map(s => ({
+            email: s.shared_with_email,
+            permission: s.permission,
+            status: s.accepted_at ? 'accepted' : 'pending'
+        })) : []
+    });
+
+    const transformMedication = (m) => ({
+        ...m,
+        userId: m.user_id
+    });
+
+    const transformPrescription = (p) => ({
+        ...p,
+        userId: p.user_id,
+        patientId: p.patient_id,
+        medicationId: p.medication_id,
+        startDate: p.start_date,
+        endDate: p.end_date,
+        times: Array.isArray(p.times) ? p.times : (typeof p.times === 'string' ? JSON.parse(p.times) : []),
+        doseAmount: p.dose_amount || 1
+    });
+
+    const transformLog = (l) => ({
+        ...l,
+        prescriptionId: l.prescription_id,
+        scheduledTime: l.scheduled_time,
+        takenAt: l.taken_at,
+        takenBy: l.taken_by,
+        takenByName: l.profiles?.full_name
+    });
 
     // Buscar Compartilhamentos Pendentes
     const fetchPendingShares = async () => {
@@ -78,7 +106,7 @@ export const AppProvider = ({ children }) => {
                 .order('name');
 
             if (patientsError) throw patientsError;
-            setPatients(patientsData.map(PatientService.transform));
+            setPatients(patientsData.map(transformPatient));
 
             // 2. Buscar Medicamentos (Próprios + Compartilhados)
             const { data: medicationsData, error: medicationsError } = await supabase
@@ -87,7 +115,7 @@ export const AppProvider = ({ children }) => {
                 .order('name');
 
             if (medicationsError) throw medicationsError;
-            setMedications(medicationsData.map(MedicationService.transform));
+            setMedications(medicationsData.map(transformMedication));
 
             // 3. Buscar Receitas
             const { data: prescriptionsData, error: prescriptionsError } = await supabase
@@ -96,7 +124,7 @@ export const AppProvider = ({ children }) => {
                 .order('created_at', { ascending: false });
 
             if (prescriptionsError) throw prescriptionsError;
-            setPrescriptions(prescriptionsData.map(PrescriptionService.transform));
+            setPrescriptions(prescriptionsData.map(transformPrescription));
 
             // 4. Buscar Histórico de Consumo
             const { data: logData, error: logError } = await supabase
@@ -104,7 +132,7 @@ export const AppProvider = ({ children }) => {
                 .select('*, profiles:taken_by(full_name)');
 
             if (logError) throw logError;
-            setConsumptionLog(logData.map(LogService.transform));
+            setConsumptionLog(logData.map(transformLog));
 
             // 5. Buscar Compartilhamentos Pendentes (Pacientes específicos)
             await fetchPendingShares();
@@ -185,11 +213,34 @@ export const AppProvider = ({ children }) => {
 
 
     // Pacientes
-    // Pacientes
     const addPatient = async (patientData) => {
         if (!user) return;
         try {
-            const newPatient = await PatientService.add(patientData, user.id);
+            const dbData = {
+                user_id: user.id,
+                name: patientData.name,
+                email: patientData.email,
+                birth_date: patientData.birthDate,
+                phone: patientData.phone,
+                condition: patientData.condition,
+                cep: patientData.cep,
+                street: patientData.street,
+                number: patientData.number,
+                complement: patientData.complement,
+                neighborhood: patientData.neighborhood,
+                city: patientData.city,
+                state: patientData.state,
+                observations: patientData.observations
+            };
+
+            const { data, error } = await supabase
+                .from('patients')
+                .insert([dbData])
+                .select();
+
+            if (error) throw error;
+
+            const newPatient = transformPatient(data[0]);
             setPatients(prev => [...prev, newPatient]);
             showToast('Paciente adicionado com sucesso!');
         } catch (error) {
@@ -202,7 +253,30 @@ export const AppProvider = ({ children }) => {
 
     const updatePatient = async (id, updatedData) => {
         try {
-            const updatedPatient = await PatientService.update(id, updatedData);
+            const dbData = {};
+            if (updatedData.name) dbData.name = updatedData.name;
+            if (updatedData.email !== undefined) dbData.email = updatedData.email;
+            if (updatedData.birthDate) dbData.birth_date = updatedData.birthDate;
+            if (updatedData.phone) dbData.phone = updatedData.phone;
+            if (updatedData.condition) dbData.condition = updatedData.condition;
+            if (updatedData.cep) dbData.cep = updatedData.cep;
+            if (updatedData.street) dbData.street = updatedData.street;
+            if (updatedData.number) dbData.number = updatedData.number;
+            if (updatedData.complement) dbData.complement = updatedData.complement;
+            if (updatedData.neighborhood) dbData.neighborhood = updatedData.neighborhood;
+            if (updatedData.city) dbData.city = updatedData.city;
+            if (updatedData.state) dbData.state = updatedData.state;
+            if (updatedData.observations) dbData.observations = updatedData.observations;
+
+            const { data, error } = await supabase
+                .from('patients')
+                .update(dbData)
+                .eq('id', id)
+                .select();
+
+            if (error) throw error;
+
+            const updatedPatient = transformPatient(data[0]);
             setPatients(prev => prev.map(p => p.id === id ? updatedPatient : p));
             showToast('Paciente atualizado com sucesso!');
         } catch (error) {
@@ -213,7 +287,13 @@ export const AppProvider = ({ children }) => {
 
     const deletePatient = async (id) => {
         try {
-            await PatientService.delete(id);
+            const { error } = await supabase
+                .from('patients')
+                .delete()
+                .eq('id', id);
+
+            if (error) throw error;
+
             setPatients(prev => prev.filter(p => p.id !== id));
             showToast('Paciente excluído.', 'info');
         } catch (error) {
@@ -330,12 +410,40 @@ export const AppProvider = ({ children }) => {
     };
 
     // Medicamentos
-    // Medicamentos
     const addMedication = async (medicationData) => {
         if (!user) return;
         try {
-            const newMedication = await MedicationService.add(medicationData, user.id);
+            const dbData = {
+                user_id: user.id,
+                name: medicationData.name,
+                dosage: medicationData.dosage,
+                type: medicationData.type,
+                quantity: parseFloat(medicationData.quantity) || 0
+            };
+
+            const { data, error } = await supabase
+                .from('medications')
+                .insert([dbData])
+                .select();
+
+            if (error) throw error;
+
+            const newMedication = transformMedication(data[0]);
             setMedications(prev => [...prev, newMedication]);
+
+            // Log Stock History (Initial Refill)
+            if (newMedication.quantity > 0) {
+                await supabase.from('stock_history').insert([{
+                    user_id: user.id,
+                    medication_id: newMedication.id,
+                    quantity_change: newMedication.quantity,
+                    previous_balance: 0,
+                    new_balance: newMedication.quantity,
+                    reason: 'refill',
+                    notes: 'Cadastro inicial'
+                }]);
+            }
+
             showToast('Medicamento adicionado!');
         } catch (error) {
             console.error('Erro ao adicionar medicamento:', error);
@@ -345,8 +453,40 @@ export const AppProvider = ({ children }) => {
 
     const updateMedication = async (id, updatedData) => {
         try {
+            const dbData = {};
+            if (updatedData.name) dbData.name = updatedData.name;
+            if (updatedData.dosage) dbData.dosage = updatedData.dosage;
+            if (updatedData.type) dbData.type = updatedData.type;
+            if (updatedData.quantity !== undefined) dbData.quantity = parseFloat(updatedData.quantity);
+
+            const { data, error } = await supabase
+                .from('medications')
+                .update(dbData)
+                .eq('id', id)
+                .select();
+
+            if (error) throw error;
+
+            const updatedMedication = transformMedication(data[0]);
+
+            // Log Stock Adjustment if quantity changed
             const oldMed = medications.find(m => m.id === id);
-            const updatedMedication = await MedicationService.update(id, updatedData, user.id, oldMed);
+            if (oldMed && updatedData.quantity !== undefined && parseFloat(updatedData.quantity) !== oldMed.quantity) {
+                const oldQty = parseFloat(oldMed.quantity);
+                const newQty = parseFloat(updatedData.quantity);
+                const diff = newQty - oldQty;
+
+                await supabase.from('stock_history').insert([{
+                    user_id: user.id,
+                    medication_id: id,
+                    quantity_change: diff,
+                    previous_balance: oldQty,
+                    new_balance: newQty,
+                    reason: 'adjustment',
+                    notes: 'Ajuste manual de estoque'
+                }]);
+            }
+
             setMedications(prev => prev.map(m => m.id === id ? updatedMedication : m));
             showToast('Medicamento atualizado!');
         } catch (error) {
@@ -357,7 +497,13 @@ export const AppProvider = ({ children }) => {
 
     const deleteMedication = async (id) => {
         try {
-            await MedicationService.delete(id);
+            const { error } = await supabase
+                .from('medications')
+                .delete()
+                .eq('id', id);
+
+            if (error) throw error;
+
             setMedications(prev => prev.filter(m => m.id !== id));
             showToast('Medicamento excluído.', 'info');
         } catch (error) {
@@ -367,11 +513,29 @@ export const AppProvider = ({ children }) => {
     };
 
     // Receitas
-    // Receitas
     const addPrescription = async (prescriptionData) => {
         if (!user) return;
         try {
-            const newPrescription = await PrescriptionService.add(prescriptionData, user.id);
+            const dbData = {
+                user_id: user.id,
+                patient_id: prescriptionData.patientId,
+                medication_id: prescriptionData.medicationId,
+                frequency: prescriptionData.frequency,
+                start_date: prescriptionData.startDate,
+                end_date: prescriptionData.endDate,
+                times: prescriptionData.times,
+                instructions: prescriptionData.instructions,
+                dose_amount: prescriptionData.doseAmount
+            };
+
+            const { data, error } = await supabase
+                .from('prescriptions')
+                .insert([dbData])
+                .select();
+
+            if (error) throw error;
+
+            const newPrescription = transformPrescription(data[0]);
             setPrescriptions(prev => [...prev, newPrescription]);
             showToast('Receita criada!');
         } catch (error) {
@@ -382,7 +546,25 @@ export const AppProvider = ({ children }) => {
 
     const updatePrescription = async (id, updatedData) => {
         try {
-            const updatedPrescription = await PrescriptionService.update(id, updatedData);
+            const dbData = {};
+            if (updatedData.patientId) dbData.patient_id = updatedData.patientId;
+            if (updatedData.medicationId) dbData.medication_id = updatedData.medicationId;
+            if (updatedData.frequency) dbData.frequency = updatedData.frequency;
+            if (updatedData.startDate) dbData.start_date = updatedData.startDate;
+            if (updatedData.endDate) dbData.end_date = updatedData.endDate;
+            if (updatedData.times) dbData.times = updatedData.times;
+            if (updatedData.instructions) dbData.instructions = updatedData.instructions;
+            if (updatedData.doseAmount) dbData.dose_amount = updatedData.doseAmount;
+
+            const { data, error } = await supabase
+                .from('prescriptions')
+                .update(dbData)
+                .eq('id', id)
+                .select();
+
+            if (error) throw error;
+
+            const updatedPrescription = transformPrescription(data[0]);
             setPrescriptions(prev => prev.map(p => p.id === id ? updatedPrescription : p));
             showToast('Prescrição atualizada!');
         } catch (error) {
@@ -393,7 +575,13 @@ export const AppProvider = ({ children }) => {
 
     const deletePrescription = async (id) => {
         try {
-            await PrescriptionService.delete(id);
+            const { error } = await supabase
+                .from('prescriptions')
+                .delete()
+                .eq('id', id);
+
+            if (error) throw error;
+
             setPrescriptions(prev => prev.filter(p => p.id !== id));
             showToast('Receita excluída.', 'info');
         } catch (error) {
@@ -403,29 +591,69 @@ export const AppProvider = ({ children }) => {
     };
 
     // Histórico de Consumo
-    // Histórico de Consumo
     const logConsumption = async (logData) => {
         try {
-            // Find related data from Context state
-            const prescription = prescriptions.find(p => p.id === logData.prescriptionId);
-            const medication = prescription ? medications.find(m => m.id === prescription.medicationId) : null;
+            // 1. Registrar consumo
+            const dbData = {
+                prescription_id: logData.prescriptionId,
+                date: logData.date,
+                scheduled_time: logData.scheduledTime,
+                taken_at: new Date().toISOString(),
+                status: 'taken',
+                taken_by: user.id
+            };
 
-            const { newLog, updatedMedication } = await LogService.addConsumption(
-                logData, user.id, prescription, medication
-            );
+            const { data, error } = await supabase
+                .from('consumption_log')
+                .insert([dbData])
+                .select();
 
+            if (error) throw error;
+
+            const newLog = transformLog(data[0]);
             setConsumptionLog(prev => [...prev, newLog]);
 
-            if (updatedMedication) {
-                setMedications(prev => prev.map(m =>
-                    m.id === updatedMedication.id ? updatedMedication : m
-                ));
+            // 2. Decrementar estoque
+            const prescription = prescriptions.find(p => p.id === logData.prescriptionId);
+            if (prescription) {
+                const medication = medications.find(m => m.id === prescription.medicationId);
+                if (medication && medication.quantity > 0) {
+                    const dose = parseFloat(prescription.doseAmount) || 1;
+                    const newQuantity = (parseFloat(medication.quantity) || 0) - dose;
+
+                    // Atualiza no banco
+                    await supabase
+                        .from('medications')
+                        .update({ quantity: newQuantity })
+                        .eq('id', medication.id);
+
+                    // Log Stock History (Consumption)
+                    await supabase.from('stock_history').insert([{
+                        user_id: user.id,
+                        patient_id: prescription.patientId,
+                        medication_id: medication.id,
+                        quantity_change: -dose,
+                        previous_balance: parseFloat(medication.quantity),
+                        new_balance: newQuantity,
+                        reason: 'consumption',
+                        // Note if taken not by owner? We are logging AS the current user (user.id).
+                        // If we want detailed tracking on shared patients, we might need a distinct 'notes' field logic later.
+                        notes: `Dose tomada: ${prescription.doseAmount || '1'}`
+                    }]);
+
+                    // Atualiza estado local (optimistic/realtime vai cobrir, mas garantindo)
+                    setMedications(prev => prev.map(m =>
+                        m.id === medication.id ? { ...m, quantity: newQuantity } : m
+                    ));
+                }
             }
 
             showToast('Dose registrada!');
 
             // 3. Verificar Estoque Baixo (Novo)
             if (prescription && prescription.medicationId) {
+                // Pequeno delay para garantir que o estado local atualizou (embora estejamos usando vars locais)
+                // Usando setTimeout para não bloquear a UI
                 setTimeout(() => checkLowStock(prescription.medicationId), 1000);
             }
 
@@ -544,21 +772,52 @@ export const AppProvider = ({ children }) => {
 
     const removeConsumption = async (prescriptionId, scheduledTime, date) => {
         try {
-            const prescription = prescriptions.find(p => p.id === prescriptionId);
-            const medication = prescription ? medications.find(m => m.id === prescription.medicationId) : null;
+            // 1. Remover consumo
+            const { error } = await supabase
+                .from('consumption_log')
+                .delete()
+                .match({
+                    prescription_id: prescriptionId,
+                    scheduled_time: scheduledTime,
+                    date: date
+                });
 
-            const { updatedMedication } = await LogService.removeConsumption(
-                prescriptionId, scheduledTime, date, prescription, medication
-            );
+            if (error) throw error;
 
             setConsumptionLog(prev => prev.filter(l =>
                 !(l.prescriptionId === prescriptionId && l.scheduledTime === scheduledTime && l.date === date)
             ));
 
-            if (updatedMedication) {
-                setMedications(prev => prev.map(m =>
-                    m.id === updatedMedication.id ? updatedMedication : m
-                ));
+            // 2. Incrementar estoque (devolver)
+            const prescription = prescriptions.find(p => p.id === prescriptionId);
+            if (prescription) {
+                const medication = medications.find(m => m.id === prescription.medicationId);
+                if (medication) {
+                    const dose = parseFloat(prescription.doseAmount) || 1;
+                    const newQuantity = (parseFloat(medication.quantity) || 0) + dose;
+
+                    // Atualiza no banco
+                    await supabase
+                        .from('medications')
+                        .update({ quantity: newQuantity })
+                        .eq('id', medication.id);
+
+                    // Log Stock History (Correction/Return)
+                    await supabase.from('stock_history').insert([{
+                        user_id: user.id,
+                        medication_id: medication.id,
+                        quantity_change: dose,
+                        previous_balance: parseFloat(medication.quantity),
+                        new_balance: newQuantity,
+                        reason: 'correction',
+                        notes: 'Dose desmarcada (devolvida ao estoque)'
+                    }]);
+
+                    // Atualiza estado local
+                    setMedications(prev => prev.map(m =>
+                        m.id === medication.id ? { ...m, quantity: newQuantity } : m
+                    ));
+                }
             }
 
             showToast('Registro removido.', 'info');
@@ -572,11 +831,24 @@ export const AppProvider = ({ children }) => {
     const addHealthLog = async (logData) => {
         if (!user) return;
         try {
-            const newHealthLog = await LogService.addHealthLog(logData, user.id);
+            const dbData = {
+                user_id: user.id,
+                patient_id: logData.patientId,
+                category: logData.category, // 'pressure', 'glucose', 'weight', etc.
+                value: parseFloat(logData.value),
+                value_secondary: logData.valueSecondary ? parseFloat(logData.valueSecondary) : null,
+                measured_at: logData.measuredAt || new Date().toISOString(),
+                notes: logData.notes
+            };
+
+            const { data, error } = await supabase
+                .from('health_logs')
+                .insert([dbData])
+                .select();
+
+            if (error) throw error;
+
             // Optimistic update done by Realtime usually, but let's be safe
-            // Actually, we don't have 'newHealthLog.transform' in the loop, we just use useApp to fetchAll.
-            // But if we want instant UI update without waiting for fetchAll(true):
-            // Health logs in Context (line 20) are just raw data + profiles expanded.
             showToast('Registro de saúde adicionado!');
         } catch (error) {
             console.error('Erro ao adicionar registro de saúde:', error);
@@ -586,9 +858,13 @@ export const AppProvider = ({ children }) => {
 
     const deleteHealthLog = async (id) => {
         try {
-            await LogService.deleteHealthLog(id);
+            const { error } = await supabase
+                .from('health_logs')
+                .delete()
+                .eq('id', id);
+
+            if (error) throw error;
             showToast('Registro excluído.', 'info');
-            // Optimistic update handled by Realtime for now
         } catch (error) {
             console.error('Erro ao excluir registro de saúde:', error);
             showToast('Erro ao excluir registro', 'error');
