@@ -919,67 +919,203 @@ const Reports = () => {
                     </div>
                 )}
 
-                {activeTab === 'history' ? (
-                    <Card className="no-print">
-                        <CardHeader>
-                            <h3 className="font-bold text-xl text-slate-900 dark:text-white">Filtros do Relatório</h3>
-                            <p className="text-sm text-slate-500 dark:text-slate-400">Selecione o paciente, período e status desejado</p>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="flex flex-col gap-6">
-                                <div className="flex flex-col md:flex-row gap-4">
-                                    <div className="flex flex-col gap-1.5 flex-1">
-                                        <label className="text-sm font-semibold text-slate-700 ml-1">Paciente</label>
+                {activeTab === 'dashboard' && reportData && (
+                    <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        {/* Summary Cards */}
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
+                                <CardContent className="p-6">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-12 h-12 rounded-xl bg-blue-500 flex items-center justify-center text-white">
+                                            <FileText size={24} />
+                                        </div>
+                                        <div>
+                                            <p className="text-sm text-blue-600 font-medium">Total</p>
+                                            <p className="text-2xl font-bold text-blue-900">{reportData.summary.total}</p>
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                            <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
+                                <CardContent className="p-6">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-12 h-12 rounded-xl bg-green-500 flex items-center justify-center text-white">
+                                            <CheckCircle size={24} />
+                                        </div>
+                                        <div>
+                                            <p className="text-sm text-green-600 font-medium">Tomadas</p>
+                                            <p className="text-2xl font-bold text-green-900">{reportData.summary.taken}</p>
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                            <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
+                                <CardContent className="p-6">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-12 h-12 rounded-xl bg-orange-500 flex items-center justify-center text-white">
+                                            <Clock size={24} />
+                                        </div>
+                                        <div>
+                                            <p className="text-sm text-orange-600 font-medium">Pendentes</p>
+                                            <p className="text-2xl font-bold text-orange-900">{reportData.summary.pending}</p>
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                            <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
+                                <CardContent className="p-6">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-12 h-12 rounded-xl bg-purple-500 flex items-center justify-center text-white">
+                                            <Calendar size={24} />
+                                        </div>
+                                        <div>
+                                            <p className="text-sm text-purple-600 font-medium">Adesão</p>
+                                            <p className="text-2xl font-bold text-purple-900">{reportData.summary.adherenceRate}%</p>
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </div>
+
+                        {/* Charts Section - Now correctly placed in Dashboard */}
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 print:break-inside-avoid">
+                            <AdherenceChart data={dashboardData.adherence} />
+                            <ActivityChart data={dashboardData.activity} />
+                        </div>
+                    </div>
+                )}
+
+                {activeTab === 'history' && (
+                    <div className="flex flex-col gap-6">
+                        <Card className="no-print">
+                            <CardHeader>
+                                <h3 className="font-bold text-xl text-slate-900 dark:text-white">Filtros do Relatório</h3>
+                                <p className="text-sm text-slate-500 dark:text-slate-400">Selecione o paciente, período e status desejado</p>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="flex flex-col gap-6">
+                                    <div className="flex flex-col md:flex-row gap-4">
+                                        <div className="flex flex-col gap-1.5 flex-1">
+                                            <label className="text-sm font-semibold text-slate-700 ml-1">Paciente</label>
+                                            <select
+                                                value={filters.patientId}
+                                                onChange={(e) => setFilters({ ...filters, patientId: e.target.value })}
+                                                className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-slate-900 focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-200"
+                                            >
+                                                <option value="all">Todos os Pacientes</option>
+                                                {patients.map(patient => (
+                                                    <option key={patient.id} value={patient.id}>{patient.name}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex flex-col md:flex-row gap-4">
+                                        <Input
+                                            label="Data Inicial"
+                                            type="date"
+                                            value={filters.startDate}
+                                            onChange={(e) => setFilters({ ...filters, startDate: e.target.value })}
+                                            containerClassName="flex-1"
+                                        />
+                                        <Input
+                                            label="Data Final"
+                                            type="date"
+                                            value={filters.endDate}
+                                            onChange={(e) => setFilters({ ...filters, endDate: e.target.value })}
+                                            containerClassName="flex-1"
+                                        />
+                                    </div>
+
+                                    <div className="flex flex-col gap-1.5">
+                                        <label className="text-sm font-semibold text-slate-700 ml-1">Status</label>
                                         <select
-                                            value={filters.patientId}
-                                            onChange={(e) => setFilters({ ...filters, patientId: e.target.value })}
+                                            value={filters.status}
+                                            onChange={(e) => setFilters({ ...filters, status: e.target.value })}
                                             className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-slate-900 focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-200"
                                         >
-                                            <option value="all">Todos os Pacientes</option>
-                                            {patients.map(patient => (
-                                                <option key={patient.id} value={patient.id}>{patient.name}</option>
-                                            ))}
+                                            <option value="all">Todos os Status</option>
+                                            <option value="taken">Tomadas</option>
+                                            <option value="pending">Pendentes</option>
                                         </select>
                                     </div>
+
+                                    <Button onClick={generateReport} className="w-full">
+                                        <FileText size={18} className="mr-2" /> Gerar Relatório
+                                    </Button>
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        {/* History Table Results */}
+                        {reportData && (
+                            <>
+                                <div className="flex flex-wrap gap-3 no-print justify-end">
+                                    <Button variant="outline" onClick={handlePrint}>
+                                        <Printer size={18} className="mr-2" /> Imprimir
+                                    </Button>
+                                    <Button variant="outline" onClick={handleDownloadPDF}>
+                                        <Download size={18} className="mr-2" /> PDF
+                                    </Button>
+                                    <Button variant="outline" onClick={handleWhatsApp}>
+                                        <MessageCircle size={18} className="mr-2" /> WhatsApp
+                                    </Button>
+                                    <Button variant="outline" onClick={handleEmail}>
+                                        <Mail size={18} className="mr-2" /> Email
+                                    </Button>
                                 </div>
 
-                                <div className="flex flex-col md:flex-row gap-4">
-                                    <Input
-                                        label="Data Inicial"
-                                        type="date"
-                                        value={filters.startDate}
-                                        onChange={(e) => setFilters({ ...filters, startDate: e.target.value })}
-                                        containerClassName="flex-1"
-                                    />
-                                    <Input
-                                        label="Data Final"
-                                        type="date"
-                                        value={filters.endDate}
-                                        onChange={(e) => setFilters({ ...filters, endDate: e.target.value })}
-                                        containerClassName="flex-1"
-                                    />
-                                </div>
+                                {paginatedItems.length > 0 ? (
+                                    <>
+                                        <div className="grid gap-3">
+                                            {paginatedItems.map((item, idx) => (
+                                                <Card key={idx} className={`${item.status === 'taken' ? 'border-green-200 bg-green-50/30' : 'border-orange-200 bg-orange-50/30'}`}>
+                                                    <CardContent className="p-4">
+                                                        <div className="flex items-center justify-between">
+                                                            <div className="flex items-center gap-4">
+                                                                <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${item.status === 'taken' ? 'bg-green-500' : 'bg-orange-500'} text-white`}>
+                                                                    {item.status === 'taken' ? <CheckCircle size={24} /> : <Clock size={24} />}
+                                                                </div>
+                                                                <div>
+                                                                    <p className="font-semibold text-slate-900">{item.medication}</p>
+                                                                    <p className="text-sm text-slate-600">{item.patient}</p>
+                                                                    <p className="text-xs text-slate-400">
+                                                                        {formatDate(item.date)} às {item.time}
+                                                                    </p>
+                                                                </div>
+                                                            </div>
+                                                            <span className={`px-3 py-1 rounded-full text-sm font-medium ${item.status === 'taken' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
+                                                                {item.status === 'taken' ? 'Tomado' : 'Pendente'}
+                                                            </span>
+                                                        </div>
+                                                    </CardContent>
+                                                </Card>
+                                            ))}
+                                        </div>
 
-                                <div className="flex flex-col gap-1.5">
-                                    <label className="text-sm font-semibold text-slate-700 ml-1">Status</label>
-                                    <select
-                                        value={filters.status}
-                                        onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-                                        className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-slate-900 focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-200"
-                                    >
-                                        <option value="all">Todos os Status</option>
-                                        <option value="taken">Tomadas</option>
-                                        <option value="pending">Pendentes</option>
-                                    </select>
-                                </div>
+                                        <Pagination
+                                            currentPage={currentPage}
+                                            totalPages={totalPages}
+                                            onPageChange={setCurrentPage}
+                                        />
+                                    </>
+                                ) : (
+                                    <Card>
+                                        <CardContent className="p-12 text-center">
+                                            <FileText size={48} className="mx-auto text-slate-300 mb-4" />
+                                            <p className="text-slate-500">Nenhum item encontrado para os filtros selecionados.</p>
+                                        </CardContent>
+                                    </Card>
+                                )}
+                            </>
+                        )}
+                    </div>
+                )}
 
-                                <Button onClick={generateReport} className="w-full">
-                                    <FileText size={18} className="mr-2" /> Gerar Relatório
-                                </Button>
-                            </div>
-                        </CardContent>
-                    </Card>
-                ) : (
+                {activeTab === 'birthdays' && (
                     <div className="flex flex-col gap-6">
                         <Card className="no-print">
                             <CardHeader>
@@ -1088,131 +1224,7 @@ const Reports = () => {
                     </div>
                 )}
 
-                {activeTab === 'history' && reportData && (
-                    <>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-                                <CardContent className="p-6">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-12 h-12 rounded-xl bg-blue-500 flex items-center justify-center text-white">
-                                            <FileText size={24} />
-                                        </div>
-                                        <div>
-                                            <p className="text-sm text-blue-600 font-medium">Total</p>
-                                            <p className="text-2xl font-bold text-blue-900">{reportData.summary.total}</p>
-                                        </div>
-                                    </div>
-                                </CardContent>
-                            </Card>
 
-                            <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-                                <CardContent className="p-6">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-12 h-12 rounded-xl bg-green-500 flex items-center justify-center text-white">
-                                            <CheckCircle size={24} />
-                                        </div>
-                                        <div>
-                                            <p className="text-sm text-green-600 font-medium">Tomadas</p>
-                                            <p className="text-2xl font-bold text-green-900">{reportData.summary.taken}</p>
-                                        </div>
-                                    </div>
-                                </CardContent>
-                            </Card>
-
-                            <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
-                                <CardContent className="p-6">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-12 h-12 rounded-xl bg-orange-500 flex items-center justify-center text-white">
-                                            <Clock size={24} />
-                                        </div>
-                                        <div>
-                                            <p className="text-sm text-orange-600 font-medium">Pendentes</p>
-                                            <p className="text-2xl font-bold text-orange-900">{reportData.summary.pending}</p>
-                                        </div>
-                                    </div>
-                                </CardContent>
-                            </Card>
-
-                            <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
-                                <CardContent className="p-6">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-12 h-12 rounded-xl bg-purple-500 flex items-center justify-center text-white">
-                                            <Calendar size={24} />
-                                        </div>
-                                        <div>
-                                            <p className="text-sm text-purple-600 font-medium">Adesão</p>
-                                            <p className="text-2xl font-bold text-purple-900">{reportData.summary.adherenceRate}%</p>
-                                        </div>
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        </div>
-
-                        {/* Charts Section */}
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6 print:break-inside-avoid">
-                            <AdherenceChart data={dashboardData.adherence} />
-                            <ActivityChart data={dashboardData.activity} />
-                        </div>
-
-                        <div className="flex flex-wrap gap-3 no-print">
-                            <Button variant="outline" onClick={handlePrint}>
-                                <Printer size={18} className="mr-2" /> Imprimir
-                            </Button>
-                            <Button variant="outline" onClick={handleDownloadPDF}>
-                                <Download size={18} className="mr-2" /> Download PDF
-                            </Button>
-                            <Button variant="outline" onClick={handleWhatsApp}>
-                                <MessageCircle size={18} className="mr-2" /> WhatsApp
-                            </Button>
-                            <Button variant="outline" onClick={handleEmail}>
-                                <Mail size={18} className="mr-2" /> Email
-                            </Button>
-                        </div>
-
-                        {paginatedItems.length > 0 ? (
-                            <>
-                                <div className="grid gap-3">
-                                    {paginatedItems.map((item, idx) => (
-                                        <Card key={idx} className={`${item.status === 'taken' ? 'border-green-200 bg-green-50/30' : 'border-orange-200 bg-orange-50/30'}`}>
-                                            <CardContent className="p-4">
-                                                <div className="flex items-center justify-between">
-                                                    <div className="flex items-center gap-4">
-                                                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${item.status === 'taken' ? 'bg-green-500' : 'bg-orange-500'} text-white`}>
-                                                            {item.status === 'taken' ? <CheckCircle size={24} /> : <Clock size={24} />}
-                                                        </div>
-                                                        <div>
-                                                            <p className="font-semibold text-slate-900">{item.medication}</p>
-                                                            <p className="text-sm text-slate-600">{item.patient}</p>
-                                                            <p className="text-xs text-slate-400">
-                                                                {formatDate(item.date)} às {item.time}
-                                                            </p>
-                                                        </div>
-                                                    </div>
-                                                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${item.status === 'taken' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
-                                                        {item.status === 'taken' ? 'Tomado' : 'Pendente'}
-                                                    </span>
-                                                </div>
-                                            </CardContent>
-                                        </Card>
-                                    ))}
-                                </div>
-
-                                <Pagination
-                                    currentPage={currentPage}
-                                    totalPages={totalPages}
-                                    onPageChange={setCurrentPage}
-                                />
-                            </>
-                        ) : (
-                            <Card>
-                                <CardContent className="p-12 text-center">
-                                    <FileText size={48} className="mx-auto text-slate-300 mb-4" />
-                                    <p className="text-slate-500">Nenhum item encontrado para os filtros selecionados.</p>
-                                </CardContent>
-                            </Card>
-                        )}
-                    </>
-                )}
 
                 <Modal
                     isOpen={showEmailModal}
