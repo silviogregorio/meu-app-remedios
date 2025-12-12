@@ -246,6 +246,13 @@ const Reports = () => {
             return;
         }
 
+        // Validate dates to prevent RangeError during manual typing
+        const fCheckStart = new Date(filters.startDate);
+        const fCheckEnd = new Date(filters.endDate);
+        if (isNaN(fCheckStart.getTime()) || isNaN(fCheckEnd.getTime())) {
+            return;
+        }
+
         let filteredPrescriptions = prescriptions;
         if (filters.patientId !== 'all') {
             filteredPrescriptions = prescriptions.filter(

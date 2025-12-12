@@ -186,7 +186,7 @@ export const generatePDFReport = async (reportData, filters, patients) => {
     doc.text('• Pendentes: Doses agendadas que ainda não foram marcadas ou estão atrasadas.', 110, legendY + legendLineHeight);
     doc.text('• Adesão: Porcentagem de sucesso do tratamento (Tomadas ÷ Total).', 110, legendY + (legendLineHeight * 2));
 
-    yPos += 15;
+    yPos += 25;
 
     // --- Data Table ---
     doc.setFontSize(12);
