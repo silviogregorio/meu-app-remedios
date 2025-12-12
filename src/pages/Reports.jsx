@@ -8,6 +8,7 @@ import Pagination from '../components/ui/Pagination';
 import { FileText, Printer, Calendar, CheckCircle, Clock, Mail, MessageCircle, Download, Gift, Activity, Filter, ArrowRight, PieChart } from 'lucide-react';
 import AdherenceChart from '../components/analytics/AdherenceChart';
 import ActivityChart from '../components/analytics/ActivityChart';
+import { supabase } from '../lib/supabase';
 import { formatDate, formatTime, formatDateTime } from '../utils/dateFormatter';
 import { generatePDFReport } from '../utils/pdfGenerator';
 import { supabase } from '../lib/supabase';

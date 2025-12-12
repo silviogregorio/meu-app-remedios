@@ -8,6 +8,7 @@ import { Heart, Activity, Thermometer, Weight, Plus, Trash2, Calendar, FileText,
 import { formatDate, formatDateTime, formatTime } from '../utils/dateFormatter';
 import { generatePDFHealthDiary } from '../utils/pdfGenerator';
 import { format } from 'date-fns';
+import { supabase } from '../lib/supabase';
 import {
     LineChart,
     Line,
@@ -178,9 +179,13 @@ const HealthDiary = () => {
                 </div>
             `;
 
+            const { data: { session } } = await supabase.auth.getSession();
             const response = await fetch('/api/send-email', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session?.access_token}`
+                },
                 body: JSON.stringify({
                     to: emailData.to,
                     subject: 'Diário de Saúde - SiG Remédios',

@@ -292,9 +292,13 @@ export const AppProvider = ({ children }) => {
                                 patient.sharedWith.forEach(s => recipients.push(s.email));
                             }
 
+                            const { data: { session } } = await supabase.auth.getSession();
                             await fetch(`${import.meta.env.VITE_API_URL || ''}/api/send-email`, {
                                 method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Authorization': `Bearer ${session?.access_token}`
+                                },
                                 body: JSON.stringify({
                                     to: recipients.join(','),
                                     subject: `🚨 ALERTA DE ATRASO: ${patient?.name}`,
@@ -521,9 +525,13 @@ export const AppProvider = ({ children }) => {
 
                 // Disparar Email
                 if (user && user.email) {
+                    const { data: { session } } = await supabase.auth.getSession();
                     await fetch(endpoint, {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${session?.access_token}`
+                        },
                         body: JSON.stringify({
                             to: user.email,
                             subject: `⚠️ Alerta de Estoque: ${med.name}`,
@@ -623,9 +631,13 @@ export const AppProvider = ({ children }) => {
                 const endpoint = apiUrl ? `${apiUrl}/api/send-email` : '/api/send-email';
                 const patientName = patients.find(p => p.id === patientId)?.name || 'um paciente';
 
+                const { data: { session } } = await supabase.auth.getSession();
                 const emailResponse = await fetch(endpoint, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${session?.access_token}`
+                    },
                     body: JSON.stringify({
                         to: email,
                         subject: `Convite de Acesso - Paciente ${patientName}`,
@@ -725,10 +737,12 @@ export const AppProvider = ({ children }) => {
                     // Se for produção, VITE_API_URL deve estar definida ou o backend estar no mesmo domínio
                     const endpoint = apiUrl ? `${apiUrl}/api/send-email` : '/api/send-email';
 
+                    const { data: { session } } = await supabase.auth.getSession();
                     const emailResponse = await fetch(endpoint, {
                         method: 'POST',
                         headers: {
-                            'Content-Type': 'application/json'
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${session?.access_token}`
                         },
                         body: JSON.stringify({
                             to: email,
@@ -748,7 +762,10 @@ export const AppProvider = ({ children }) => {
                         try {
                             await fetch(endpoint, {
                                 method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Authorization': `Bearer ${session?.access_token}`
+                                },
                                 body: JSON.stringify({
                                     to: user.email, // Email do dono
                                     subject: 'Alerta de Segurança - Compartilhamento de Conta',
