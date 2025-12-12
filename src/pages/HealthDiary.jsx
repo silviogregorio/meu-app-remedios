@@ -20,7 +20,7 @@ import {
     ResponsiveContainer,
     ReferenceLine
 } from 'recharts';
-import { supabase } from '../lib/supabase';
+
 
 const HealthDiary = () => {
     const { patients, healthLogs, addHealthLog, deleteHealthLog, user, showToast } = useApp();
