@@ -239,7 +239,7 @@ const Reports = () => {
         if (activeTab === 'dashboard') {
             generateReport();
         }
-    }, [activeTab, filters.startDate, filters.endDate, filters.patientId, itemsPerPage]); // itemsPerPage is not defined but logic depends on filters
+    }, [activeTab, filters.startDate, filters.endDate, filters.patientId]); // Removed itemsPerPage which was undefined
 
     const generateReport = () => {
         if (!filters.startDate || !filters.endDate) {
