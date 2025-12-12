@@ -156,8 +156,13 @@ const Prescriptions = () => {
     const handleDurationChange = (e) => {
         const duration = parseInt(e.target.value) || 0;
         const start = new Date(formData.startDate);
+
+        if (isNaN(start.getTime())) return; // Guard against invalid start date
+
         const end = new Date(start);
         end.setDate(start.getDate() + duration - 1);
+
+        if (isNaN(end.getTime())) return; // Guard against invalid end date calculation
 
         setFormData({
             ...formData,
@@ -170,8 +175,20 @@ const Prescriptions = () => {
         const newStartDate = e.target.value;
         const duration = parseInt(formData.duration) || 0;
         const start = new Date(newStartDate);
+
+        // Allow user to type incomplete date without crashing
+        if (isNaN(start.getTime())) {
+            setFormData({
+                ...formData,
+                startDate: newStartDate
+            });
+            return;
+        }
+
         const end = new Date(start);
         end.setDate(start.getDate() + duration - 1);
+
+        if (isNaN(end.getTime())) return;
 
         setFormData({
             ...formData,
@@ -184,6 +201,18 @@ const Prescriptions = () => {
         const newEndDate = e.target.value;
         const start = new Date(formData.startDate);
         const end = new Date(newEndDate);
+
+        // Allow incomplete date typing logic
+        if (isNaN(end.getTime())) {
+            setFormData({
+                ...formData,
+                endDate: newEndDate
+            });
+            return;
+        }
+
+        if (isNaN(start.getTime())) return;
+
         const diffTime = Math.abs(end - start);
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
 

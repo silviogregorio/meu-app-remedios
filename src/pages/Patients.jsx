@@ -31,6 +31,7 @@ const formatPhone = (value) => {
 const formatAge = (birthDate) => {
     if (!birthDate) return null;
     const birth = new Date(birthDate);
+    if (isNaN(birth.getTime())) return null; // Guard against invalid dates
     const today = new Date();
 
     let years = today.getFullYear() - birth.getFullYear();

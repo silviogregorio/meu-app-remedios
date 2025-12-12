@@ -8,7 +8,9 @@ import { ptBR } from 'date-fns/locale';
  */
 export const formatDate = (date) => {
     if (!date) return '';
-    return format(new Date(date), 'dd/MM/yyyy', { locale: ptBR });
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return ''; // Return empty if invalid date
+    return format(d, 'dd/MM/yyyy', { locale: ptBR });
 };
 
 /**
@@ -18,7 +20,9 @@ export const formatDate = (date) => {
  */
 export const formatTime = (date) => {
     if (!date) return '';
-    return format(new Date(date), 'HH:mm', { locale: ptBR });
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return ''; // Return empty if invalid date
+    return format(d, 'HH:mm', { locale: ptBR });
 };
 
 /**
@@ -28,7 +32,9 @@ export const formatTime = (date) => {
  */
 export const formatDateTime = (date) => {
     if (!date) return '';
-    return format(new Date(date), 'dd/MM/yyyy HH:mm', { locale: ptBR });
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return ''; // Return empty if invalid date
+    return format(d, 'dd/MM/yyyy HH:mm', { locale: ptBR });
 };
 
 /**
