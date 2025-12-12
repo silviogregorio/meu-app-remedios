@@ -11,7 +11,7 @@ import ActivityChart from '../components/analytics/ActivityChart';
 import { supabase } from '../lib/supabase';
 import { formatDate, formatTime, formatDateTime } from '../utils/dateFormatter';
 import { generatePDFReport } from '../utils/pdfGenerator';
-import { supabase } from '../lib/supabase';
+
 
 const ITEMS_PER_PAGE = 6;
 
@@ -720,10 +720,14 @@ const Reports = () => {
                 ];
             }
 
-            // call VERCEL API instead of Supabase function
+            // call VERCEL API with Auth
+            const { data: { session } } = await supabase.auth.getSession();
             const response = await fetch('/api/send-email', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session?.access_token}`
+                },
                 body: JSON.stringify({
                     to: emailData.to,
                     subject: subject,
