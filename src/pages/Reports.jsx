@@ -771,6 +771,9 @@ const Reports = () => {
 
                 {activeTab === 'stock' && (
                     <div className="flex flex-col gap-6">
+                        <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 text-slate-600 text-sm no-print">
+                            Gerencie o fluxo do seu estoque de medicamentos. Aqui você pode visualizar todas as entradas (compras) e saídas (consumo ou ajustes), permitindo um controle preciso do inventário e identificação de quando é necessário repor seus medicamentos.
+                        </div>
                         <Card className="no-print">
                             <CardHeader>
                                 <h3 className="font-bold text-xl text-slate-900 dark:text-white">Filtros de Estoque</h3>
@@ -921,6 +924,9 @@ const Reports = () => {
 
                 {activeTab === 'dashboard' && reportData && (
                     <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 text-slate-700 text-sm no-print">
+                            Acompanhe o desempenho geral do tratamento em um só lugar. Visualize métricas essenciais como taxas de adesão, total de doses tomadas e pendentes, além de gráficos interativos que ilustram sua atividade semanal e o sucesso do tratamento ao longo do tempo.
+                        </div>
                         {/* Summary Cards */}
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                             <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
@@ -990,6 +996,9 @@ const Reports = () => {
 
                 {activeTab === 'history' && (
                     <div className="flex flex-col gap-6">
+                        <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 text-slate-600 text-sm no-print">
+                            Consulte o histórico detalhado de todas as doses prescritas e consumidas. Utilize os filtros avançados para buscar registros por paciente, período específico ou status da medicação, e exporte os dados para impressão ou arquivo PDF para levar ao médico.
+                        </div>
                         <Card className="no-print">
                             <CardHeader>
                                 <h3 className="font-bold text-xl text-slate-900 dark:text-white">Filtros do Relatório</h3>
@@ -1117,6 +1126,9 @@ const Reports = () => {
 
                 {activeTab === 'birthdays' && (
                     <div className="flex flex-col gap-6">
+                        <div className="bg-pink-50 border border-pink-100 rounded-xl p-4 text-pink-700 text-sm no-print">
+                            Não esqueça nenhuma data importante! Identifique rapidamente os pacientes que fazem aniversário no dia selecionado, veja a idade completa e utilize os atalhos para enviar mensagens carinhosas de felicitações via WhatsApp ou E-mail diretamente por aqui.
+                        </div>
                         <Card className="no-print">
                             <CardHeader>
                                 <h3 className="font-bold text-xl text-slate-900 dark:text-white">Buscar Aniversariantes</h3>
