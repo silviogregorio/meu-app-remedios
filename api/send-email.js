@@ -97,7 +97,11 @@ export default async function handler(request, response) {
                             <!-- Detalhes Extras (Idade, Telefone, Cidade) -->
                             <div style="margin-top: 15px; display: flex; flex-wrap: wrap; gap: 15px; font-size: 14px; color: #334155;">
                                 ${age ? `<span style="background: #e0e7ff; color: #4338ca; padding: 4px 10px; border-radius: 20px;">🎂 ${age} anos</span>` : ''}
-                                ${phone ? `<span style="background: #dcfce7; color: #15803d; padding: 4px 10px; border-radius: 20px;">📱 ${phone}</span>` : ''}
+                                ${phone ? (() => {
+          const cleanPhone = phone.replace(/\D/g, ''); // Remove tudo que não é número
+          const waLink = `https://wa.me/55${cleanPhone}`; // Assume Brasil +55 se não tiver
+          return `<a href="${waLink}" target="_blank" style="text-decoration: none;"><span style="background: #dcfce7; color: #15803d; padding: 4px 10px; border-radius: 20px; cursor: pointer;">📱 ${phone} (Zap)</span></a>`;
+        })() : ''}
                                 ${city ? `<span style="background: #ffedd5; color: #c2410c; padding: 4px 10px; border-radius: 20px;">📍 ${city}</span>` : ''}
                             </div>
                         </div>

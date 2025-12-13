@@ -122,8 +122,6 @@ ${stats}
                 </p>
 
                 <div className="flex flex-col items-center gap-4">
-                    <p className="text-sm text-primary font-medium animate-pulse">Redirecionando para o início...</p>
-
                     <Button onClick={() => navigate('/app')} variant="outline">
                         Ir para o Início agora
                     </Button>
