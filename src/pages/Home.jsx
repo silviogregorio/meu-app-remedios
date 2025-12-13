@@ -637,8 +637,7 @@ const Home = () => {
             <div className="text-center pb-20 pt-4 text-[10px] text-slate-300">
                 v{__APP_VERSION__}
             </div>
-            {startTour && <OnboardingTour forceStart={true} />}
-            {!startTour && <OnboardingTour />}
+            <OnboardingTour forceStart={startTour} onTourEnd={() => setStartTour(false)} />
         </div>
     );
 };

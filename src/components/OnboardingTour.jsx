@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { driver } from 'driver.js';
 import 'driver.js/dist/driver.css';
 
-const OnboardingTour = ({ forceStart }) => {
+const OnboardingTour = ({ forceStart, onTourEnd }) => {
     useEffect(() => {
         const hasSeenTour = localStorage.getItem('hasSeenTour_v1');
         console.log('[OnboardingTour] Checking status. Seen?', hasSeenTour, 'Force?', forceStart);
@@ -67,19 +67,23 @@ const OnboardingTour = ({ forceStart }) => {
                 doneBtnText: 'Entendi!',
                 steps: steps,
                 onDestroyed: () => {
-                    if (!forceStart) {
-                        localStorage.setItem('hasSeenTour_v1', 'true');
-                    }
+                    localStorage.setItem('hasSeenTour_v1', 'true');
+                    if (onTourEnd) onTourEnd();
                 }
             });
 
             // Small delay to ensure elements are rendered
-            setTimeout(() => {
+            const timer = setTimeout(() => {
                 console.log('[OnboardingTour] Starting drive. Steps:', steps.length);
                 driverObj.drive();
             }, 1000);
+
+            return () => {
+                clearTimeout(timer);
+                driverObj.destroy();
+            };
         }
-    }, [forceStart]);
+    }, [forceStart, onTourEnd]);
 
     return null;
 };
