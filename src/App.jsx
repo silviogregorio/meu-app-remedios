@@ -32,7 +32,8 @@ import VersionCheck from './components/VersionCheck';
 import { useEffect } from 'react';
 
 function App() {
-  // FORCE SERVICE WORKER UPDATE - CACHE BUSTER v1.3.49
+  // FORCE SERVICE WORKER UPDATE - REMOVED TO PREVENT LOOP
+  /*
   useEffect(() => {
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.getRegistrations().then(function (registrations) {
@@ -43,6 +44,7 @@ function App() {
       });
     }
   }, []);
+  */
 
   return (
     <ErrorBoundary>
