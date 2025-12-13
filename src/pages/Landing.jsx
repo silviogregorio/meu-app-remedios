@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, Bell, ArrowRight, Activity, Heart, Send, CheckCircle2, AlertCircle, Smartphone, Rocket, Zap, Globe, Layers, Instagram, Facebook, Youtube, MessageCircle, Video } from 'lucide-react';
+import { Users, Bell, ArrowRight, Activity, Heart, Send, CheckCircle2, AlertCircle, Smartphone, Rocket, Zap, Globe, Layers, Instagram, Facebook, Youtube, MessageCircle, Video, BookOpen, LifeBuoy, FileText, Pill, Shield } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 const Landing = () => {
@@ -251,32 +251,70 @@ const Landing = () => {
                 </div>
             </header>
 
-            {/* Features Section */}
-            <section id="features" className="bg-white py-24 px-6">
-                <div className="max-w-7xl mx-auto">
-                    <div className="text-center max-w-2xl mx-auto mb-16">
-                        <h2 className="text-3xl font-bold text-slate-900 mb-4">Funcionalidades Poderosas</h2>
-                        <p className="text-slate-600 text-lg">Tudo o que você precisa para garantir que o tratamento seja seguido à risca, com tranquilidade e organização.</p>
+            {/* Features Section - Premium Futurisc */}
+            <section id="features" className="bg-slate-50 py-24 px-6 relative overflow-hidden">
+                 <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent"></div>
+                 
+                 {/* Decorative background elements */}
+                 <div className="absolute top-20 left-10 w-64 h-64 bg-blue-400/5 rounded-full filter blur-3xl animate-blob"></div>
+                 <div className="absolute bottom-20 right-10 w-64 h-64 bg-purple-400/5 rounded-full filter blur-3xl animate-blob animation-delay-2000"></div>
+
+                <div className="max-w-7xl mx-auto relative z-10">
+                    <div className="text-center max-w-3xl mx-auto mb-20 animate-fade-in-up">
+                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 text-indigo-600 text-sm font-bold border border-indigo-100 mb-6 shadow-sm">
+                            <Rocket className="w-4 h-4 animate-pulse" />
+                            <span>Tecnologia de Ponta</span>
+                        </div>
+                        <h2 className="text-4xl md:text-5xl font-extrabold text-slate-900 mb-6 tracking-tight">
+                            Funcionalidades que <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">Impressionam</span>
+                        </h2>
+                        <p className="text-slate-600 text-lg md:text-xl leading-relaxed">
+                            Uma suíte completa de ferramentas projetada para dar superpoderes ao seu cuidado diário. Simples, bonito e poderoso.
+                        </p>
                     </div>
 
-                    <div className="grid md:grid-cols-3 gap-8">
+                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
                         <FeatureCard
                             icon={<Users className="w-8 h-8 text-blue-600" />}
+                            color="blue"
                             title="Compartilhamento Familiar"
-                            description="Compartilhe o acesso da conta com familiares ou cuidadores. Todos ficam sincronizados e podem ajudar no cuidado."
+                            description="Conecte cuidadores e familiares em tempo real. Quem ama, cuida junto e fica sempre sincronizado."
                             delay="0s"
                         />
                         <FeatureCard
                             icon={<Bell className="w-8 h-8 text-purple-600" />}
+                            color="purple"
                             title="Lembretes Inteligentes"
-                            description="Receba notificações automáticas por e-mail para nunca esquecer uma dose importante ou renovar uma receita."
-                            delay="1s"
+                            description="Nossa IA avisa a hora exata da medicação. Esqueça o medo de perder uma dose importante."
+                            delay="0.1s"
                         />
                         <FeatureCard
-                            icon={<Activity className="w-8 h-8 text-pink-600" />}
+                            icon={<Pill className="w-8 h-8 text-pink-600" />}
+                            color="pink"
                             title="Controle de Estoque"
-                            description="O sistema baixa o estoque automaticamente a cada dose e avisa quando o remédio está acabando."
-                            delay="2s"
+                            description="Baixa automática a cada dose tomada. O sistema avisa você dias antes do remédio acabar."
+                            delay="0.2s"
+                        />
+                        <FeatureCard
+                            icon={<LifeBuoy className="w-8 h-8 text-teal-600" />}
+                            color="teal"
+                            title="Suporte VIP Integrado"
+                            description="Teve dúvida? Chame nosso suporte humanizado direto pelo App ou WhatsApp. Você nunca está sozinho."
+                            delay="0.3s"
+                        />
+                        <FeatureCard
+                            icon={<BookOpen className="w-8 h-8 text-amber-600" />}
+                            color="amber"
+                            title="Manual Interativo"
+                            description="Aprenda a usar cada recurso com nosso guia visual passo a passo. Tecnologia acessível para todas as idades."
+                            delay="0.4s"
+                        />
+                         <FeatureCard
+                            icon={<FileText className="w-8 h-8 text-cyan-600" />}
+                            color="cyan"
+                            title="Relatórios Médicos"
+                            description="Gere históricos detalhados em PDF para seu médico. Mostre a evolução do tratamento com dados reais."
+                            delay="0.5s"
                         />
                     </div>
                 </div>
