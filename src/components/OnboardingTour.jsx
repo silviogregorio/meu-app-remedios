@@ -136,8 +136,8 @@ const OnboardingTour = ({ onTourEnd }) => {
                 element: '#tour-nav-share',
                 onHighlightStarted: ensureSidebarOpen,
                 popover: {
-                    title: '6. Compartilhar Acesso (Segurança) 🔐',
-                    description: 'Quer que alguém te ajude a gerenciar os remédios?\n\nEnvie um convite aqui. Você decide o que a pessoa pode fazer:\n\n👀 **Leitor:** Só pode ver o que você marcou (ideal para médicos).\n✏️ **Editor:** Pode marcar remédios e editar horários (ideal para cuidadores).\n\nVocê pode remover o acesso a qualquer momento.',
+                    title: '6. Acesso da Conta (Geral) 🔐',
+                    description: '⚠️ **Importante:** Este menu dá acesso à sua **CONTA INTEIRA** (todos os pacientes).\n\nUse isso para um cônjuge ou cuidador principal.\n\nSe você quiser compartilhar apenas **UM Paciente** (ex: compartilhar o Vovô com a enfermeira), vá no menu **Pacientes** e use o botão de compartilhar lá dentro.',
                     side: "right"
                 }
             },

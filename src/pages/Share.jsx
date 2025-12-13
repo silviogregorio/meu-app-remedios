@@ -33,11 +33,18 @@ const Share = () => {
             <div className="flex flex-col gap-2">
                 <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
                     <Share2 className="w-8 h-8 text-primary" />
-                    Compartilhamento
+                    Compartilhamento de Conta (Geral)
                 </h1>
                 <p className="text-slate-600 dark:text-slate-400">
-                    Gerencie quem pode acessar e ajudar a cuidar da saúde da sua família.
+                    Gerencie quem pode acessar TODOS os seus dados (Pacientes, Medicamentos, etc.)
                 </p>
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-800 flex flex-col gap-1">
+                    <p className="font-bold">⚠️ Atenção:</p>
+                    <p>
+                        Adicionar alguém aqui dá acesso a <strong>Sua Conta Inteira</strong>.
+                        Se você quer compartilhar apenas <strong>UM Paciente</strong> específico, vá na tela de <a href="/patients" className="underline font-bold">Pacientes</a> e clique no botão "Compartilhar" dentro do cartão do paciente.
+                    </p>
+                </div>
             </div>
 
             <Card>

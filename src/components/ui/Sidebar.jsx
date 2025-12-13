@@ -14,7 +14,7 @@ const Sidebar = ({ isOpen, onClose, isPinned, onTogglePin }) => {
         { path: '/prescriptions', icon: ClipboardList, label: 'Prescrições' },
         { path: '/diary', icon: Heart, label: 'Diário de Saúde' },
         { path: '/reports', icon: FileText, label: 'Relatórios' },
-        { path: '/share', icon: Share2, label: 'Compartilhar' },
+        { path: '/share', icon: Share2, label: 'Acesso da Conta (Geral)' },
         { path: '/profile', icon: User, label: 'Perfil' },
     ];
 
