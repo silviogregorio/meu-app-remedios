@@ -82,7 +82,7 @@ export default async function handler(request, response) {
                     
                     <!-- Header colorido -->
                     <div style="background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%); padding: 30px 20px; text-align: center; color: white;">
-                        <h2 style="margin: 0; font-size: 24px;">📬 Nova Mensagem de Suporte</h2>
+                        <h2 style="margin: 0; font-size: 24px;">📬 Nova Solicitação de Suporte</h2>
                         <p style="margin: 10px 0 0; opacity: 0.9;">Alguém precisa de ajuda no app!</p>
                     </div>
 
