@@ -262,4 +262,3 @@ const AdminSupport = () => {
 };
 
 export default AdminSupport;
-```
