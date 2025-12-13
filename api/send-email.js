@@ -56,9 +56,8 @@ export default async function handler(request, response) {
 
     // 2. Enforce Permissions
     if (!isAuthenticated) {
-      // Exception: Allow Public Contact Form ONLY to Admin Email
-      const isAdminEmail = to === 'sigsis@gmail.com' || to === process.env.SMTP_USER;
-      if (type === 'contact' && isAdminEmail) {
+      // Exception: Allow Public Contact Form
+      if (type === 'contact' || type === 'support') {
         // Allowed (Public Form)
       } else {
         return response.status(401).json({ error: 'Unauthorized: Invalid or missing token.' });

@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
+import { supabase } from '../supabaseClient';
 import Card, { CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
@@ -45,12 +46,17 @@ ${message}
 ${stats}
             `;
 
+            // Get current session token for authentication
+            const { data: { session } } = await supabase.auth.getSession();
+            const token = session?.access_token;
+
             // Send to the Support Email (Hardcoded for now as the destination)
             await api.sendSupportEmail({
                 subject: `[SUPORTE] Dúvida de ${user?.user_metadata?.full_name || user?.email}`,
                 text: fullBody,
                 senderName: user?.user_metadata?.full_name || 'Usuário',
-                senderEmail: user?.email
+                senderEmail: user?.email,
+                token: token
             });
 
             setSent(true);

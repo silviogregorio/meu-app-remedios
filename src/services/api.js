@@ -4,13 +4,19 @@ const BACKEND_URL = import.meta.env.VITE_API_URL || '/api';
 
 export const api = {
     // Send email via backend
-    sendSupportEmail: async ({ subject, text, senderName, senderEmail }) => {
+    sendSupportEmail: async ({ subject, text, senderName, senderEmail, token }) => {
         try {
+            const headers = {
+                'Content-Type': 'application/json',
+            };
+
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+
             const response = await fetch(`${BACKEND_URL}/send-email`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: headers,
                 body: JSON.stringify({
                     // For now, sending TO myself (admin) or a dedicated support email
                     // In a real app, this would be an env var like SUPPORT_EMAIL
@@ -19,7 +25,7 @@ export const api = {
                     text: text,
                     senderName: senderName,
                     senderEmail: senderEmail,
-                    type: 'support'
+                    type: 'contact' // Changed to 'contact' to match allowed type in backend
                 })
             });
 
