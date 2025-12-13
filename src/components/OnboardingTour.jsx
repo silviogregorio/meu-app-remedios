@@ -128,7 +128,7 @@ const OnboardingTour = ({ onTourEnd }) => {
                 onHighlightStarted: ensureSidebarOpen,
                 popover: {
                     title: '5. Relatórios Completos 📈',
-                    description: 'Precisa levar a lista para o médico?\nAqui você gera PDFs elegantes com todo o histórico de uso, adesão e anotações do diário.\nÉ a prova de que o tratamento foi seguido.',
+                    description: 'Seu médico pediu um histórico? É aqui!\n\nGere relatórios em PDF com tudo o que aconteceu: adesão aos remédios e sintomas do diário.\n\nVocê pode **imprimir** para levar na consulta ou **enviar o arquivo PDF** diretamente para o WhatsApp ou E-mail do seu médico.\n\nÉ a melhor forma de manter o profissional de saúde informado sobre o progresso do tratamento.',
                     side: "right"
                 }
             },
