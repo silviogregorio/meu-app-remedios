@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { Home, Users, Pill, FileText, User, X, LogOut, ClipboardList, Share2, Briefcase, Pin, PinOff, Heart, BookOpen } from 'lucide-react';
+import { Home, Users, Pill, FileText, User, X, LogOut, ClipboardList, Share2, Briefcase, Pin, PinOff, Heart, BookOpen, LifeBuoy } from 'lucide-react';
 import clsx from 'clsx';
 import { useApp } from '../../context/AppContext';
 
@@ -16,6 +16,7 @@ const Sidebar = ({ isOpen, onClose, isPinned, onTogglePin }) => {
         { path: '/reports', icon: FileText, label: 'Relatórios' },
         { path: '/share', icon: Share2, label: 'Acesso Geral' },
         { path: '/manual', icon: BookOpen, label: 'Manual' },
+        { path: '/contact', icon: LifeBuoy, label: 'Fale Conosco' },
         { path: '/profile', icon: User, label: 'Perfil' },
     ];
 

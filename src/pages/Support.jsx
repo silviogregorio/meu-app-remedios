@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
@@ -11,6 +12,7 @@ import { api } from '../services/api';
 const Support = () => {
     const { user } = useAuth();
     const { showToast, patients, medications, prescriptions } = useApp();
+    const navigate = useNavigate();
     const [message, setMessage] = useState('');
     const [sending, setSending] = useState(false);
     const [sent, setSent] = useState(false);
