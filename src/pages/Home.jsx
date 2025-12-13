@@ -14,7 +14,7 @@ import confetti from 'canvas-confetti';
 import { generateICS, generateFutureSchedule } from '../utils/icsGenerator';
 import VoiceCommand from '../components/features/VoiceCommand';
 import OnboardingTour from '../components/OnboardingTour';
-import { Calendar as CalendarIcon, DownloadCloud, HelpCircle } from 'lucide-react';
+import { Calendar as CalendarIcon, DownloadCloud, CircleHelp } from 'lucide-react';
 
 const Home = () => {
     const { user, prescriptions, medications, patients, consumptionLog, logConsumption, removeConsumption, pendingShares, calculateStockDays } = useApp();
@@ -178,7 +178,7 @@ const Home = () => {
                     className="p-2 text-slate-400 hover:text-primary transition-colors rounded-full hover:bg-slate-100"
                     title="Ajuda / Tour"
                 >
-                    <HelpCircle size={24} />
+                    <CircleHelp size={24} />
                 </button>
             </div>
             {/* Low Stock Alert - Moved to Top */}

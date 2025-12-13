@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Mic, MicOff, Loader2, HelpCircle } from 'lucide-react';
+import { Mic, MicOff, Loader2, CircleHelp } from 'lucide-react';
 
 const VoiceCommand = ({ schedule, onToggle }) => {
     const [isListening, setIsListening] = useState(false);
@@ -207,7 +207,7 @@ const VoiceCommand = ({ schedule, onToggle }) => {
                     className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 shadow-lg flex items-center justify-center hover:bg-slate-200 transition-colors"
                     title="Ajuda"
                 >
-                    <HelpCircle size={20} />
+                    <CircleHelp size={20} />
                 </button>
 
                 {/* Mic Button (Main) */}

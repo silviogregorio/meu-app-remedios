@@ -2,12 +2,12 @@ import React, { useEffect } from 'react';
 import { driver } from 'driver.js';
 import 'driver.js/dist/driver.css';
 
-const OnboardingTour = () => {
+const OnboardingTour = ({ forceStart }) => {
     useEffect(() => {
         const hasSeenTour = localStorage.getItem('hasSeenTour_v1');
-        console.log('[OnboardingTour] Checking status. Seen?', hasSeenTour);
+        console.log('[OnboardingTour] Checking status. Seen?', hasSeenTour, 'Force?', forceStart);
 
-        if (!hasSeenTour) {
+        if (!hasSeenTour || forceStart) {
             console.log('[OnboardingTour] Initializing driver...');
 
             // Build steps dynamically based on what's visible
@@ -67,7 +67,9 @@ const OnboardingTour = () => {
                 doneBtnText: 'Entendi!',
                 steps: steps,
                 onDestroyed: () => {
-                    localStorage.setItem('hasSeenTour_v1', 'true');
+                    if (!forceStart) {
+                        localStorage.setItem('hasSeenTour_v1', 'true');
+                    }
                 }
             });
 
@@ -77,7 +79,7 @@ const OnboardingTour = () => {
                 driverObj.drive();
             }, 1000);
         }
-    }, []);
+    }, [forceStart]);
 
     return null;
 };
