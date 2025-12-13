@@ -15,6 +15,7 @@ const Sidebar = ({ isOpen, onClose, isPinned, onTogglePin }) => {
         { path: '/diary', icon: Heart, label: 'Diário de Saúde' },
         { path: '/reports', icon: FileText, label: 'Relatórios' },
         { path: '/share', icon: Share2, label: 'Acesso Geral' },
+        { path: '/manual', icon: BookOpen, label: 'Manual' },
         { path: '/profile', icon: User, label: 'Perfil' },
     ];
 
