@@ -14,6 +14,7 @@ import Prescriptions from './pages/Prescriptions.jsx';
 import HealthDiary from './pages/HealthDiary';
 import Reports from './pages/Reports';
 import Manual from './pages/Manual';
+import Support from './pages/Support';
 import Profile from './pages/Profile';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -65,6 +66,7 @@ function App() {
                   <Route path="/diary" element={<ProtectedRoute><HealthDiary /></ProtectedRoute>} />
                   <Route path="/share" element={<ProtectedRoute><Share /></ProtectedRoute>} />
                   <Route path="/manual" element={<ProtectedRoute><Manual /></ProtectedRoute>} />
+                  <Route path="/contact" element={<ProtectedRoute><Support /></ProtectedRoute>} />
                   <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
                   <Route path="/admin/sponsors" element={<ProtectedRoute><AdminSponsors /></ProtectedRoute>} />
                   <Route path="/admin/security" element={<ProtectedRoute adminOnly={true}><AdminSecurity /></ProtectedRoute>} />

@@ -1,4 +1,38 @@
+const BACKEND_URL = 'http://localhost:3001/api';
+
 export const api = {
+    // Send email via backend
+    sendSupportEmail: async ({ subject, text, senderName, senderEmail }) => {
+        try {
+            const response = await fetch(`${BACKEND_URL}/send-email`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    // For now, sending TO myself (admin) or a dedicated support email
+                    // In a real app, this would be an env var like SUPPORT_EMAIL
+                    to: 'suporte@sigremedios.com', // Fake support email, backend will handle or use configured SMTP
+                    subject: subject,
+                    text: text,
+                    senderName: senderName,
+                    senderEmail: senderEmail,
+                    type: 'support'
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Erro ao enviar email');
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('API sendSupportEmail error:', error);
+            throw error;
+        }
+    },
+
     fetchAddressByCep: async (cep) => {
         try {
             const cleanCep = cep.replace(/\D/g, '');
@@ -40,3 +74,4 @@ export const api = {
         });
     }
 };
+
