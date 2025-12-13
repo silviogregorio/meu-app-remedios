@@ -75,13 +75,52 @@ export default async function handler(request, response) {
     let htmlContent = '';
 
     if (type === 'contact') {
+      const { age, phone, city } = request.body.senderDetails || {};
+
       htmlContent = `
-                <div style="font-family: sans-serif; padding: 20px; color: #333;">
-                    <h2>Nova Mensagem de Contato</h2>
-                    <p><strong>De:</strong> ${senderName} (${senderEmail})</p>
-                    <p><strong>Assunto:</strong> ${subject}</p>
-                    <div style="background: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
-                        ${text.replace(/\n/g, '<br>')}
+                <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border: 1px solid #e1e4e8;">
+                    
+                    <!-- Header colorido -->
+                    <div style="background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%); padding: 30px 20px; text-align: center; color: white;">
+                        <h2 style="margin: 0; font-size: 24px;">📬 Nova Mensagem de Suporte</h2>
+                        <p style="margin: 10px 0 0; opacity: 0.9;">Alguém precisa de ajuda no app!</p>
+                    </div>
+
+                    <div style="padding: 30px;">
+                        
+                        <!-- Dados do Usuário Card -->
+                        <div style="background-color: #f8fafc; padding: 20px; border-radius: 8px; border-left: 4px solid #6366f1; margin-bottom: 25px;">
+                            <h3 style="margin-top: 0; color: #475569; font-size: 16px;">👤 Quem enviou:</h3>
+                            <p style="margin: 5px 0; font-size: 16px; font-weight: bold; color: #1e293b;">${senderName}</p>
+                            <p style="margin: 0; color: #64748b; font-size: 14px;">${senderEmail}</p>
+
+                            <!-- Detalhes Extras (Idade, Telefone, Cidade) -->
+                            <div style="margin-top: 15px; display: flex; flex-wrap: wrap; gap: 15px; font-size: 14px; color: #334155;">
+                                ${age ? `<span style="background: #e0e7ff; color: #4338ca; padding: 4px 10px; border-radius: 20px;">🎂 ${age} anos</span>` : ''}
+                                ${phone ? `<span style="background: #dcfce7; color: #15803d; padding: 4px 10px; border-radius: 20px;">📱 ${phone}</span>` : ''}
+                                ${city ? `<span style="background: #ffedd5; color: #c2410c; padding: 4px 10px; border-radius: 20px;">📍 ${city}</span>` : ''}
+                            </div>
+                        </div>
+
+                        <!-- Assunto -->
+                        <div style="margin-bottom: 20px;">
+                            <span style="font-size: 12px; font-weight: bold; text-transform: uppercase; color: #94a3b8; letter-spacing: 1px;">Assunto</span>
+                            <h3 style="margin: 5px 0; color: #0f172a;">${subject}</h3>
+                        </div>
+
+                        <!-- Mensagem Corpo -->
+                        <div style="margin-bottom: 30px;">
+                            <span style="font-size: 12px; font-weight: bold; text-transform: uppercase; color: #94a3b8; letter-spacing: 1px;">Mensagem</span>
+                            <div style="background: #ffffff; padding: 15px; border: 1px solid #cbd5e1; border-radius: 8px; color: #334155; line-height: 1.6; margin-top: 5px;">
+                                ${text.replace(/\n/g, '<br>')}
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- Footer -->
+                    <div style="background-color: #f1f5f9; padding: 15px; text-align: center; font-size: 12px; color: #94a3b8; border-top: 1px solid #e2e8f0;">
+                         Enviado via SiG Remédios App • ${new Date().toLocaleString('pt-BR')}
                     </div>
                 </div>
             `;

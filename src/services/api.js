@@ -4,7 +4,7 @@ const BACKEND_URL = import.meta.env.VITE_API_URL || '/api';
 
 export const api = {
     // Send email via backend
-    sendSupportEmail: async ({ subject, text, senderName, senderEmail, token }) => {
+    sendSupportEmail: async ({ subject, text, senderName, senderEmail, token, senderDetails }) => {
         try {
             const headers = {
                 'Content-Type': 'application/json',
@@ -25,6 +25,7 @@ export const api = {
                     text: text,
                     senderName: senderName,
                     senderEmail: senderEmail,
+                    senderDetails: senderDetails,
                     type: 'contact' // Changed to 'contact' to match allowed type in backend
                 })
             });

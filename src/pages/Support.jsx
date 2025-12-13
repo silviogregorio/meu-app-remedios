@@ -46,20 +46,51 @@ ${message}
 ${stats}
             `;
 
-            // Get current session token for authentication
             const { data: { session } } = await supabase.auth.getSession();
             const token = session?.access_token;
 
-            // Send to the Support Email (Hardcoded for now as the destination)
+            // Tentativa de encontrar dados do usuário nos Pacientes (para pegar telefone/cidade)
+            // Procura por nome similar 
+            const myPatientProfile = patients.find(p =>
+                p.name?.toLowerCase().includes(user?.user_metadata?.full_name?.toLowerCase()) ||
+                p.email?.toLowerCase() === user?.email?.toLowerCase()
+            );
+
+            let extraDetails = {};
+            if (myPatientProfile) {
+                if (myPatientProfile.phone) extraDetails.phone = myPatientProfile.phone;
+                if (myPatientProfile.city) extraDetails.city = `${myPatientProfile.city}/${myPatientProfile.state}`;
+                if (myPatientProfile.birthDate) {
+                    const birth = new Date(myPatientProfile.birthDate + 'T00:00:00'); // Fix Timezone issues
+                    const ageDifMs = Date.now() - birth.getTime();
+                    const ageDate = new Date(ageDifMs); // miliseconds from epoch
+                    extraDetails.age = Math.abs(ageDate.getUTCFullYear() - 1970);
+                }
+            }
+
+            // Send via API
             await api.sendSupportEmail({
                 subject: `[SUPORTE] Dúvida de ${user?.user_metadata?.full_name || user?.email}`,
                 text: fullBody,
                 senderName: user?.user_metadata?.full_name || 'Usuário',
                 senderEmail: user?.email,
-                token: token
+                token: token,
+                senderDetails: extraDetails
             });
 
             setSent(true);
+
+            // Auto-redirect after 4 seconds
+            setTimeout(() => {
+                navigate('/app');
+            }, 4000);
+
+            setSent(true);
+
+            // Auto-redirect after 4 seconds
+            setTimeout(() => {
+                navigate('/app');
+            }, 4000);
             showToast('Sua mensagem foi enviada com sucesso!', 'success');
             setMessage('');
 
@@ -85,13 +116,18 @@ ${stats}
                 <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center text-green-600 mb-6">
                     <CheckCircle size={40} />
                 </div>
-                <h2 className="text-2xl font-bold text-slate-800 mb-2">Mensagem Recebida!</h2>
+                <h2 className="text-2xl font-bold text-slate-800 mb-2">Mensagem Enviada!</h2>
                 <p className="text-slate-600 max-w-md mx-auto mb-8">
-                    Nossa equipe de suporte já recebeu sua solicitação. Responderemos para o seu email <strong>{user?.email}</strong> o mais breve possível.
+                    Recebemos sua solicitação. Responderemos para o seu email <strong>{user?.email}</strong> o mais breve possível.
                 </p>
-                <Button onClick={() => setSent(false)} variant="outline">
-                    Enviar outra mensagem
-                </Button>
+
+                <div className="flex flex-col items-center gap-4">
+                    <p className="text-sm text-primary font-medium animate-pulse">Redirecionando para o início...</p>
+
+                    <Button onClick={() => navigate('/app')} variant="outline">
+                        Ir para o Início agora
+                    </Button>
+                </div>
             </div>
         );
     }
