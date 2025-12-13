@@ -157,6 +157,10 @@ const Landing = () => {
         <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
             {/* Navbar - Fixed */}
             <nav className="fixed top-0 left-0 right-0 z-50 bg-slate-50/90 backdrop-blur-md border-b border-slate-200/50 shadow-sm transition-all duration-300">
+                {/* DEBUG BANNER */}
+                <div className="w-full bg-red-600 text-white text-center text-xs font-bold p-1">
+                    v{__APP_VERSION__} - SE VOCÊ VÊ ISSO, O LOOP FOI CORRIGIDO (DÊ REFRESH)
+                </div>
                 <div className="flex items-center justify-between px-6 py-4 max-w-7xl mx-auto">
                     <div className="flex items-center gap-2">
                         <img src="/assets/logo.png" alt="SiG Remédios Logo" className="w-10 h-10 object-contain animate-heartbeat rounded-lg" />

@@ -644,8 +644,6 @@ const Home = () => {
             <div className="text-center pb-20 pt-4 text-[10px] text-slate-300">
                 v{__APP_VERSION__}
             </div>
-            {/* 
-            Tour disabled temporarily due to looping issue.
             {startTour && (
                 <OnboardingTour
                     onTourEnd={() => {
@@ -654,8 +652,7 @@ const Home = () => {
                         localStorage.setItem('hasSeenTour_v1', 'true');
                     }}
                 />
-            )} 
-            */}
+            )}
         </div>
     );
 };
