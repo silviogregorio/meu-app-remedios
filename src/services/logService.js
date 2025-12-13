@@ -102,10 +102,32 @@ export const LogService = {
     },
 
     // Health Logs (Diário de Saúde)
-    // Currently AppContext doesn't show CRUD for Health Logs explicitly in the snippets I saw (maybe it's in HealthDiary.jsx directly?)
-    // Let's check HealthDiary.jsx...
-    // Wait, I saw 'setHealthLogs' and fetching in AppContext (line 150).
-    // But where is 'addHealthLog'?
-    // It's likely in HealthDiary.jsx calling Supabase directly OR I missed it in lines 800+.
-    // I will check lines 800+ of AppContext before finishing LogService.
+    addHealthLog: async (logData, userId) => {
+        const { error, data } = await supabase
+            .from('health_logs')
+            .insert([{
+                user_id: userId,
+                patient_id: logData.patientId,
+                category: logData.category || 'pressure',
+                value: String(logData.value),
+                value_secondary: logData.valueSecondary ? String(logData.valueSecondary) : null,
+                measured_at: logData.measuredAt,
+                notes: logData.notes
+            }])
+            .select('*, profiles:user_id(full_name)')
+            .single();
+
+        if (error) throw error;
+        return data;
+    },
+
+    deleteHealthLog: async (id) => {
+        const { error } = await supabase
+            .from('health_logs')
+            .delete()
+            .eq('id', id);
+
+        if (error) throw error;
+        return true;
+    }
 };

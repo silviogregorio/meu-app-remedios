@@ -157,12 +157,41 @@ export default async function handler(request, response) {
              `;
     } else if (type === 'invite') {
       htmlContent = `
-                <div style="font-family: sans-serif; padding: 20px; color: #333;">
-                    <h2>Convite de Acesso - SiG Remédios</h2>
-                    <p>${text.replace(/\n/g, '<br>')}</p>
-                    ${observations ? `<p><strong>Obs:</strong> ${observations}</p>` : ''}
-                    <div style="margin-top: 20px;">
-                        <a href="${appUrl}" style="padding: 10px 20px; bg: #0f766e; color: white; text-decoration: none; border-radius: 5px;">Acesse Agora</a>
+                <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border: 1px solid #e1e4e8;">
+                    
+                    <!-- Header -->
+                    <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 40px 20px; text-align: center; color: white;">
+                        <h1 style="margin: 0; font-size: 28px; font-weight: 700; letter-spacing: -0.5px;">SiG Remédios</h1>
+                        <p style="margin: 10px 0 0; opacity: 0.9; font-size: 16px;">Convite de Acesso Compartilhado</p>
+                    </div>
+
+                    <div style="padding: 40px 30px; color: #334155; line-height: 1.6;">
+                        <div style="margin-bottom: 25px;">
+                            <h2 style="color: #1e293b; font-size: 22px; margin-top: 0;">Você recebeu um acesso! 🔑</h2>
+                            <p style="font-size: 16px; margin-bottom: 20px;">${text.replace(/\n/g, '<br>')}</p>
+                        </div>
+
+                        ${observations ? `
+                        <div style="background-color: #f0fdfa; border-left: 4px solid #10b981; padding: 20px; border-radius: 8px; margin-bottom: 30px;">
+                            <strong style="color: #0f766e; display: block; margin-bottom: 5px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">Observações</strong>
+                            <span style="color: #334155;">${observations}</span>
+                        </div>
+                        ` : ''}
+
+                        <div style="text-align: center; margin: 35px 0;">
+                            <a href="${appUrl}" style="display: inline-block; background-color: #10b981; color: white; font-weight: bold; text-decoration: none; padding: 16px 32px; border-radius: 50px; font-size: 16px; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3); transition: all 0.2s;">
+                                Acessar Aplicativo Agora
+                            </a>
+                        </div>
+                        
+                        <p style="font-size: 14px; color: #64748b; text-align: center;">
+                            Se você não reconhece este convite, pode ignorar este email.
+                        </p>
+                    </div>
+
+                    <!-- Footer -->
+                    <div style="background-color: #f8fafc; padding: 20px; text-align: center; font-size: 12px; color: #94a3b8; border-top: 1px solid #e2e8f0;">
+                         © ${new Date().getFullYear()} SiG Remédios • Saúde em suas mãos
                     </div>
                 </div>
             `;
