@@ -56,7 +56,7 @@ function App() {
             <ReloadPrompt />
             <NotificationManager />
             <BrowserRouter>
-              <VersionCheck />
+              {/* <VersionCheck /> REMOVED TO PREVENT LOOP */}
               <Routes>
                 <Route path="/" element={<Landing />} />
                 <Route element={<Layout />}>
