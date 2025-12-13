@@ -40,6 +40,16 @@ const Home = () => {
     const [selectedMedication, setSelectedMedication] = useState('all');
     const [selectedStatus, setSelectedStatus] = useState('all');
 
+    // Check for tour status on mount
+    useEffect(() => {
+        const hasSeenTour = localStorage.getItem('hasSeenTour_v1');
+        if (!hasSeenTour) {
+            console.log('Home: Tour not seen yet. Starting automatically.');
+            // Pequeno delay para garantir que a UI carregou
+            setTimeout(() => setStartTour(true), 1000);
+        }
+    }, []);
+
     useEffect(() => {
         console.log('Home: Generating schedule', { prescriptions, medications, patients, selectedDate });
         // Generate schedule based on prescriptions and filters
@@ -637,7 +647,15 @@ const Home = () => {
             <div className="text-center pb-20 pt-4 text-[10px] text-slate-300">
                 v{__APP_VERSION__}
             </div>
-            <OnboardingTour forceStart={startTour} onTourEnd={() => setStartTour(false)} />
+            {startTour && (
+                <OnboardingTour
+                    onTourEnd={() => {
+                        console.log('Home: Tour finished. Updating state.');
+                        setStartTour(false);
+                        localStorage.setItem('hasSeenTour_v1', 'true');
+                    }}
+                />
+            )}
         </div>
     );
 };
