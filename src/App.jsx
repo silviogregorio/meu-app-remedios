@@ -53,7 +53,7 @@ function App() {
           <AppProvider>
             <SpeedInsights />
             <SpeedInsights />
-            <ReloadPrompt />
+            {/* <ReloadPrompt /> REMOVED TO PREVENT LOOP */}
             <NotificationManager />
             <BrowserRouter>
               {/* <VersionCheck /> REMOVED TO PREVENT LOOP */}
