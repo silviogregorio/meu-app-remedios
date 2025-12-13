@@ -98,6 +98,12 @@ textarea {
   background: #94a3b8;
 }
 
+/* Driver.js Popover Fixes */
+.driver-popover-description {
+  white-space: pre-line !important;
+  line-height: 1.5 !important;
+}
+
 /* Print Styles */
 @media print {
 
