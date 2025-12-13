@@ -45,8 +45,9 @@ const VersionCheck = () => {
                         }
                     }
 
-                    // 3. Force Reload
-                    window.location.reload(true);
+                    // 3. Force Reload (DISABLED TEMPORARILY TO FIX LOOP)
+                    // window.location.reload(true);
+                    console.log('Version mismatch detected but auto-reload is disabled.');
                 }
             } catch (error) {
                 console.error('Version check failed:', error);
