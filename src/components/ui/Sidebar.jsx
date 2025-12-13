@@ -20,8 +20,10 @@ const Sidebar = ({ isOpen, onClose, isPinned, onTogglePin }) => {
         { path: '/profile', icon: User, label: 'Perfil' },
     ];
 
-    if (user?.email === 'sigsis@gmail.com') {
+    const adminEmails = ['sigremedios@gmail.com', 'sigsis@gmail.com', 'silviogregorio@gmail.com'];
+    if (adminEmails.includes(user?.email)) {
         navItems.push({ path: '/admin/sponsors', icon: Briefcase, label: 'Parceiros (Admin)' });
+        navItems.push({ path: '/admin/support', icon: MessageSquare, label: 'Suporte (Admin)' });
     }
 
     return (

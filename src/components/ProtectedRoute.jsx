@@ -18,7 +18,8 @@ const ProtectedRoute = ({ children, adminOnly = false }) => {
     }
 
     // Admin-only route protection
-    if (adminOnly && user.email !== 'sigremedios@gmail.com') {
+    const adminEmails = ['sigremedios@gmail.com', 'sigsis@gmail.com', 'silviogregorio@gmail.com'];
+    if (adminOnly && !adminEmails.includes(user.email)) {
         return <Navigate to="/app" replace />;
     }
 

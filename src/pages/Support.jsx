@@ -86,7 +86,18 @@ ${stats}
                 extraDetails.shares = activeShares;
             }
 
-            // Send via API
+            // 1. Salvar no Banco de Dados (Prioridade para Log)
+            await supabase.from('support_messages').insert({
+                user_id: user?.id,
+                sender_name: user?.user_metadata?.full_name || 'Usuário',
+                sender_email: user?.email,
+                subject: `[SUPORTE] Dúvida de ${user?.user_metadata?.full_name || user?.email}`,
+                message: message,
+                details: extraDetails,
+                status: 'pending'
+            });
+
+            // 2. Send via API (Email Real)
             await api.sendSupportEmail({
                 subject: `[SUPORTE] Dúvida de ${user?.user_metadata?.full_name || user?.email}`,
                 text: fullBody,
