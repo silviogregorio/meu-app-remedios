@@ -3,6 +3,13 @@ import { driver } from 'driver.js';
 import 'driver.js/dist/driver.css';
 
 const OnboardingTour = ({ forceStart, onTourEnd }) => {
+    // Keep a stable ref to the callback to avoid effect re-runs
+    const onTourEndRef = React.useRef(onTourEnd);
+
+    useEffect(() => {
+        onTourEndRef.current = onTourEnd;
+    }, [onTourEnd]);
+
     useEffect(() => {
         const hasSeenTour = localStorage.getItem('hasSeenTour_v1');
         console.log('[OnboardingTour] Checking status. Seen?', hasSeenTour, 'Force?', forceStart);
@@ -68,7 +75,7 @@ const OnboardingTour = ({ forceStart, onTourEnd }) => {
                 steps: steps,
                 onDestroyed: () => {
                     localStorage.setItem('hasSeenTour_v1', 'true');
-                    if (onTourEnd) onTourEnd();
+                    if (onTourEndRef.current) onTourEndRef.current();
                 }
             });
 
@@ -83,7 +90,7 @@ const OnboardingTour = ({ forceStart, onTourEnd }) => {
                 driverObj.destroy();
             };
         }
-    }, [forceStart, onTourEnd]);
+    }, [forceStart]); // removed onTourEnd from deps
 
     return null;
 };
