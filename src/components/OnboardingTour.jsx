@@ -136,8 +136,8 @@ const OnboardingTour = ({ onTourEnd }) => {
                 element: '#tour-nav-share',
                 onHighlightStarted: ensureSidebarOpen,
                 popover: {
-                    title: '6. Acesso da Conta (Geral) 🔐',
-                    description: '⚠️ **Importante:** Este menu dá acesso à sua **CONTA INTEIRA** (todos os pacientes).\n\nUse isso para um cônjuge ou cuidador principal.\n\nSe você quiser compartilhar apenas **UM Paciente** (ex: compartilhar o Vovô com a enfermeira), vá no menu **Pacientes** e use o botão de compartilhar lá dentro.',
+                    title: '6. Acesso Geral (Cuidado! 🔐)',
+                    description: 'Este menu é como uma **Chave Mestra**.\n\nAo adicionar alguém aqui, você dá permissão para essa pessoa ver e mexer em **TUDO**: todos os seus pacientes, todos os remédios e todas as receitas.\n\nUse apenas para pessoas de extrema confiança (como esposa, marido ou pais).\n\n⚠️ **Dica:** Se você quer compartilhar apenas **UM** paciente com uma enfermeira ou cuidador, **NÃO use este menu**. Vá no menu "Pacientes" e compartilhe separadamente por lá.',
                     side: "right"
                 }
             },
