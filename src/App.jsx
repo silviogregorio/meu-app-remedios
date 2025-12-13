@@ -29,7 +29,21 @@ import ReloadPrompt from './components/ReloadPrompt';
 import { SpeedInsights } from "@vercel/speed-insights/react"
 import VersionCheck from './components/VersionCheck';
 
+import { useEffect } from 'react';
+
 function App() {
+  // FORCE SERVICE WORKER UPDATE - CACHE BUSTER v1.3.49
+  useEffect(() => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(function (registrations) {
+        for (let registration of registrations) {
+          console.log('[App] Unregistering SW:', registration);
+          registration.unregister();
+        }
+      });
+    }
+  }, []);
+
   return (
     <ErrorBoundary>
       <AuthProvider>
