@@ -59,7 +59,15 @@ ${stats}
 
         } catch (error) {
             console.error('Erro ao enviar mensagem:', error);
-            showToast('Erro ao enviar mensagem. Tente novamente mais tarde.', 'error');
+            let errorMsg = 'Erro ao enviar mensagem. Tente novamente mais tarde.';
+
+            if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+                errorMsg = 'Erro de conexão: Não foi possível contatar o servidor. Verifique sua conexão ou se o servidor está rodando.';
+            } else if (error.message) {
+                errorMsg = error.message;
+            }
+
+            showToast(errorMsg, 'error');
         } finally {
             setSending(false);
         }

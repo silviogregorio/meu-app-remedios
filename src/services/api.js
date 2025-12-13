@@ -1,4 +1,6 @@
-const BACKEND_URL = 'http://localhost:3001/api';
+// Use environment variable if available (good for Vercel pointing to VPS)
+// Otherwise fallback to relative path (good for Nginx proxy or Vite proxy)
+const BACKEND_URL = import.meta.env.VITE_API_URL || '/api';
 
 export const api = {
     // Send email via backend
