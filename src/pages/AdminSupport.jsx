@@ -179,62 +179,89 @@ const AdminSupport = () => {
                                             </span>
                                         )}
                                     </div>
+                                    </div>
                                 )}
 
-                                <div className={`text-sm text-slate-600 dark:text-slate-300 mb-4 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-lg border border-slate-100 dark:border-slate-800 ${expandedIds.includes(msg.id) ? '' : 'line-clamp-3'}`}>
-                                    {msg.message}
+                            {/* Shares Details */}
+                            {msg.details?.shares && (
+                                <div className="mb-3 p-2 bg-blue-50 dark:bg-blue-900/20 rounded-md border border-blue-100 dark:border-blue-800">
+                                    <h4 className="text-xs font-bold text-blue-700 dark:text-blue-300 mb-1 flex items-center gap-1">
+                                        🤝 Compartilhamentos:
+                                    </h4>
+                                    <div className="text-xs text-slate-600 dark:text-slate-400 space-y-2">
+                                        {msg.details.shares.map((share, idx) => (
+                                            <div key={idx} className="bg-white dark:bg-slate-900 p-1.5 rounded border border-blue-50 dark:border-blue-800">
+                                                <p className="font-semibold text-blue-800 dark:text-blue-200">{share.patientName}:</p>
+                                                <ul className="pl-2 mt-1 space-y-0.5">
+                                                    {share.shares.map((s, i) => (
+                                                        <li key={i} className="flex flex-wrap gap-1">
+                                                            {s}
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
+                            )}
 
-                                <div className="mt-auto flex gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
-                                    <Button
-                                        size="sm"
-                                        variant="ghost"
-                                        className="text-xs flex-1"
-                                        onClick={() => toggleExpand(msg.id)}
-                                    >
-                                        {expandedIds.includes(msg.id) ? 'Recolher' : 'Ler tudo'}
-                                    </Button>
+                            <div className={`text-sm text-slate-600 dark:text-slate-300 mb-4 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-lg border border-slate-100 dark:border-slate-800 ${expandedIds.includes(msg.id) ? '' : 'line-clamp-3'}`}>
+                                {msg.message}
+                            </div>
 
-                                    <Button
-                                        size="sm"
-                                        variant={msg.status === 'resolved' ? 'outline' : 'primary'}
-                                        className={`text-xs flex-1 ${msg.status === 'resolved' ? 'border-green-200 text-green-700 hover:bg-green-50' : ''}`}
-                                        onClick={() => toggleStatus(msg.id, msg.status)}
-                                    >
-                                        {msg.status === 'resolved' ? 'Reabrir' : 'Dar Baixa'}
-                                    </Button>
-                                </div>
-                            </CardContent>
+                            <div className="mt-auto flex gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                                <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="text-xs flex-1"
+                                    onClick={() => toggleExpand(msg.id)}
+                                >
+                                    {expandedIds.includes(msg.id) ? 'Recolher' : 'Ler mensagem completa'}
+                                </Button>
+
+                                <Button
+                                    size="sm"
+                                    variant={msg.status === 'resolved' ? 'outline' : 'primary'}
+                                    className={`text-xs flex-1 ${msg.status === 'resolved' ? 'border-green-200 text-green-700 hover:bg-green-50' : ''}`}
+                                    onClick={() => toggleStatus(msg.id, msg.status)}
+                                >
+                                    {msg.status === 'resolved' ? 'Reabrir' : 'Dar Baixa'}
+                                </Button>
+                            </div>
+                        </CardContent>
                         </Card>
-                    ))}
-                </div>
-            )}
-
-            {/* Pagination Controls */}
-            {totalPages > 1 && (
-                <div className="flex justify-center items-center gap-4 mt-4">
-                    <Button
-                        variant="outline"
-                        disabled={page === 0}
-                        onClick={() => setPage(p => Math.max(0, p - 1))}
-                        className="w-10 h-10 p-0 flex items-center justify-center rounded-full"
-                    >
-                        <ChevronLeft size={20} />
-                    </Button>
-                    <span className="text-sm font-medium text-slate-600">
-                        Página {page + 1} de {totalPages}
-                    </span>
-                    <Button
-                        variant="outline"
-                        disabled={page >= totalPages - 1}
-                        onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
-                        className="w-10 h-10 p-0 flex items-center justify-center rounded-full"
-                    >
-                        <ChevronRight size={20} />
-                    </Button>
-                </div>
-            )}
+            ))}
         </div>
+    )
+}
+
+{/* Pagination Controls */ }
+{
+    totalPages > 1 && (
+        <div className="flex justify-center items-center gap-4 mt-4">
+            <Button
+                variant="outline"
+                disabled={page === 0}
+                onClick={() => setPage(p => Math.max(0, p - 1))}
+                className="w-10 h-10 p-0 flex items-center justify-center rounded-full"
+            >
+                <ChevronLeft size={20} />
+            </Button>
+            <span className="text-sm font-medium text-slate-600">
+                Página {page + 1} de {totalPages}
+            </span>
+            <Button
+                variant="outline"
+                disabled={page >= totalPages - 1}
+                onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
+                className="w-10 h-10 p-0 flex items-center justify-center rounded-full"
+            >
+                <ChevronRight size={20} />
+            </Button>
+        </div>
+    )
+}
+        </div >
     );
 };
 
