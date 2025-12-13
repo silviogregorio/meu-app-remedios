@@ -22,7 +22,11 @@ const ManualSection = ({ title, icon: Icon, color, children, delay }) => (
     </div>
 );
 
+import { useNavigate } from 'react-router-dom';
+
 const Manual = () => {
+    const navigate = useNavigate();
+
     return (
         <div className="flex flex-col gap-8 pb-24">
             {/* Hero Section */}
@@ -142,7 +146,7 @@ const Manual = () => {
             <div className="text-center mt-8 animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-700">
                 <p className="text-slate-400 mb-4">Ainda tem dúvidas?</p>
                 <button
-                    onClick={() => window.open('mailto:suporte@seupremiumapp.com')}
+                    onClick={() => navigate('/contact')}
                     className="text-primary font-bold hover:underline"
                 >
                     Fale com nosso Suporte
