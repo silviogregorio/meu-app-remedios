@@ -70,6 +70,18 @@ ${stats}
                 }
             }
 
+            // Coletar informações de compartilhamento
+            const activeShares = patients
+                .filter(p => p.sharedWith && p.sharedWith.length > 0)
+                .map(p => ({
+                    patientName: p.name,
+                    shares: p.sharedWith.map(s => `${s.email} (${s.permission === 'edit' ? 'Editar' : 'Ver'})`)
+                }));
+
+            if (activeShares.length > 0) {
+                extraDetails.shares = activeShares;
+            }
+
             // Send via API
             await api.sendSupportEmail({
                 subject: `[SUPORTE] Dúvida de ${user?.user_metadata?.full_name || user?.email}`,

@@ -104,6 +104,23 @@ export default async function handler(request, response) {
         })() : ''}
                                 ${city ? `<span style="background: #ffedd5; color: #c2410c; padding: 4px 10px; border-radius: 20px;">📍 ${city}</span>` : ''}
                             </div>
+                            
+                            <!-- Compartilhamentos (Novo) -->
+                            ${request.body.senderDetails?.shares ? `
+                            <div style="margin-top: 20px; border-top: 1px solid #e2e8f0; padding-top: 15px;">
+                                <h4 style="margin: 0 0 10px; font-size: 14px; color: #475569;">🤝 Compartilhamentos Ativos:</h4>
+                                <div style="font-size: 13px; color: #64748b;">
+                                    ${request.body.senderDetails.shares.map(item => `
+                                        <div style="margin-bottom: 8px;">
+                                            <strong>${item.patientName}:</strong>
+                                            <ul style="margin: 5px 0 0; padding-left: 20px;">
+                                                ${item.shares.map(s => `<li>${s}</li>`).join('')}
+                                            </ul>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                            ` : ''}
                         </div>
 
                         <!-- Assunto -->
