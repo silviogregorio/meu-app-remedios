@@ -17,108 +17,108 @@ const OnboardingTour = ({ onTourEnd }) => {
             {
                 element: '#tour-welcome',
                 popover: {
-                    title: 'Bem-vindo ao SiG Remédios! 👋',
-                    description: 'Este é o seu painel principal. Aqui você tem uma visão geral de todo o tratamento e o que precisa ser feito hoje.',
+                    title: 'Painel Principal (Home) 🏠',
+                    description: 'Esta é sua tela de controle diário. Aqui você vê o resumo do dia e o que precisa tomar agora.',
                     side: "bottom",
                     align: 'start'
                 }
             },
+            // ... (keep previous Home steps)
             {
-                element: 'button[title="Ajuda / Tour"]',
+                element: '.md\\:col-span-2', // Next Dose Card
                 popover: {
-                    title: 'Precisa de Ajuda?',
-                    description: 'Clique neste botão a qualquer momento para ver este tutorial novamente.',
-                    side: "left",
-                    align: 'center'
+                    title: 'Próxima Dose ⏰',
+                    description: 'O destaque principal sempre será o próximo remédio. O sistema calcula isso sozinho baseado nos horários que você cadastrou.',
+                    side: "top"
+                }
+            },
+            {
+                element: '#tour-schedule-list',
+                popover: {
+                    title: 'Lista de Hoje 📝',
+                    description: 'Aqui ficam todos os remédios do dia. Clique no "check" ou use o comando de voz para marcar como tomado.',
+                    side: "top"
+                }
+            },
+            // MENU TOGGLE STEP
+            {
+                element: '#header-menu-toggle',
+                popover: {
+                    title: 'Menu de Opções ☰',
+                    description: 'Clique aqui (ou se já estiver aberto ao lado) para acessar os cadastros do sistema.',
+                    side: "bottom"
+                },
+                onNextClick: () => {
+                    // Tenta abrir o menu se estiver fechado (verificando se o sidebar está visível)
+                    // Como é difícil saber o estado visual exato, vamos forçar um clique se estiver no mobile/fechado
+                    const sidebar = document.querySelector('aside');
+                    const isClosed = sidebar && sidebar.classList.contains('-translate-x-full');
+
+                    if (isClosed) {
+                        document.getElementById('header-menu-toggle')?.click();
+                        // Pequeno delay para animação antes do próximo passo
+                        return new Promise(resolve => setTimeout(resolve, 300));
+                    }
+                }
+            },
+            // SIDEBAR STEPS
+            {
+                element: '#tour-nav-patients',
+                popover: {
+                    title: '1. Pacientes 👥',
+                    description: 'O começo de tudo. Aqui você cadastra quem vai tomar os remédios (você mesmo, seu pai, mãe, filhos...).',
+                    side: "right"
+                }
+            },
+            {
+                element: '#tour-nav-medications',
+                popover: {
+                    title: '2. Medicamentos 💊',
+                    description: 'Cadastro das caixinhas. Você coloca o nome, a dosagem (mg/ml) e quantos comprimidos vêm na caixa (para o controle de estoque).',
+                    side: "right"
+                }
+            },
+            {
+                element: '#tour-nav-prescriptions',
+                popover: {
+                    title: '3. Prescrições (Receitas) 📄',
+                    description: 'Aqui é a inteligência. Você cruza o PACIENTE com o MEDICAMENTO e diz os horários. Ex: "Tomar Dipirona a cada 6h por 5 dias". O sistema gera a agenda sozinho a partir disso.',
+                    side: "right"
+                }
+            },
+            {
+                element: '#tour-nav-diary',
+                popover: {
+                    title: '4. Diário de Saúde ❤️',
+                    description: 'Anote sintomas, pressão, glicemia ou como está se sentindo. Útil para mostrar ao médico na próxima consulta.',
+                    side: "right"
+                }
+            },
+            {
+                element: '#tour-nav-reports',
+                popover: {
+                    title: '5. Relatórios 📈',
+                    description: 'Histórico completo. Veja se o paciente tomou tudo certinho no mês passado, imprima a lista para levar na consulta ou gere PDFs.',
+                    side: "right"
+                }
+            },
+            {
+                element: '#tour-nav-share',
+                popover: {
+                    title: '6. Compartilhar Acesso 🔗',
+                    description: 'Tem um cuidador ou familiar ajudando? Convide-os por e-mail aqui. Eles poderão instalar o App e ajudar a marcar os remédios também.',
+                    side: "right"
+                }
+            },
+            {
+                element: '#tour-nav-profile',
+                popover: {
+                    title: '7. Seu Perfil 👤',
+                    description: 'Seus dados de conta, troca de senha e configurações pessoais.',
+                    side: "right"
                 }
             }
         ];
-
-        // Conditional Steps
-        if (document.querySelector('.bg-amber-50')) { // Low Stock Alert
-            steps.push({
-                element: '.bg-amber-50',
-                popover: {
-                    title: 'Alerta de Estoque Baixo ⚠️',
-                    description: 'Fique atento! Este cartão aparece quando algum medicamento está perto de acabar (menos de 3 dias).',
-                    side: "bottom"
-                }
-            });
-        }
-
-        if (document.querySelector('.bg-blue-50')) { // Notification Request
-            steps.push({
-                element: ('.bg-blue-50'),
-                popover: {
-                    title: 'Ative as Notificações 🔔',
-                    description: 'Para receber lembretes no celular, clique em "Ativar" aqui.',
-                    side: "bottom"
-                }
-            });
-        }
-
-        // Main Cards
-        steps.push({
-            element: '.md\\:col-span-2', // The big blue Next Dose card
-            popover: {
-                title: 'Próxima Dose 💊',
-                description: 'Este é o cartão mais importante. Ele mostra qual é o PRÓXIMO medicamento que deve ser tomado, o horário e quem deve tomar.',
-                side: "top"
-            }
-        });
-
-        steps.push({
-            element: '#tour-summary-card',
-            popover: {
-                title: 'Seu Progresso de Hoje 📊',
-                description: 'Acompanhe quantos remédios já foram tomados hoje e quantos faltam. Tente manter 100%!',
-                side: "top"
-            }
-        });
-
-        // Filters
-        steps.push({
-            element: '.border-l-primary', // Filter Card
-            popover: {
-                title: 'Filtros e Agenda 🔍',
-                description: 'Use estes filtros para ver datas futuras, filtrar por paciente específico ou ver histórico. Você também pode baixar a agenda clicando em "Exportar".',
-                side: "top"
-            }
-        });
-
-        // Schedule List
-        steps.push({
-            element: '#tour-schedule-list',
-            popover: {
-                title: 'Lista de Medicamentos do Dia 📝',
-                description: 'Aqui está a lista completa de hoje. \n\n➡️ Clique no botão redondo ao lado do remédio para marcar como "Tomado" ✅.\n➡️ Se errou, clique de novo para desmarcar.',
-                side: "top"
-            }
-        });
-
-        // Voice
-        if (document.querySelector('button[className*="fixed bottom-6"]')) {
-            steps.push({
-                element: 'button[className*="fixed bottom-6"]',
-                popover: {
-                    title: 'Comando de Voz 🎙️',
-                    description: 'Não quer digitar? Clique no microfone e diga "Tomei o Omeprazol" para o sistema marcar sozinho.',
-                    side: "left"
-                }
-            });
-        }
-
-        // Sidebar Navigation (Generic pointer to left side)
-        if (document.querySelector('nav') || document.querySelector('aside')) {
-            steps.push({
-                element: document.querySelector('aside') ? 'aside' : 'nav', // Try to grab sidebar
-                popover: {
-                    title: 'Menu Principal ☰',
-                    description: 'Use o menu lateral para cadastrar novos **Pacientes**, adicionar **Medicamentos**, ver **Relatórios** completos e configurar seu **Perfil**.',
-                    side: "right"
-                }
-            });
-        }
 
         driverRef.current = driver({
             showProgress: true,
@@ -126,7 +126,7 @@ const OnboardingTour = ({ onTourEnd }) => {
             allowClose: true,
             nextBtnText: 'Próximo →',
             prevBtnText: '← Voltar',
-            doneBtnText: 'Entendi, começar!',
+            doneBtnText: 'Concluir Tour',
             steps: steps,
             onDestroyed: () => {
                 if (onTourEndRef.current) {

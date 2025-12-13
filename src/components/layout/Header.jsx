@@ -35,6 +35,7 @@ const Header = ({ onMenuClick, isPinned }) => {
         >
             <div className="flex items-center gap-3">
                 <button
+                    id="header-menu-toggle"
                     onClick={onMenuClick}
                     className={`p-2 -ml-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-full transition-colors ${isPinned ? 'md:hidden' : ''
                         }`}
