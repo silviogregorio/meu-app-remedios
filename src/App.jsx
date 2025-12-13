@@ -25,9 +25,6 @@ import AdminSecurity from './pages/AdminSecurity';
 import NotificationManager from './components/NotificationManager';
 import { ThemeProvider } from './context/ThemeContext';
 
-import ReloadPrompt from './components/ReloadPrompt';
-import { SpeedInsights } from "@vercel/speed-insights/react"
-import VersionCheck from './components/VersionCheck';
 
 import { useEffect } from 'react';
 
