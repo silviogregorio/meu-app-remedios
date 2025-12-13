@@ -40,15 +40,8 @@ const Home = () => {
     const [selectedMedication, setSelectedMedication] = useState('all');
     const [selectedStatus, setSelectedStatus] = useState('all');
 
-    // Check for tour status on mount
-    useEffect(() => {
-        const hasSeenTour = localStorage.getItem('hasSeenTour_v1');
-        if (!hasSeenTour) {
-            console.log('Home: Tour not seen yet. Starting automatically.');
-            // Pequeno delay para garantir que a UI carregou
-            setTimeout(() => setStartTour(true), 1000);
-        }
-    }, []);
+    // Auto-start tour removed to prevent looping issues.
+    // User can trigger it manually via the Help button.
 
     useEffect(() => {
         console.log('Home: Generating schedule', { prescriptions, medications, patients, selectedDate });
