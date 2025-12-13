@@ -136,8 +136,8 @@ const OnboardingTour = ({ onTourEnd }) => {
                 element: '#tour-nav-share',
                 onHighlightStarted: ensureSidebarOpen,
                 popover: {
-                    title: '6. Cuidadores e Familiares 🔗',
-                    description: 'Cuidar de alguém sozinho é difícil. Convide ajuda!\n\nEnvie um convite por e-mail para um filho ou cuidador. Eles poderão acessar o app no celular deles e ajudar a marcar os remédios ou registrar sintomas.',
+                    title: '6. Compartilhar Acesso (Segurança) 🔐',
+                    description: 'Quer que alguém te ajude a gerenciar os remédios?\n\nEnvie um convite aqui. Você decide o que a pessoa pode fazer:\n\n👀 **Leitor:** Só pode ver o que você marcou (ideal para médicos).\n✏️ **Editor:** Pode marcar remédios e editar horários (ideal para cuidadores).\n\nVocê pode remover o acesso a qualquer momento.',
                     side: "right"
                 }
             },
@@ -145,8 +145,8 @@ const OnboardingTour = ({ onTourEnd }) => {
                 element: '#tour-nav-profile',
                 onHighlightStarted: ensureSidebarOpen,
                 popover: {
-                    title: '7. Seu Perfil 👤',
-                    description: 'Gerencie sua senha, seus dados pessoais e preferências do sistema aqui.',
+                    title: '7. Seu Perfil e Backups 💾',
+                    description: 'Além de alterar senha e nome, aqui você encontra uma função vital: **Fazer Backup**.\n\nBaixe uma cópia de TODOS os seus dados para o seu celular sempre que quiser.\nSeus dados são seus!',
                     side: "right"
                 }
             }

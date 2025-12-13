@@ -179,10 +179,11 @@ const Home = () => {
                 </div>
                 <button
                     onClick={() => setStartTour(true)}
-                    className="p-2 text-slate-400 hover:text-primary transition-colors rounded-full hover:bg-slate-100"
-                    title="Ajuda / Tour"
+                    className="flex items-center gap-2 px-3 py-1.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-full transition-colors text-sm font-bold border border-indigo-200"
+                    title="Iniciar Treinamento"
                 >
-                    <CircleHelp size={24} />
+                    <CircleHelp size={18} />
+                    <span>Aprenda a Usar</span>
                 </button>
             </div>
             {/* Low Stock Alert - Moved to Top */}
