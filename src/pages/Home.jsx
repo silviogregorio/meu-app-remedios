@@ -170,10 +170,7 @@ const Home = () => {
     return (
         <div className="flex flex-col gap-6 pb-20">
             <div className="flex items-center justify-between w-full">
-                {/* DEBUG BANNER */}
-                <div className="fixed top-0 left-0 w-full bg-red-600 text-white text-center text-xs font-bold p-1 z-[9999]">
-                    SISTEMA ATUALIZADO 1.3.49 - TOUR DESATIVADO (CACHE INVALIDADO)
-                </div>
+                {/* Debug Banner Removed */}
                 <div className="flex flex-col gap-1 overflow-hidden mt-6">
                     <h1 id="tour-welcome" className="text-2xl font-bold text-slate-900 dark:text-white break-words line-clamp-2">
                         Olá, {getDisplayName()}
