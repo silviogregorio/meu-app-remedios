@@ -11,17 +11,14 @@ const OnboardingTour = ({ onTourEnd }) => {
     }, [onTourEnd]);
 
     useEffect(() => {
-        console.log('[OnboardingTour] Mounted. Initializing robust driver...');
+        console.log('[OnboardingTour] Mounted. Initializing detailed content driver...');
 
-        // Helper function to ensure sidebar is open
         const ensureSidebarOpen = async () => {
             const sidebar = document.querySelector('aside');
             const isClosed = sidebar && sidebar.classList.contains('-translate-x-full');
 
             if (isClosed) {
-                console.log('[Tour] Force opening sidebar...');
                 document.getElementById('header-menu-toggle')?.click();
-                // Wait for animation
                 await new Promise(resolve => setTimeout(resolve, 500));
             }
         };
@@ -30,67 +27,72 @@ const OnboardingTour = ({ onTourEnd }) => {
             {
                 element: '#tour-welcome',
                 popover: {
-                    title: 'Painel Principal (Home) 🏠',
-                    description: 'Esta é sua tela de controle diário. Aqui você vê o resumo do dia e o que precisa tomar agora.',
+                    title: 'Bem-vindo ao SiG Remédios! 👋',
+                    description: 'Que bom ter você aqui! Este sistema foi criado para tirar a preocupação da sua cabeça. \n\nNesta tela inicial (o "Dashboard"), nós filtramos tudo e mostramos **apenas o que importa para hoje**. Você não precisa procurar nada, o sistema traz a informação até você.',
                     side: "bottom",
                     align: 'start'
                 }
             },
-            // Conditional Steps
+            // Conditional Alerts
             ...(document.querySelector('.bg-amber-50') ? [{
                 element: '.bg-amber-50',
-                popover: { title: 'Alerta de Estoque ⚠️', description: 'Medicamentos acabando.', side: "bottom" }
+                popover: {
+                    title: '⚠️ Controle de Estoque',
+                    description: 'O sistema monitora quantas pílulas restam. Quando aparecer este aviso amarelo, significa que um remédio está acabando (menos de 3 dias). É hora de comprar mais!',
+                    side: "bottom"
+                }
             }] : []),
             ...(document.querySelector('.bg-blue-50') ? [{
                 element: '.bg-blue-50',
-                popover: { title: 'Notificações 🔔', description: 'Ative alertas no celular.', side: "bottom" }
-            }] : []),
-            {
-                element: '.md\\:col-span-2', // Next Dose Card
                 popover: {
-                    title: 'Próxima Dose ⏰',
-                    description: 'O destaque principal sempre será o próximo remédio.',
+                    title: '🔔 Não Esqueça de Nada',
+                    description: 'Para receber avisos no seu celular (mesmo com o app fechado), ative as notificações aqui. Nós avisaremos 5 minutos antes de cada dose.',
+                    side: "bottom"
+                }
+            }] : []),
+
+            {
+                element: '.md\\:col-span-2',
+                popover: {
+                    title: '⏰ A Próxima Dose',
+                    description: 'Este é o coração da tela inicial. O sistema calcula automaticamente qual é o **próximo** compromisso, quem deve tomar e o horário.\n\nFica verde quando está liberado para tomar. Se estiver vermelho, está atrasado!',
                     side: "top"
                 }
             },
             {
                 element: '#tour-summary-card',
                 popover: {
-                    title: 'Seu Progresso 📊',
-                    description: 'Acompanhe quantos remédios já foram tomados hoje.',
+                    title: '📊 Seu Resultado do Dia',
+                    description: 'Uma visão rápida de adesão. Tente manter este círculo sempre em 100% todos os dias.\nIsso ajuda você e o médico a saberem se o tratamento está sendo seguido à risca.',
                     side: "top"
                 }
             },
             {
                 element: '#tour-schedule-list',
                 popover: {
-                    title: 'Lista de Hoje 📝',
-                    description: 'Lista completa do dia para marcar como tomado.',
+                    title: '📝 Lista Completa de Hoje',
+                    description: 'Aqui está a agenda completa do dia, do momento que acorda até a hora de dormir.\n\n✅ **Para marcar como tomado:** Basta clicar no círculo ao lado do nome do remédio.\n❌ **Errou?** Clique de novo para desmarcar.',
                     side: "top"
                 }
             },
-            // Voice
-            ...(document.querySelector('button[className*="fixed bottom-6"]') ? [{
-                element: 'button[className*="fixed bottom-6"]',
-                popover: { title: 'Comando de Voz 🎙️', description: 'Fale para marcar seus remédios.', side: "left" }
-            }] : []),
 
-            // MENU TOGGLE
+            // MENU
             {
                 element: '#header-menu-toggle',
                 popover: {
-                    title: 'Menu de Opções ☰',
-                    description: 'Vamos explorar o menu lateral agora. Clique em "Próximo" que eu abro para você.',
+                    title: '☰ Menu Principal',
+                    description: 'Agora vamos conhecer as ferramentas de cadastro. Clique em Próximo para abrir o menu lateral.',
                     side: "bottom"
                 }
             },
-            // SIDEBAR STEPS (All enforce sidebar open)
+
+            // SIDEBAR ITEMS
             {
                 element: '#tour-nav-patients',
                 onHighlightStarted: ensureSidebarOpen,
                 popover: {
-                    title: '1. Pacientes 👥',
-                    description: 'Cadastro de quem vai tomar os remédios.',
+                    title: '1. Pacientes (Pessoas) 👥',
+                    description: 'O SiG Remédios é multi-usuário. Aqui você cadastra **quem** vai tomar os remédios.\nPode ser você, seu pai, sua mãe, ou até um filho.\n\nCada paciente tem seu próprio histórico e agenda separados.',
                     side: "right"
                 }
             },
@@ -98,8 +100,8 @@ const OnboardingTour = ({ onTourEnd }) => {
                 element: '#tour-nav-medications',
                 onHighlightStarted: ensureSidebarOpen,
                 popover: {
-                    title: '2. Medicamentos 💊',
-                    description: 'Cadastro de caixas, dosagens e estoque.',
+                    title: '2. Medicamentos (Estoque) 💊',
+                    description: 'Aqui você cadastra as **caixinhas** de remédio.\nInforme o nome, a dosagem (ex: 50mg) e quantos comprimidos vêm na caixa.\n\nAssim, o sistema consegue descontar do estoque a cada dose tomada e te avisar quando precisa comprar.',
                     side: "right"
                 }
             },
@@ -107,8 +109,8 @@ const OnboardingTour = ({ onTourEnd }) => {
                 element: '#tour-nav-prescriptions',
                 onHighlightStarted: ensureSidebarOpen,
                 popover: {
-                    title: '3. Prescrições 📄',
-                    description: 'Onde você cria a agenda (Paciente + Remédio + Horários).',
+                    title: '3. Prescrições (O Cérebro) 🧠',
+                    description: 'Esta é a parte mais importante. Aqui você cria a "Receita Digital".\n\nVocê escolhe o **Paciente**, seleciona o **Medicamento** e diz a regra:\nEx: "Tomar de 8 em 8 horas por 10 dias".\n\nO sistema gera toda a agenda futura automaticamente baseada nisso.',
                     side: "right"
                 }
             },
@@ -117,7 +119,7 @@ const OnboardingTour = ({ onTourEnd }) => {
                 onHighlightStarted: ensureSidebarOpen,
                 popover: {
                     title: '4. Diário de Saúde ❤️',
-                    description: 'Anote sintomas e histórico de saúde.',
+                    description: 'O médico sempre pergunta: "Teve febre? Dor? Como estava a pressão?".\n\nUse esta tela para anotar sintomas, medições de pressão/glicemia e sentimentos.\nFica tudo salvo com data e hora para mostrar na consulta.',
                     side: "right"
                 }
             },
@@ -125,8 +127,8 @@ const OnboardingTour = ({ onTourEnd }) => {
                 element: '#tour-nav-reports',
                 onHighlightStarted: ensureSidebarOpen,
                 popover: {
-                    title: '5. Relatórios 📈',
-                    description: 'Histórico de uso e impressão.',
+                    title: '5. Relatórios Completos 📈',
+                    description: 'Precisa levar a lista para o médico?\nAqui você gera PDFs elegantes com todo o histórico de uso, adesão e anotações do diário.\nÉ a prova de que o tratamento foi seguido.',
                     side: "right"
                 }
             },
@@ -134,8 +136,8 @@ const OnboardingTour = ({ onTourEnd }) => {
                 element: '#tour-nav-share',
                 onHighlightStarted: ensureSidebarOpen,
                 popover: {
-                    title: '6. Compartilhar 🔗',
-                    description: 'Convide familiares/cuidadores.',
+                    title: '6. Cuidadores e Familiares 🔗',
+                    description: 'Cuidar de alguém sozinho é difícil. Convide ajuda!\n\nEnvie um convite por e-mail para um filho ou cuidador. Eles poderão acessar o app no celular deles e ajudar a marcar os remédios ou registrar sintomas.',
                     side: "right"
                 }
             },
@@ -143,8 +145,8 @@ const OnboardingTour = ({ onTourEnd }) => {
                 element: '#tour-nav-profile',
                 onHighlightStarted: ensureSidebarOpen,
                 popover: {
-                    title: '7. Perfil 👤',
-                    description: 'Configurações da sua conta.',
+                    title: '7. Seu Perfil 👤',
+                    description: 'Gerencie sua senha, seus dados pessoais e preferências do sistema aqui.',
                     side: "right"
                 }
             }
@@ -156,12 +158,9 @@ const OnboardingTour = ({ onTourEnd }) => {
             allowClose: true,
             nextBtnText: 'Próximo →',
             prevBtnText: '← Voltar',
-            doneBtnText: 'Concluir',
+            doneBtnText: 'Concluir Tour',
             steps: steps,
             onDestroyed: () => {
-                const sidebar = document.querySelector('aside');
-                // Optional: Close sidebar when tour ends if we forced it open? 
-                // Better leave it open so user can use it.
                 if (onTourEndRef.current) {
                     onTourEndRef.current();
                 }
@@ -169,7 +168,6 @@ const OnboardingTour = ({ onTourEnd }) => {
             }
         });
 
-        // Small delay to ensure render
         setTimeout(() => driverRef.current.drive(), 100);
 
         return () => {
