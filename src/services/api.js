@@ -20,7 +20,7 @@ export const api = {
                 body: JSON.stringify({
                     // For now, sending TO myself (admin) or a dedicated support email
                     // In a real app, this would be an env var like SUPPORT_EMAIL
-                    to: 'suporte@sigremedios.com', // Fake support email, backend will handle or use configured SMTP
+                    to: 'sigremedios@gmail.com', // Updated to real support email
                     subject: subject,
                     text: text,
                     senderName: senderName,
