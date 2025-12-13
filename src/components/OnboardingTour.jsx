@@ -11,7 +11,20 @@ const OnboardingTour = ({ onTourEnd }) => {
     }, [onTourEnd]);
 
     useEffect(() => {
-        console.log('[OnboardingTour] Mounted. Initializing detailed driver...');
+        console.log('[OnboardingTour] Mounted. Initializing robust driver...');
+
+        // Helper function to ensure sidebar is open
+        const ensureSidebarOpen = async () => {
+            const sidebar = document.querySelector('aside');
+            const isClosed = sidebar && sidebar.classList.contains('-translate-x-full');
+
+            if (isClosed) {
+                console.log('[Tour] Force opening sidebar...');
+                document.getElementById('header-menu-toggle')?.click();
+                // Wait for animation
+                await new Promise(resolve => setTimeout(resolve, 500));
+            }
+        };
 
         const steps = [
             {
@@ -23,12 +36,28 @@ const OnboardingTour = ({ onTourEnd }) => {
                     align: 'start'
                 }
             },
-            // ... (keep previous Home steps)
+            // Conditional Steps
+            ...(document.querySelector('.bg-amber-50') ? [{
+                element: '.bg-amber-50',
+                popover: { title: 'Alerta de Estoque ⚠️', description: 'Medicamentos acabando.', side: "bottom" }
+            }] : []),
+            ...(document.querySelector('.bg-blue-50') ? [{
+                element: '.bg-blue-50',
+                popover: { title: 'Notificações 🔔', description: 'Ative alertas no celular.', side: "bottom" }
+            }] : []),
             {
                 element: '.md\\:col-span-2', // Next Dose Card
                 popover: {
                     title: 'Próxima Dose ⏰',
-                    description: 'O destaque principal sempre será o próximo remédio. O sistema calcula isso sozinho baseado nos horários que você cadastrou.',
+                    description: 'O destaque principal sempre será o próximo remédio.',
+                    side: "top"
+                }
+            },
+            {
+                element: '#tour-summary-card',
+                popover: {
+                    title: 'Seu Progresso 📊',
+                    description: 'Acompanhe quantos remédios já foram tomados hoje.',
                     side: "top"
                 }
             },
@@ -36,85 +65,86 @@ const OnboardingTour = ({ onTourEnd }) => {
                 element: '#tour-schedule-list',
                 popover: {
                     title: 'Lista de Hoje 📝',
-                    description: 'Aqui ficam todos os remédios do dia. Clique no "check" ou use o comando de voz para marcar como tomado.',
+                    description: 'Lista completa do dia para marcar como tomado.',
                     side: "top"
                 }
             },
-            // MENU TOGGLE STEP
+            // Voice
+            ...(document.querySelector('button[className*="fixed bottom-6"]') ? [{
+                element: 'button[className*="fixed bottom-6"]',
+                popover: { title: 'Comando de Voz 🎙️', description: 'Fale para marcar seus remédios.', side: "left" }
+            }] : []),
+
+            // MENU TOGGLE
             {
                 element: '#header-menu-toggle',
                 popover: {
                     title: 'Menu de Opções ☰',
-                    description: 'Clique aqui (ou se já estiver aberto ao lado) para acessar os cadastros do sistema.',
+                    description: 'Vamos explorar o menu lateral agora. Clique em "Próximo" que eu abro para você.',
                     side: "bottom"
-                },
-                onNextClick: () => {
-                    // Tenta abrir o menu se estiver fechado (verificando se o sidebar está visível)
-                    // Como é difícil saber o estado visual exato, vamos forçar um clique se estiver no mobile/fechado
-                    const sidebar = document.querySelector('aside');
-                    const isClosed = sidebar && sidebar.classList.contains('-translate-x-full');
-
-                    if (isClosed) {
-                        document.getElementById('header-menu-toggle')?.click();
-                        // Pequeno delay para animação antes do próximo passo
-                        return new Promise(resolve => setTimeout(resolve, 300));
-                    }
                 }
             },
-            // SIDEBAR STEPS
+            // SIDEBAR STEPS (All enforce sidebar open)
             {
                 element: '#tour-nav-patients',
+                onHighlightStarted: ensureSidebarOpen,
                 popover: {
                     title: '1. Pacientes 👥',
-                    description: 'O começo de tudo. Aqui você cadastra quem vai tomar os remédios (você mesmo, seu pai, mãe, filhos...).',
+                    description: 'Cadastro de quem vai tomar os remédios.',
                     side: "right"
                 }
             },
             {
                 element: '#tour-nav-medications',
+                onHighlightStarted: ensureSidebarOpen,
                 popover: {
                     title: '2. Medicamentos 💊',
-                    description: 'Cadastro das caixinhas. Você coloca o nome, a dosagem (mg/ml) e quantos comprimidos vêm na caixa (para o controle de estoque).',
+                    description: 'Cadastro de caixas, dosagens e estoque.',
                     side: "right"
                 }
             },
             {
                 element: '#tour-nav-prescriptions',
+                onHighlightStarted: ensureSidebarOpen,
                 popover: {
-                    title: '3. Prescrições (Receitas) 📄',
-                    description: 'Aqui é a inteligência. Você cruza o PACIENTE com o MEDICAMENTO e diz os horários. Ex: "Tomar Dipirona a cada 6h por 5 dias". O sistema gera a agenda sozinho a partir disso.',
+                    title: '3. Prescrições 📄',
+                    description: 'Onde você cria a agenda (Paciente + Remédio + Horários).',
                     side: "right"
                 }
             },
             {
                 element: '#tour-nav-diary',
+                onHighlightStarted: ensureSidebarOpen,
                 popover: {
                     title: '4. Diário de Saúde ❤️',
-                    description: 'Anote sintomas, pressão, glicemia ou como está se sentindo. Útil para mostrar ao médico na próxima consulta.',
+                    description: 'Anote sintomas e histórico de saúde.',
                     side: "right"
                 }
             },
             {
                 element: '#tour-nav-reports',
+                onHighlightStarted: ensureSidebarOpen,
                 popover: {
                     title: '5. Relatórios 📈',
-                    description: 'Histórico completo. Veja se o paciente tomou tudo certinho no mês passado, imprima a lista para levar na consulta ou gere PDFs.',
+                    description: 'Histórico de uso e impressão.',
                     side: "right"
                 }
             },
             {
                 element: '#tour-nav-share',
+                onHighlightStarted: ensureSidebarOpen,
                 popover: {
-                    title: '6. Compartilhar Acesso 🔗',
-                    description: 'Tem um cuidador ou familiar ajudando? Convide-os por e-mail aqui. Eles poderão instalar o App e ajudar a marcar os remédios também.',
+                    title: '6. Compartilhar 🔗',
+                    description: 'Convide familiares/cuidadores.',
                     side: "right"
                 }
             },
             {
                 element: '#tour-nav-profile',
+                onHighlightStarted: ensureSidebarOpen,
                 popover: {
-                    title: '7. Seu Perfil 👤',
-                    description: 'Seus dados de conta, troca de senha e configurações pessoais.',
+                    title: '7. Perfil 👤',
+                    description: 'Configurações da sua conta.',
                     side: "right"
                 }
             }
@@ -126,9 +156,12 @@ const OnboardingTour = ({ onTourEnd }) => {
             allowClose: true,
             nextBtnText: 'Próximo →',
             prevBtnText: '← Voltar',
-            doneBtnText: 'Concluir Tour',
+            doneBtnText: 'Concluir',
             steps: steps,
             onDestroyed: () => {
+                const sidebar = document.querySelector('aside');
+                // Optional: Close sidebar when tour ends if we forced it open? 
+                // Better leave it open so user can use it.
                 if (onTourEndRef.current) {
                     onTourEndRef.current();
                 }
@@ -136,7 +169,8 @@ const OnboardingTour = ({ onTourEnd }) => {
             }
         });
 
-        driverRef.current.drive();
+        // Small delay to ensure render
+        setTimeout(() => driverRef.current.drive(), 100);
 
         return () => {
             if (driverRef.current) {
