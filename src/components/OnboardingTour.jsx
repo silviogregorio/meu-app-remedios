@@ -1,23 +1,31 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { driver } from 'driver.js';
 import 'driver.js/dist/driver.css';
 
 const OnboardingTour = ({ forceStart, onTourEnd }) => {
-    // Keep a stable ref to the callback to avoid effect re-runs
-    const onTourEndRef = React.useRef(onTourEnd);
+    // Keep a stable ref to the callback
+    const onTourEndRef = useRef(onTourEnd);
+    // Keep track of the driver instance to prevent duplicates
+    const driverRef = useRef(null);
+    // Track if component is mounted to prevent async state updates
+    const isMounted = useRef(true);
 
     useEffect(() => {
         onTourEndRef.current = onTourEnd;
     }, [onTourEnd]);
 
     useEffect(() => {
-        const hasSeenTour = localStorage.getItem('hasSeenTour_v1');
-        console.log('[OnboardingTour] Checking status. Seen?', hasSeenTour, 'Force?', forceStart);
+        // If driver is already active, don't restart it
+        if (driverRef.current) {
+            return;
+        }
 
+        const hasSeenTour = localStorage.getItem('hasSeenTour_v1');
+
+        // Logic: ONLY start if not seen OR forced.
         if (!hasSeenTour || forceStart) {
             console.log('[OnboardingTour] Initializing driver...');
 
-            // Build steps dynamically based on what's visible
             const steps = [
                 {
                     element: '#tour-welcome',
@@ -30,7 +38,6 @@ const OnboardingTour = ({ forceStart, onTourEnd }) => {
                 }
             ];
 
-            // Only add Sidebar steps if visible (Desktop) or valid
             if (document.querySelector('#tour-nav-patients')) {
                 steps.push({
                     element: '#tour-nav-patients',
@@ -55,7 +62,6 @@ const OnboardingTour = ({ forceStart, onTourEnd }) => {
                 });
             }
 
-            // Always add main list
             steps.push({
                 element: '#tour-schedule-list',
                 popover: {
@@ -66,6 +72,7 @@ const OnboardingTour = ({ forceStart, onTourEnd }) => {
                 }
             });
 
+            // Create driver instance
             const driverObj = driver({
                 showProgress: true,
                 animate: true,
@@ -74,23 +81,35 @@ const OnboardingTour = ({ forceStart, onTourEnd }) => {
                 doneBtnText: 'Entendi!',
                 steps: steps,
                 onDestroyed: () => {
+                    // Mark as seen
                     localStorage.setItem('hasSeenTour_v1', 'true');
-                    if (onTourEndRef.current) onTourEndRef.current();
+
+                    // Notify parent to reset state (manual mode)
+                    if (onTourEndRef.current) {
+                        onTourEndRef.current();
+                    }
+
+                    // Clear ref so we can start again later if requested
+                    driverRef.current = null;
                 }
             });
 
-            // Small delay to ensure elements are rendered
-            const timer = setTimeout(() => {
-                console.log('[OnboardingTour] Starting drive. Steps:', steps.length);
-                driverObj.drive();
-            }, 1000);
+            driverRef.current = driverObj;
 
-            return () => {
-                clearTimeout(timer);
-                driverObj.destroy();
-            };
+            // Start drive directly (no timeout needed usually, but if elements are late-mounting...)
+            // Since this effect runs after render, elements should be there.
+            driverObj.drive();
         }
-    }, [forceStart]); // removed onTourEnd from deps
+
+        return () => {
+            isMounted.current = false;
+            // Only destroy if the component is unmounting to clean up DOM
+            if (driverRef.current) {
+                driverRef.current.destroy();
+                driverRef.current = null;
+            }
+        };
+    }, [forceStart]);
 
     return null;
 };
