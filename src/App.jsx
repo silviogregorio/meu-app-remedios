@@ -25,7 +25,7 @@ import AdminSecurity from './pages/AdminSecurity';
 import NotificationManager from './components/NotificationManager';
 import { ThemeProvider } from './context/ThemeContext';
 
-
+import { SpeedInsights } from "@vercel/speed-insights/react";
 import { useEffect } from 'react';
 
 function App() {
@@ -48,7 +48,6 @@ function App() {
       <AuthProvider>
         <ThemeProvider>
           <AppProvider>
-            <SpeedInsights />
             <SpeedInsights />
             {/* <ReloadPrompt /> REMOVED TO PREVENT LOOP */}
             <NotificationManager />
