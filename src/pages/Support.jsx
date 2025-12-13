@@ -75,7 +75,11 @@ ${stats}
                 .filter(p => p.sharedWith && p.sharedWith.length > 0)
                 .map(p => ({
                     patientName: p.name,
-                    shares: p.sharedWith.map(s => `${s.email} (${s.permission === 'edit' ? 'Editar' : 'Ver'})`)
+                    shares: p.sharedWith.map(s => {
+                        const status = s.status === 'pending' ? ' (Pendente)' : '';
+                        const perm = s.permission === 'edit' ? 'Editar' : 'Ver';
+                        return `${s.email} - ${perm}${status}`;
+                    })
                 }));
 
             if (activeShares.length > 0) {
