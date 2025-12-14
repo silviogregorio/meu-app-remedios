@@ -5,7 +5,7 @@ import { Heart, AlertTriangle, Phone, Printer, X, Droplet, Mail, MessageCircle }
 import Button from '../ui/Button';
 
 const SOSCard = ({ onClose }) => {
-    const { patients, prescriptions, user } = useApp();
+    const { patients, prescriptions, user, medications } = useApp();
     const printRef = useRef();
 
     // Add class to body when mounted to handle print styles
@@ -56,7 +56,7 @@ const SOSCard = ({ onClose }) => {
         try {
             // Prepare Data for Email Template
             const medicationsList = activePrescriptions.map(p => {
-                const med = useApp().medications.find(m => m.id === p.medicationId);
+                const med = medications.find(m => m.id === p.medicationId);
                 return `• ${med?.name || 'Medicamento'} (${med?.dosage || ''}) - ${p.frequency}`;
             }).join('<br>');
 
@@ -133,14 +133,11 @@ const SOSCard = ({ onClose }) => {
             } else {
                 // Determine if we are on a mobile device where we want to trigger WhatsApp specifically?
                 // Actually, if Web Share fails, we download it and tell user to send.
-                // Or we can try to "Open" it.
-                // For "WhatsApp", usually a link is needed, but we can't send files via 'wa.me' link easily without uploading first.
-                // So "Download" is the robust fallback.
                 pdf.save(`SOS_${selectedPatient.name}.pdf`);
-                showToast('PDF baixado! Envie pelo WhatsApp.', 'info');
+                showToast('PDF baixado! Envie o arquivo pelo WhatsApp.', 'info');
 
-                // Optional: Open WhatsApp Web with text, but file must be attached manually
-                // window.open(`https://wa.me/?text=Estou%20enviando%20minha%20ficha%20médica%20(anexo).`, '_blank');
+                // Optional prompt for WhatsApp Web
+                // window.open(`https://wa.me/?text=Segue%20minha%20ficha%20médica%20de%20emergência%20(anexar%20PDF).`, '_blank');
             }
 
         } catch (error) {
@@ -164,6 +161,24 @@ const SOSCard = ({ onClose }) => {
 
                 <div className="overflow-y-auto flex-1 custom-scrollbar">
                     <div className="p-6 space-y-6" ref={printRef}>
+
+                        {/* 0. Patient Selector */}
+                        {patients.length > 1 && (
+                            <div className="flex gap-2 mb-6 overflow-x-auto pb-2 no-scrollbar print:hidden">
+                                {patients.map(p => (
+                                    <button
+                                        key={p.id}
+                                        onClick={() => setSelectedPatientId(p.id)}
+                                        className={`px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-colors ${selectedPatientId === p.id
+                                                ? 'bg-slate-900 text-white shadow-md'
+                                                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                                            }`}
+                                    >
+                                        {p.name.split(' ')[0]}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
 
                         {/* 1. Patient Info */}
                         <div className="flex items-start justify-between gap-4">
