@@ -5,6 +5,7 @@ import { Heart, AlertTriangle, Phone, Printer, X, Droplet, Mail, MessageCircle, 
 import Button from '../ui/Button';
 
 import { supabase } from '../../lib/supabase';
+import { getApiEndpoint } from '../../config/api';
 import confetti from 'canvas-confetti';
 
 const SOSCard = ({ onClose }) => {
@@ -77,7 +78,7 @@ const SOSCard = ({ onClose }) => {
                 observations: 'Gerado via SOS Digital'
             };
 
-            const response = await fetch('/api/send-email', {
+            const response = await fetch(getApiEndpoint('/api/send-email'), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

@@ -13,6 +13,7 @@ import CalendarView from '../components/features/CalendarView';
 import Pagination from '../components/ui/Pagination';
 import { useNavigate } from 'react-router-dom';
 import confetti from 'canvas-confetti';
+import { getApiEndpoint } from '../config/api';
 import {
     LineChart,
     Line,
@@ -263,7 +264,7 @@ const HealthDiary = () => {
             const filename = `diario-saude-${format(new Date(), 'dd-MM')}.pdf`;
 
             const { data: { session } } = await supabase.auth.getSession();
-            const response = await fetch('/api/send-email', {
+            const response = await fetch(getApiEndpoint('/api/send-email'), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

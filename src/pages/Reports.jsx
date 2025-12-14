@@ -9,8 +9,10 @@ import { FileText, Printer, Calendar, CheckCircle, Clock, Mail, MessageCircle, D
 import AdherenceChart from '../components/analytics/AdherenceChart';
 import ActivityChart from '../components/analytics/ActivityChart';
 import { supabase } from '../lib/supabase';
-import { formatDate, formatTime, formatDateTime } from '../utils/dateFormatter';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isToday, isSameDay, parseISO } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import { generatePDFReport } from '../utils/pdfGenerator';
+import { getApiEndpoint } from '../config/api';
 
 
 const ITEMS_PER_PAGE = 6;
@@ -734,7 +736,7 @@ const Reports = () => {
 
             // call VERCEL API with Auth
             const { data: { session } } = await supabase.auth.getSession();
-            const response = await fetch('/api/send-email', {
+            const response = await fetch(getApiEndpoint('/api/send-email'), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
