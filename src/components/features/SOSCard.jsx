@@ -183,19 +183,46 @@ const SOSCard = ({ onClose }) => {
 
                         {/* 0. Patient Selector */}
                         {patients.length > 1 && (
-                            <div className="flex gap-2 mb-6 overflow-x-auto pb-2 no-scrollbar print:hidden">
-                                {patients.map(p => (
-                                    <button
-                                        key={p.id}
-                                        onClick={() => setSelectedPatientId(p.id)}
-                                        className={`px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-colors ${selectedPatientId === p.id
-                                            ? 'bg-slate-900 text-white shadow-md'
-                                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                                            }`}
-                                    >
-                                        {p.name.split(' ')[0]}
-                                    </button>
-                                ))}
+                            <div className="mb-6 print:hidden">
+                                {patients.length <= 4 ? (
+                                    <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
+                                        {patients.map(p => (
+                                            <button
+                                                key={p.id}
+                                                onClick={() => setSelectedPatientId(p.id)}
+                                                className={`px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-colors ${selectedPatientId === p.id
+                                                    ? 'bg-slate-900 text-white shadow-md'
+                                                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                                                    }`}
+                                            >
+                                                {p.name.split(' ')[0]}
+                                            </button>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="relative">
+                                        <label htmlFor="patient-select" className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block pl-1">
+                                            Selecione o Paciente
+                                        </label>
+                                        <select
+                                            id="patient-select"
+                                            value={selectedPatientId}
+                                            onChange={(e) => setSelectedPatientId(parseInt(e.target.value))}
+                                            className="w-full appearance-none bg-slate-50 border border-slate-200 text-slate-900 text-sm rounded-xl focus:ring-indigo-500 focus:border-indigo-500 block p-3 pr-8 font-bold shadow-sm"
+                                        >
+                                            {patients.map(p => (
+                                                <option key={p.id} value={p.id}>
+                                                    {p.name}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 pt-5 text-slate-500">
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
+                                            </svg>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         )}
 
