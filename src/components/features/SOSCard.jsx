@@ -155,7 +155,104 @@ const SOSCard = ({ onClose }) => {
 };
 
 
-// ... (Existing Render) ...
+<div className="p-6 space-y-6" ref={printRef}>
+
+    {/* 1. Patient Info */}
+    <div className="flex items-start justify-between gap-4">
+        <div>
+            <h1 className="text-3xl font-bold text-slate-900 mb-1 leading-tight">
+                {selectedPatient.name}
+            </h1>
+            <p className="text-slate-500 font-medium">
+                Nascimento: {selectedPatient.birthDate ? new Date(selectedPatient.birthDate).toLocaleDateString('pt-BR') : 'N/A'}
+            </p>
+        </div>
+        {selectedPatient.bloodType && (
+            <div className="bg-red-50 border-2 border-red-100 px-4 py-3 rounded-2xl flex flex-col items-center justify-center min-w-[80px]">
+                <Droplet className="text-red-500 mb-1" size={20} fill="currentColor" />
+                <span className="text-xs text-red-400 font-bold uppercase tracking-wider">Tipo</span>
+                <span className="text-xl font-black text-red-700">{selectedPatient.bloodType}</span>
+            </div>
+        )}
+    </div>
+
+    {/* 2. WARNINGS (Allergies & Conditions) */}
+    <div className="space-y-3">
+        {selectedPatient.allergies && (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex gap-3">
+                <AlertTriangle className="text-amber-600 shrink-0 mt-0.5" size={24} />
+                <div>
+                    <h4 className="font-bold text-amber-800 uppercase text-xs tracking-wider mb-1">Alergias & Intolerâncias</h4>
+                    <p className="font-bold text-amber-900 text-lg leading-snug">
+                        {selectedPatient.allergies}
+                    </p>
+                </div>
+            </div>
+        )}
+
+        {selectedPatient.condition && (
+            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                <h4 className="font-bold text-blue-800 uppercase text-xs tracking-wider mb-1">Condição Médica Principal</h4>
+                <p className="font-bold text-blue-900 text-lg">
+                    {selectedPatient.condition}
+                </p>
+            </div>
+        )}
+    </div>
+
+    {/* 3. Medication List */}
+    <div>
+        <h3 className="font-bold text-slate-900 border-b pb-2 mb-4 flex items-center justify-between">
+            <span>Medicamentos em Uso ({activePrescriptions.length})</span>
+            <span className="text-xs font-normal text-slate-500 bg-slate-100 px-2 py-1 rounded">Atualizado: {new Date().toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+        </h3>
+
+        {activePrescriptions.length === 0 ? (
+            <p className="text-slate-400 italic text-center py-4">Nenhum medicamento ativo registrado.</p>
+        ) : (
+            <div className="grid gap-3">
+                {activePrescriptions.map(presc => {
+                    const med = useApp().medications.find(m => m.id === presc.medicationId);
+                    return (
+                        <div key={presc.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-100">
+                            <div>
+                                <p className="font-bold text-slate-900">
+                                    {med ? med.name : 'Medicamento Desconhecido'}
+                                    <span className="text-slate-500 font-normal ml-2 text-sm">
+                                        {med?.dosage}
+                                    </span>
+                                </p>
+                                <p className="text-sm text-slate-600 mt-0.5">
+                                    {presc.frequency}
+                                    {presc.continuousUse && <span className="text-blue-600 font-bold ml-2 text-xs bg-blue-50 px-1.5 rounded">Uso Contínuo</span>}
+                                </p>
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+        )}
+    </div>
+
+    {/* 4. Contact Info */}
+    <div className="bg-slate-900 text-slate-300 rounded-xl p-4 mt-6 print:bg-slate-100 print:text-black">
+        <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3 print:text-black">Responsável / Cuidador</h4>
+        <div className="flex items-center gap-3">
+            <div className="bg-slate-800 p-2.5 rounded-full print:bg-white print:border">
+                <UserIcon user={user} />
+            </div>
+            <div>
+                <p className="font-bold text-white text-lg print:text-black">
+                    {user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Usuário'}
+                </p>
+                <p className="text-slate-400 text-sm print:text-slate-600">
+                    {user?.email}
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div>
 
 {/* Footer Actions */ }
 <div className="p-4 border-t border-slate-100 bg-slate-50 flex flex-col md:flex-row gap-3 print:hidden">
