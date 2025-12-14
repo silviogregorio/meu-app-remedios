@@ -1,7 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useApp } from '../../context/AppContext';
-import { Heart, AlertTriangle, Phone, Printer, X, Droplet } from 'lucide-react';
+import { Heart, AlertTriangle, Phone, Printer, X, Droplet, Mail, MessageCircle } from 'lucide-react';
 import Button from '../ui/Button';
 
 const SOSCard = ({ onClose }) => {
@@ -39,181 +39,192 @@ const SOSCard = ({ onClose }) => {
         return p.endDate >= today;
     });
 
-    const handlePrint = () => {
-        window.print();
+    const [emailModalOpen, setEmailModalOpen] = React.useState(false);
+    const [emailAddress, setEmailAddress] = React.useState('');
+    const [sendingEmail, setSendingEmail] = React.useState(false);
+    const [generatingPDF, setGeneratingPDF] = React.useState(false);
+    const { showToast } = useApp();
+
+    const handleEmail = () => {
+        setEmailModalOpen(true);
     };
 
-    if (!selectedPatient) return null;
+    const sendSOSViaEmail = async (e) => {
+        e.preventDefault();
+        setSendingEmail(true);
 
-    const content = (
-        <div className="sos-portal fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm animate-in fade-in duration-200 print:bg-white print:static print:p-0">
-            <div className="bg-white rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl relative print:shadow-none print:w-full print:max-w-none">
+        try {
+            // Prepare Data for Email Template
+            const medicationsList = activePrescriptions.map(p => {
+                const med = useApp().medications.find(m => m.id === p.medicationId);
+                return `• ${med?.name || 'Medicamento'} (${med?.dosage || ''}) - ${p.frequency}`;
+            }).join('<br>');
 
-                {/* Header Vermelho de Emergência */}
-                <div className="bg-red-600 p-6 text-white flex justify-between items-start print:bg-white print:text-black print:border-b-2 print:border-black">
-                    <div>
-                        <div className="flex items-center gap-2 mb-1">
-                            <div className="bg-white/20 p-2 rounded-full backdrop-blur-sm">
-                                <Heart className="text-white fill-white" size={24} />
-                            </div>
-                            <h2 className="text-2xl font-black tracking-wider border-2 border-white/30 px-3 py-1 rounded-lg bg-red-700/50 print:border-black print:text-black print:bg-transparent">
-                                SOS MÉDICO
-                            </h2>
-                        </div>
-                        <p className="text-red-100 text-sm font-medium mt-1 print:text-slate-600">
-                            Apresente esta tela em caso de emergência.
-                        </p>
-                    </div>
-                    <button
-                        onClick={onClose}
-                        className="bg-white/10 hover:bg-white/20 p-2 rounded-full transition-colors print:hidden"
-                    >
-                        <X size={24} />
-                    </button>
-                </div>
+            const sosData = {
+                patientName: selectedPatient.name,
+                bloodType: selectedPatient.bloodType,
+                allergies: selectedPatient.allergies,
+                conditions: selectedPatient.condition,
+                medications: medicationsList,
+                contacts: [{ name: 'Responsável', phone: user?.phone || 'Ver app' }], // Basic contact info
+                observations: 'Gerado via SOS Digital'
+            };
 
-                <div className="p-0 overflow-y-auto max-h-[80vh] print:max-h-none print:overflow-visible">
+            const response = await fetch('/api/send-email', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${(await useApp().supabase.auth.getSession()).data.session?.access_token}`
+                },
+                body: JSON.stringify({
+                    to: emailAddress,
+                    subject: `🚨 SOS Médico: ${selectedPatient.name}`,
+                    text: `Informações de emergência de ${selectedPatient.name}.`,
+                    type: 'sos',
+                    sosData: sosData
+                })
+            });
 
-                    {/* Patient Selector (if multiple) - Hidden on Print */}
-                    {patients.length > 1 && (
-                        <div className="flex gap-2 p-4 overflow-x-auto bg-slate-50 border-b border-slate-100 print:hidden">
-                            {patients.map(p => (
-                                <button
-                                    key={p.id}
-                                    onClick={() => setSelectedPatientId(p.id)}
-                                    className={`
-                                        px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-all
-                                        ${selectedPatientId === p.id
-                                            ? 'bg-red-600 text-white shadow-md transform scale-105'
-                                            : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'
-                                        }
-                                    `}
-                                >
-                                    {p.name}
-                                </button>
-                            ))}
-                        </div>
-                    )}
+            if (response.ok) {
+                showToast('Email de SOS enviado com sucesso!', 'success');
+                setEmailModalOpen(false);
+                setEmailAddress('');
+            } else {
+                throw new Error('Falha no envio');
+            }
+        } catch (error) {
+            console.error(error);
+            showToast('Erro ao enviar email.', 'error');
+        } finally {
+            setSendingEmail(false);
+        }
+    };
 
-                    <div className="p-6 space-y-6" ref={printRef}>
+    const handleWhatsApp = async () => {
+        setGeneratingPDF(true);
+        try {
+            const html2canvas = (await import('html2canvas')).default;
+            const { jsPDF } = await import('jspdf');
 
-                        {/* 1. Patient Info */}
-                        <div className="flex items-start justify-between gap-4">
-                            <div>
-                                <h1 className="text-3xl font-bold text-slate-900 mb-1 leading-tight">
-                                    {selectedPatient.name}
-                                </h1>
-                                <p className="text-slate-500 font-medium">
-                                    Nascimento: {selectedPatient.birthDate ? new Date(selectedPatient.birthDate).toLocaleDateString('pt-BR') : 'N/A'}
-                                </p>
-                            </div>
-                            {selectedPatient.bloodType && (
-                                <div className="bg-red-50 border-2 border-red-100 px-4 py-3 rounded-2xl flex flex-col items-center justify-center min-w-[80px]">
-                                    <Droplet className="text-red-500 mb-1" size={20} fill="currentColor" />
-                                    <span className="text-xs text-red-400 font-bold uppercase tracking-wider">Tipo</span>
-                                    <span className="text-xl font-black text-red-700">{selectedPatient.bloodType}</span>
-                                </div>
-                            )}
-                        </div>
+            const canvas = await html2canvas(printRef.current, {
+                scale: 2,
+                backgroundColor: '#ffffff',
+                useCORS: true // Handle images if any
+            });
 
-                        {/* 2. WARNINGS (Allergies & Conditions) */}
-                        <div className="space-y-3">
-                            {selectedPatient.allergies && (
-                                <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex gap-3">
-                                    <AlertTriangle className="text-amber-600 shrink-0 mt-0.5" size={24} />
-                                    <div>
-                                        <h4 className="font-bold text-amber-800 uppercase text-xs tracking-wider mb-1">Alergias & Intolerâncias</h4>
-                                        <p className="font-bold text-amber-900 text-lg leading-snug">
-                                            {selectedPatient.allergies}
-                                        </p>
-                                    </div>
-                                </div>
-                            )}
+            const imgData = canvas.toDataURL('image/png');
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
 
-                            {selectedPatient.condition && (
-                                <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-                                    <h4 className="font-bold text-blue-800 uppercase text-xs tracking-wider mb-1">Condição Médica Principal</h4>
-                                    <p className="font-bold text-blue-900 text-lg">
-                                        {selectedPatient.condition}
-                                    </p>
-                                </div>
-                            )}
-                        </div>
+            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
 
-                        {/* 3. Medication List */}
-                        <div>
-                            <h3 className="font-bold text-slate-900 border-b pb-2 mb-4 flex items-center justify-between">
-                                <span>Medicamentos em Uso ({activePrescriptions.length})</span>
-                                <span className="text-xs font-normal text-slate-500 bg-slate-100 px-2 py-1 rounded">Atualizado: {new Date().toLocaleDateString()}</span>
-                            </h3>
+            // Try Native Share with File (Mobile)
+            const blob = pdf.output('blob');
+            const file = new File([blob], `SOS_${selectedPatient.name.replace(/\s+/g, '_')}.pdf`, { type: 'application/pdf' });
 
-                            {activePrescriptions.length === 0 ? (
-                                <p className="text-slate-400 italic text-center py-4">Nenhum medicamento ativo registrado.</p>
-                            ) : (
-                                <div className="grid gap-3">
-                                    {activePrescriptions.map(presc => {
-                                        const med = useApp().medications.find(m => m.id === presc.medicationId);
-                                        return (
-                                            <div key={presc.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-100">
-                                                <div>
-                                                    <p className="font-bold text-slate-900">
-                                                        {med ? med.name : 'Medicamento Desconhecido'}
-                                                        <span className="text-slate-500 font-normal ml-2 text-sm">
-                                                            {med?.dosage}
-                                                        </span>
-                                                    </p>
-                                                    <p className="text-sm text-slate-600 mt-0.5">
-                                                        {presc.frequency}
-                                                        {presc.continuousUse && <span className="text-blue-600 font-bold ml-2 text-xs bg-blue-50 px-1.5 rounded">Uso Contínuo</span>}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            )}
-                        </div>
+            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                await navigator.share({
+                    files: [file],
+                    title: `SOS Médico - ${selectedPatient.name}`,
+                    text: 'Segue ficha médica de emergência.'
+                });
+                showToast('PDF compartilhado!', 'success');
+            } else {
+                // Determine if we are on a mobile device where we want to trigger WhatsApp specifically?
+                // Actually, if Web Share fails, we download it and tell user to send.
+                // Or we can try to "Open" it.
+                // For "WhatsApp", usually a link is needed, but we can't send files via 'wa.me' link easily without uploading first.
+                // So "Download" is the robust fallback.
+                pdf.save(`SOS_${selectedPatient.name}.pdf`);
+                showToast('PDF baixado! Envie pelo WhatsApp.', 'info');
 
-                        {/* 4. Contact Info */}
-                        <div className="bg-slate-900 text-slate-300 rounded-xl p-4 mt-6 print:bg-slate-100 print:text-black">
-                            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3 print:text-black">Responsável / Cuidador</h4>
-                            <div className="flex items-center gap-3">
-                                <div className="bg-slate-800 p-2.5 rounded-full print:bg-white print:border">
-                                    <UserIcon user={user} />
-                                </div>
-                                <div>
-                                    <p className="font-bold text-white text-lg print:text-black">
-                                        {user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Usuário'}
-                                    </p>
-                                    <p className="text-slate-400 text-sm print:text-slate-600">
-                                        {user?.email}
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
+                // Optional: Open WhatsApp Web with text, but file must be attached manually
+                // window.open(`https://wa.me/?text=Estou%20enviando%20minha%20ficha%20médica%20(anexo).`, '_blank');
+            }
 
-                    </div>
-                </div>
-
-                {/* Footer Actions */}
-                <div className="p-4 border-t border-slate-100 bg-slate-50 flex gap-3 print:hidden">
-                    <Button variant="outline" className="flex-1" onClick={onClose}>
-                        Fechar
-                    </Button>
-                    <Button
-                        className="flex-1 bg-slate-900 hover:bg-slate-800 text-white shadow-lg"
-                        onClick={handlePrint}
-                    >
-                        <Printer size={18} className="mr-2" />
-                        Imprimir / PDF
-                    </Button>
-                </div>
-            </div>
-        </div>
-    );
+        } catch (error) {
+            console.error(error);
+            showToast('Erro ao gerar PDF.', 'error');
+        } finally {
+            setGeneratingPDF(false);
+        }
+    };
 
     return createPortal(content, document.body);
 };
+
+
+// ... (Existing Render) ...
+
+{/* Footer Actions */ }
+<div className="p-4 border-t border-slate-100 bg-slate-50 flex flex-col md:flex-row gap-3 print:hidden">
+    <Button variant="outline" onClick={onClose} className="md:w-auto w-full order-last md:order-first">
+        Fechar
+    </Button>
+
+    <div className="flex gap-2 w-full md:w-auto flex-1 justify-end">
+        <Button
+            className="flex-1 md:flex-none bg-indigo-600 hover:bg-indigo-700 text-white"
+            onClick={handleEmail}
+        >
+            <Mail size={18} className="mr-2" />
+            Email
+        </Button>
+        <Button
+            className="flex-1 md:flex-none bg-green-600 hover:bg-green-700 text-white"
+            onClick={handleWhatsApp}
+            disabled={generatingPDF}
+        >
+            {generatingPDF ? 'Gerando...' : (
+                <>
+                    <MessageCircle size={18} className="mr-2" />
+                    WhatsApp / PDF
+                </>
+            )}
+        </Button>
+        <Button
+            className="flex-1 md:flex-none bg-slate-900 hover:bg-slate-800 text-white shadow-lg"
+            onClick={handlePrint}
+        >
+            <Printer size={18} className="mr-2" />
+            Imprimir
+        </Button>
+    </div>
+</div>
+
+{/* Email Modal Overlay */ }
+{
+    emailModalOpen && (
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/50 p-4">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 animate-in zoom-in-95">
+                <h3 className="text-xl font-bold text-slate-900 mb-2">Enviar SOS por Email</h3>
+                <p className="text-sm text-slate-500 mb-4">Enviaremos este cartão com formatação profissional.</p>
+                <form onSubmit={sendSOSViaEmail}>
+                    <input
+                        type="email"
+                        required
+                        placeholder="Email do destinatário"
+                        className="w-full px-4 py-3 rounded-xl border border-slate-300 mb-4 focus:ring-2 focus:ring-indigo-500 outline-none"
+                        value={emailAddress}
+                        onChange={e => setEmailAddress(e.target.value)}
+                    />
+                    <div className="flex gap-3">
+                        <Button type="button" variant="ghost" className="flex-1" onClick={() => setEmailModalOpen(false)}>
+                            Cancelar
+                        </Button>
+                        <Button type="submit" className="flex-1 bg-indigo-600 text-white" disabled={sendingEmail}>
+                            {sendingEmail ? 'Enviando...' : 'Enviar'}
+                        </Button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    )
+}
+            </div >
+        </div >
+    );
 
 // Helper for user icon
 const UserIcon = () => (

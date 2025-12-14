@@ -195,31 +195,116 @@ export default async function handler(request, response) {
                     </div>
                 </div>
             `;
+      `;
+    } else if (type === 'sos') {
+        const { patientName, conditions, allergies, medications, bloodType, contacts, observations } = request.body.sosData || {};
+
+        htmlContent = `
+        < div style = "font-family: 'Segoe UI', sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; border: 2px solid #ef4444; box-shadow: 0 4px 15px rgba(239, 68, 68, 0.15);" >
+                
+                < !--Red Emergency Header-- >
+                <div style="background-color: #ef4444; color: white; padding: 25px; text-align: center;">
+                    <h1 style="margin: 0; font-size: 28px; text-transform: uppercase; letter-spacing: 1px;">🆘 Emergência Médica</h1>
+                    <p style="margin: 5px 0 0; opacity: 0.9; font-size: 16px;">Cartão de Informações Vitais</p>
+                </div>
+
+                <div style="padding: 30px;">
+                    
+                    <!-- Patient Warning -->
+                    <div style="text-align: center; margin-bottom: 30px;">
+                        <h2 style="margin: 0 0 5px; color: #1e293b; font-size: 24px;">${patientName}</h2>
+                        ${bloodType ? `<span style="background: #fee2e2; color: #b91c1c; padding: 5px 15px; border-radius: 20px; font-weight: bold; font-size: 14px; display: inline-block;">Tipo Sanguíneo: ${bloodType}</span>` : ''}
+                    </div>
+
+                    <!-- Conditions & Allergies Grid -->
+                    <div style="display: grid; grid-template-columns: 1fr; gap: 20px; margin-bottom: 25px;">
+                        
+                        <!-- Condições -->
+                        <div style="background: #f8fafc; padding: 15px; border-radius: 8px; border-left: 4px solid #3b82f6;">
+                            <h3 style="margin-top: 0; color: #3b82f6; font-size: 14px; text-transform: uppercase; display: flex; align-items: center;">
+                                🏥 Condições de Saúde
+                            </h3>
+                            <p style="color: #334155; margin: 5px 0; font-weight: 500;">
+                                ${conditions || 'Nenhuma registrada'}
+                            </p>
+                        </div>
+
+                        <!-- Alergias -->
+                        <div style="background: #fef2f2; padding: 15px; border-radius: 8px; border-left: 4px solid #ef4444;">
+                            <h3 style="margin-top: 0; color: #ef4444; font-size: 14px; text-transform: uppercase;">
+                                ⚠️ Alergias
+                            </h3>
+                            <p style="color: #334155; margin: 5px 0; font-weight: bold;">
+                                ${allergies || 'Nenhuma registrada'}
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Contacts -->
+                    <div style="margin-bottom: 25px; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px;">
+                        <h3 style="margin-top: 0; color: #64748b; font-size: 14px; text-transform: uppercase; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px; margin-bottom: 10px;">
+                            📞 Contatos de Emergência
+                        </h3>
+                         ${contacts && contacts.length > 0 ?
+                contacts.map(c => `
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px;">
+                                    <strong style="color: #1e293b;">${c.name}</strong>
+                                    <span style="color: #ef4444; font-weight: bold;">${c.phone}</span>
+                                </div>
+                            `).join('')
+                : '<p style="margin:0; color:#94a3b8; font-style:italic;">Nenhum contato cadastrado.</p>'}
+                    </div>
+
+                    <!-- Medications -->
+                    <div style="margin-bottom: 20px;">
+                        <h3 style="margin-top: 0; color: #64748b; font-size: 14px; text-transform: uppercase;">
+                            💊 Medicamentos em Uso
+                        </h3>
+                        <div style="background: #f0fdfa; padding: 15px; border-radius: 8px; color: #0f766e; font-size: 14px; margin-top: 5px;">
+                            ${medications || 'Nenhum medicamento registrado.'}
+                        </div>
+                    </div>
+                    
+                    ${observations ? `
+                    <div style="background: #fffbeb; padding: 15px; border-radius: 8px; border: 1px dashed #f59e0b; font-size: 13px; color: #92400e;">
+                        <strong>Nota:</strong> ${observations}
+                    </div>` : ''}
+
+                </div>
+
+                <!--Footer -->
+        <div style="background-color: #f8fafc; padding: 15px; text-align: center; font-size: 12px; color: #94a3b8; border-top: 1px solid #e2e8f0;">
+          Gerado via SiG Remédios App • Documento de caráter informativo.
+        </div>
+            </div >
+        `;
     } else {
       // Default / Report
       htmlContent = `
-                <div style="font-family: sans-serif; padding: 20px; color: #333;">
+        < div style = "font-family: sans-serif; padding: 20px; color: #333;" >
                     <h2>${subject}</h2>
                     <p>${text.replace(/\n/g, '<br>')}</p>
-                    ${observations ? `<p><strong>Observações:</strong> ${observations}</p>` : ''}
+                    ${ observations ? `<p><strong>Observações:</strong> ${observations}</p>` : '' }
                     
-                    ${attachments && attachments.length > 0 ?
-          '<p style="background: #f0fdfa; color: #0f766e; padding: 10px; border-radius: 6px; display: inline-block;">📎 Este email contém um anexo (PDF).</p>'
-          : ''}
+                    ${
+        attachments && attachments.length > 0 ?
+        '<p style="background: #f0fdfa; color: #0f766e; padding: 10px; border-radius: 6px; display: inline-block;">📎 Este email contém um anexo (PDF).</p>'
+        : ''
+      }
 
-                    <div style="margin-top: 30px; font-size: 12px; color: #888; border-top: 1px solid #eee; padding-top: 10px;">
-                        Enviado via SiG Remédios
-                    </div>
-                </div>
-            `;
+      <div style="margin-top: 30px; font-size: 12px; color: #888; border-top: 1px solid #eee; padding-top: 10px;">
+        Enviado via SiG Remédios
+      </div>
+                </div >
+        `;
     }
 
     const mailOptions = {
-      from: `"SiG Remédios" <${process.env.SMTP_USER}>`,
+      from: `"SiG Remédios" < ${ process.env.SMTP_USER }> `,
       to,
       subject,
       html: htmlContent,
-      text: `${text}\n\n${observations || ''}\n\nAcesse: ${appUrl}`,
+      text: `${ text } \n\n${ observations || '' } \n\nAcesse: ${ appUrl } `,
       attachments
     };
 
