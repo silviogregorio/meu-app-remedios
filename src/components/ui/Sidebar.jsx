@@ -106,8 +106,12 @@ const Sidebar = ({ isOpen, onClose, isPinned, onTogglePin }) => {
                                                 : "text-slate-600 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-200"
                                         )}
                                     >
-                                        <Icon size={20} className={clsx(isActive ? "text-[#10b981]" : "text-slate-400")} />
-                                        <span>{label}</span>
+                                        {({ isActive }) => (
+                                            <>
+                                                <Icon size={20} className={clsx(isActive ? "text-[#10b981]" : "text-slate-400")} />
+                                                <span>{label}</span>
+                                            </>
+                                        )}
                                     </NavLink>
                                 ))}
                             </div>
