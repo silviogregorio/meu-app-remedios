@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Users, Bell, ArrowRight, Activity, Heart, Send, CheckCircle2, AlertCircle, Smartphone, Rocket, Zap, Globe, Layers, Instagram, Facebook, Youtube, MessageCircle, Video, BookOpen, LifeBuoy, FileText, Pill, Shield, Calendar, Download, Printer, Share2, Lock } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import confetti from 'canvas-confetti';
+import { getApiEndpoint } from '../config/api';
 
 
 const Landing = () => {
@@ -116,9 +117,7 @@ const Landing = () => {
         setContactStatus(null);
 
         try {
-            const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-
-            const response = await fetch(`${API_URL}/api/send-email`, {
+            const response = await fetch(getApiEndpoint('/api/send-email'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
