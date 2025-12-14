@@ -534,7 +534,7 @@ const Prescriptions = () => {
                                         </div>
 
                                         {/* Actions */}
-                                        <div className="flex md:flex-col gap-2 border-t md:border-t-0 md:border-l border-slate-50 pt-4 md:pt-0 md:pl-6 mt-2 md:mt-0 justify-end">
+                                        <div className="flex flex-row gap-2 border-t md:border-t-0 pt-4 md:pt-0 mt-4 md:mt-0 justify-end items-center md:ml-auto">
                                             {patients.find(p => p.id === prescription.patientId)?.userId === user?.id ? (
                                                 <>
                                                     {/* Calendar Export Button */}
@@ -542,7 +542,7 @@ const Prescriptions = () => {
                                                         <Button
                                                             variant="ghost"
                                                             size="sm"
-                                                            className="flex-1 md:flex-none justify-start text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700"
+                                                            className="text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700 px-3"
                                                             onClick={() => {
                                                                 const med = medications.find(m => m.id === prescription.medicationId);
                                                                 const pat = patients.find(p => p.id === prescription.patientId);
@@ -572,26 +572,29 @@ const Prescriptions = () => {
 
                                                                 showToast('Abrindo Google Calendar...', 'success');
                                                             }}
+                                                            title="Adicionar ao Calendário"
                                                         >
-                                                            <Calendar size={18} className="mr-2" /> Calendário
+                                                            <Calendar size={18} />
                                                         </Button>
                                                     </div>
 
                                                     <Button
                                                         variant="ghost"
                                                         size="sm"
-                                                        className="flex-1 md:flex-none justify-start text-slate-600 hover:text-primary"
+                                                        className="text-slate-600 hover:text-primary px-3"
                                                         onClick={() => handleEdit(prescription)}
+                                                        title="Editar"
                                                     >
-                                                        <Edit2 size={18} className="mr-2" /> Editar
+                                                        <Edit2 size={18} />
                                                     </Button>
                                                     <Button
                                                         variant="ghost"
                                                         size="sm"
-                                                        className="flex-1 md:flex-none justify-start text-rose-500 hover:bg-rose-50 hover:text-rose-600"
+                                                        className="text-rose-500 hover:bg-rose-50 hover:text-rose-600 px-3"
                                                         onClick={() => handleDeleteClick(prescription.id)}
+                                                        title="Excluir"
                                                     >
-                                                        <Trash2 size={18} className="mr-2" /> Excluir
+                                                        <Trash2 size={18} />
                                                     </Button>
                                                 </>
                                             ) : (
