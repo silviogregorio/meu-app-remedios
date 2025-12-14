@@ -1,4 +1,5 @@
-import React, { useRef } from 'react';
+import React, { useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useApp } from '../../context/AppContext';
 import { Heart, AlertTriangle, Phone, Printer, X, Droplet } from 'lucide-react';
 import Button from '../ui/Button';
@@ -6,6 +7,14 @@ import Button from '../ui/Button';
 const SOSCard = ({ onClose }) => {
     const { patients, prescriptions, user } = useApp();
     const printRef = useRef();
+
+    // Add class to body when mounted to handle print styles
+    useEffect(() => {
+        document.body.classList.add('printing-sos');
+        return () => {
+            document.body.classList.remove('printing-sos');
+        };
+    }, []);
 
     // Filter patients explicitly owned by user or shared with high permissions?
     // For SOS, we show ALL accessible patients because the user might be the caregiver looking for info.
@@ -34,14 +43,10 @@ const SOSCard = ({ onClose }) => {
         window.print();
     };
 
-    if (!selectedPatient) return (
-        <div className="p-6 text-center">
-            <p>Nenhum paciente encontrado para exibir.</p>
-        </div>
-    );
+    if (!selectedPatient) return null;
 
-    return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm animate-in fade-in duration-200 print:bg-white print:static print:p-0">
+    const content = (
+        <div className="sos-portal fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm animate-in fade-in duration-200 print:bg-white print:static print:p-0">
             <div className="bg-white rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl relative print:shadow-none print:w-full print:max-w-none">
 
                 {/* Header Vermelho de Emergência */}
@@ -147,15 +152,6 @@ const SOSCard = ({ onClose }) => {
                             ) : (
                                 <div className="grid gap-3">
                                     {activePrescriptions.map(presc => {
-                                        // Find Medication Name (needs access to medications list which we have via context? 
-                                        // Wait, prescription object usually has just ID. We need to lookup or use enriched data.
-                                        // PrescriptionService transforms don't verify medication name. 
-                                        // We need `medications` from context.
-                                        // Let's grab `medications` from context at top.
-                                        // See line 6.
-                                        // But we need to use it here.
-                                    })}
-                                    {activePrescriptions.map(presc => {
                                         const med = useApp().medications.find(m => m.id === presc.medicationId);
                                         return (
                                             <div key={presc.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-100">
@@ -215,6 +211,8 @@ const SOSCard = ({ onClose }) => {
             </div>
         </div>
     );
+
+    return createPortal(content, document.body);
 };
 
 // Helper for user icon

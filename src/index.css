@@ -184,4 +184,13 @@ textarea {
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
+
+  /* SOS Portal Handling */
+  body.printing-sos>#root {
+    display: none !important;
+  }
+
+  body.printing-sos .sos-portal {
+    display: block !important;
+  }
 }
