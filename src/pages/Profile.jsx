@@ -26,6 +26,7 @@ const Profile = () => {
     const [editForm, setEditForm] = useState({
         name: user?.user_metadata?.full_name || '',
         email: user?.email || '',
+        phone: user?.user_metadata?.phone || '',
         currentPassword: '' // Para validar alteração de email
     });
     const [passwordForm, setPasswordForm] = useState({
@@ -56,21 +57,25 @@ const Profile = () => {
                 setPendingEmailChange({
                     newEmail: editForm.email,
                     password: editForm.currentPassword,
-                    name: editForm.name
+                    name: editForm.name,
+                    phone: editForm.phone // Keep phone in pending state
                 });
                 setShowEmailConfirmModal(true);
                 return; // Para aqui e espera confirmação
             }
 
-            // Se não mudou email, só atualiza nome
+            // Se não mudou email, atualiza nome e telefone (metadata)
             setIsSaving(true);
             try {
                 const { error } = await supabase.auth.updateUser({
-                    data: { full_name: editForm.name }
+                    data: {
+                        full_name: editForm.name,
+                        phone: editForm.phone
+                    }
                 });
 
                 if (error) {
-                    showToast('Erro ao atualizar nome: ' + error.message, 'error');
+                    showToast('Erro ao atualizar perfil: ' + error.message, 'error');
                     return;
                 }
             } catch (error) {
@@ -352,6 +357,14 @@ const Profile = () => {
                         value={editForm.email}
                         onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
                         placeholder="seu@email.com"
+                    />
+
+                    <Input
+                        label="Telefone / Celular (Opcional)"
+                        type="tel"
+                        value={editForm.phone}
+                        onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                        placeholder="(11) 99999-9999"
                     />
 
 

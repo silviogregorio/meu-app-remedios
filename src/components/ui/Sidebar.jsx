@@ -13,7 +13,7 @@ const Sidebar = ({ isOpen, onClose, isPinned, onTogglePin }) => {
             title: 'Dia a Dia',
             items: [
                 { path: '/app', icon: Home, label: 'Início' },
-                { path: '/diary', icon: Heart, label: 'Diário' },
+                { path: '/diary', icon: Heart, label: 'Sinais Vitais Diários' },
                 { path: '/reports', icon: FileText, label: 'Relatórios' },
             ]
         },

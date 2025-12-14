@@ -104,6 +104,31 @@ textarea {
   line-height: 1.5 !important;
 }
 
+/* Custom Shake Animation */
+@keyframes shake {
+
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  25% {
+    transform: translateX(-2px) rotate(-1deg);
+  }
+
+  50% {
+    transform: translateX(2px) rotate(1deg);
+  }
+
+  75% {
+    transform: translateX(-2px) rotate(-1deg);
+  }
+}
+
+.hover\:animate-shake:hover {
+  animation: shake 0.4s ease-in-out;
+}
+
 /* Print Styles */
 @media print {
 

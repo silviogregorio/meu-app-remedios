@@ -4,14 +4,15 @@ import Card, { CardHeader, CardContent } from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Modal from '../components/ui/Modal';
-import { Heart, Activity, Thermometer, Weight, Plus, Trash2, Calendar, FileText, Mail, Printer, MessageCircle, Pill } from 'lucide-react';
+import { Heart, Activity, Thermometer, Weight, Plus, Trash2, Calendar, FileText, Mail, Printer, MessageCircle, Pill, Edit } from 'lucide-react';
 import { formatDate, formatDateTime, formatTime } from '../utils/dateFormatter';
 import { generatePDFHealthDiary } from '../utils/pdfGenerator';
 import { format } from 'date-fns';
 import { supabase } from '../lib/supabase';
-import CalendarView from '../components/features/CalendarView'; // Import CalendarView
-import { useNavigate } from 'react-router-dom'; // For navigation
-
+import CalendarView from '../components/features/CalendarView';
+import Pagination from '../components/ui/Pagination';
+import { useNavigate } from 'react-router-dom';
+import confetti from 'canvas-confetti';
 import {
     LineChart,
     Line,
@@ -20,34 +21,75 @@ import {
     CartesianGrid,
     Tooltip,
     Legend,
-    ResponsiveContainer,
-    ReferenceLine
+    ResponsiveContainer
 } from 'recharts';
 
-
 const HealthDiary = () => {
-    // Add prescriptions and consumptionLog to destructured values
-    const { patients, healthLogs, addHealthLog, deleteHealthLog, user, showToast, prescriptions, consumptionLog } = useApp();
+    const { patients, healthLogs, addHealthLog, updateHealthLog, deleteHealthLog, user, showToast, prescriptions, consumptionLog } = useApp();
     const navigate = useNavigate();
 
     const [showForm, setShowForm] = useState(false);
     const [activeTab, setActiveTab] = useState('adherence'); // 'adherence' | 'list' | 'charts'
     const [selectedPatientId, setSelectedPatientId] = useState('all');
     const [filterCategory, setFilterCategory] = useState('all');
+    const [currentPage, setCurrentPage] = useState(1);
+    const ITEMS_PER_PAGE = 6;
+
+    const [viewDate, setViewDate] = useState(null);
+    const [editingLogId, setEditingLogId] = useState(null);
+
+    const handleEdit = (log) => {
+        // Convert stored UTC/ISO date to Local format for input (YYYY-MM-DDTHH:mm)
+        // new Date(log.measured_at) creates a date object in local time
+        // format(...) returns the local string representation
+        const localDateString = format(new Date(log.measured_at), "yyyy-MM-dd'T'HH:mm");
+
+        setFormData({
+            patientId: log.patient_id,
+            category: log.category,
+            value: log.value,
+            valueSecondary: log.value_secondary || '',
+            measuredAt: localDateString,
+            notes: log.notes || ''
+        });
+        setEditingLogId(log.id);
+        setShowForm(true);
+    };
 
     // Email State
     const [showEmailModal, setShowEmailModal] = useState(false);
     const [emailData, setEmailData] = useState({ to: '', observations: '' });
     const [sendingEmail, setSendingEmail] = useState(false);
 
+    // Delete Confirmation State
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [logToDelete, setLogToDelete] = useState(null);
+
+    const handleDeleteClick = (id) => {
+        setLogToDelete(id);
+        setShowDeleteModal(true);
+    };
+
+    const confirmDelete = async () => {
+        if (logToDelete) {
+            await deleteHealthLog(logToDelete);
+            setShowDeleteModal(false);
+            setLogToDelete(null);
+        }
+    };
+
+
+
     const [formData, setFormData] = useState({
         patientId: '',
         category: 'pressure',
         value: '',
         valueSecondary: '',
-        measuredAt: new Date().toISOString().slice(0, 16), // YYYY-MM-DDTHH:mm
+        measuredAt: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
         notes: ''
     });
+
+    const maxDate = format(new Date(), "yyyy-MM-dd'T'HH:mm");
 
     const categories = [
         { id: 'pressure', label: 'Pressão Arterial', unit: 'mmHg', icon: Heart, color: '#ef4444' },
@@ -65,14 +107,33 @@ const HealthDiary = () => {
             showToast('Selecione um paciente', 'error');
             return;
         }
-        await addHealthLog(formData);
+
+        if (new Date(formData.measuredAt) > new Date()) {
+            showToast('A data não pode ser futura.', 'error');
+            return;
+        }
+
+        // Convert Local Input String to UTC ISO String for Storage
+        // valid local string: "2025-12-14T20:33" -> new Date() -> Local Date Obj -> toISOString() -> UTC
+        const payload = {
+            ...formData,
+            measuredAt: new Date(formData.measuredAt).toISOString()
+        };
+
+        if (editingLogId) {
+            await updateHealthLog(editingLogId, payload);
+            setEditingLogId(null);
+        } else {
+            await addHealthLog(payload);
+        }
+
         setShowForm(false);
         setFormData({
             patientId: '',
             category: 'pressure',
             value: '',
             valueSecondary: '',
-            measuredAt: new Date().toISOString().slice(0, 16),
+            measuredAt: format(new Date(), "yyyy-MM-dd'T'HH:mm"), // Reset to current local time
             notes: ''
         });
     };
@@ -83,83 +144,111 @@ const HealthDiary = () => {
         return matchPatient && matchCategory;
     });
 
-    // Chart Data Preparation
     const getChartData = () => {
-        // Group by date and sort
         const data = [...filteredLogs].sort((a, b) => new Date(a.measured_at) - new Date(b.measured_at));
         return data.map(log => ({
             date: formatDateTime(log.measured_at),
             timestamp: new Date(log.measured_at).getTime(),
             value: log.value,
-            valueSecond: log.value_secondary, // For Diastolic
+            valueSecond: log.value_secondary,
             category: log.category,
             notes: log.notes
         }));
     };
 
-    // --- Email & Report Logic ---
+    // Pagination Logic
+    const totalPages = Math.ceil(filteredLogs.length / ITEMS_PER_PAGE);
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const paginatedLogs = filteredLogs.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+
     const generateHealthReportText = () => {
-        let text = '*DIARIO DE SAUDE - RELATORIO*\n\n';
+        console.log('Generating WhatsApp message. filteredLogs:', filteredLogs.length, 'logs');
+        let text = '*DIÁRIO DE SAÚDE*\n';
+        text += '========================\n';
         if (selectedPatientId !== 'all') {
             const p = patients.find(pat => pat.id === selectedPatientId);
-            text += `Paciente: ${p?.name}\n`;
+            text += `*Paciente:* *_${p?.name}_*\n`;
         }
-        text += '\n';
 
-        filteredLogs.slice(0, 30).forEach(log => {
-            const info = getCategoryInfo(log.category);
-            let val = `${log.value}`;
-            if (log.value_secondary) val += ` / ${log.value_secondary}`;
-            val += ` ${info.unit}`;
+        text += `*Gerado em:* ${formatDateTime(new Date())}\n`;
+        text += `*Total de registros:* ${filteredLogs.length}\n`;
+        text += '========================\n';
 
-            text += `${formatDateTime(log.measured_at)} - ${info.label}\n`;
-            text += `Valor: ${val}\n`;
-            if (log.notes) text += `Obs: ${log.notes}\n`;
-            text += '----------------\n';
+
+        // Agrupar logs por paciente
+        const logsByPatient = {};
+        filteredLogs.forEach(log => {
+            const patientId = log.patient_id;
+            if (!logsByPatient[patientId]) {
+                logsByPatient[patientId] = [];
+            }
+            logsByPatient[patientId].push(log);
         });
 
+        // Ordenar cada grupo por data crescente
+        Object.keys(logsByPatient).forEach(patientId => {
+            logsByPatient[patientId].sort((a, b) => new Date(a.measured_at) - new Date(b.measured_at));
+        });
+
+        // Verificar se há registros
+        const totalLogs = Object.values(logsByPatient).reduce((sum, logs) => sum + logs.length, 0);
+        if (totalLogs === 0) {
+            text += '*Nenhum registro encontrado*\n';
+            text += 'Adicione sinais vitais para gerar o relatorio.\n\n';
+        } else {
+            // Iterar por cada paciente
+            Object.entries(logsByPatient).forEach(([patientId, logs], patientIndex) => {
+                const patient = patients.find(p => p.id === patientId);
+                const patientName = patient?.name || 'Paciente Desconhecido';
+
+                // Cabeçalho do paciente (apenas se houver múltiplos pacientes)
+                if (Object.keys(logsByPatient).length > 1) {
+                    if (patientIndex > 0) text += '\n';
+                    text += `--- *_${patientName}_* ---\n`;
+                }
+
+                // Registros do paciente (limitado a 30 total)
+                const logsToShow = logs.slice(0, 30);
+                logsToShow.forEach((log) => {
+                    const info = getCategoryInfo(log.category);
+
+                    // Tag baseada na categoria
+                    let tag = '';
+                    if (log.category === 'pressure') tag = '[PA]';
+                    else if (log.category === 'glucose') tag = '[GLI]';
+                    else if (log.category === 'weight') tag = '[PESO]';
+                    else if (log.category === 'temperature') tag = '[TEMP]';
+                    else if (log.category === 'heart_rate') tag = '[BPM]';
+                    else tag = '[REG]';
+
+                    text += `${tag} *${info.label}*\n`;
+                    text += `Data: ${formatDateTime(log.measured_at)}\n`;
+
+                    let val = `${log.value}`;
+                    if (log.value_secondary) val += ` / ${log.value_secondary}`;
+                    val += ` ${info.unit}`;
+
+                    text += `Valor: *${val}*\n`;
+
+                    if (log.notes) {
+                        text += `Obs: ${log.notes}\n`;
+                    }
+                });
+
+                if (logs.length > 30) {
+                    text += `_... e mais ${logs.length - 30} registro(s) de ${patientName}_\n`;
+                }
+            });
+        }
+
+
+
+        text += '========================\n';
+        text += '*SiG Remédios*\n';
+        text += 'Gerenciamento de Saúde Familiar\n\n';
+        text += 'https://sigremedios.vercel.app';
+
         return text;
-    };
-
-    const generateHealthReportHtml = () => {
-        const rows = filteredLogs.slice(0, 50).map(log => {
-            const info = getCategoryInfo(log.category);
-            let val = `<strong>${log.value}</strong>`;
-            if (log.value_secondary) val += ` / <strong>${log.value_secondary}</strong>`;
-            val += ` <small>${info.unit}</small>`;
-
-            return `
-                <tr>
-                    <td style="padding: 10px; border-bottom: 1px solid #eee;">${formatDateTime(log.measured_at)}</td>
-                    <td style="padding: 10px; border-bottom: 1px solid #eee;">
-                        <div style="display: flex; align-items: center; gap: 5px;">
-                             <span>${info.label}</span>
-                        </div>
-                    </td>
-                    <td style="padding: 10px; border-bottom: 1px solid #eee;">${val}</td>
-                    <td style="padding: 10px; border-bottom: 1px solid #eee; color: #666; font-size: 12px;">${log.notes || '-'}</td>
-                </tr>
-            `;
-        }).join('');
-
-        return `
-            <html>
-            <body style="font-family: sans-serif; padding: 20px;">
-                <h2 style="color: #2563eb;">Diário de Saúde</h2>
-                <table style="width: 100%; border-collapse: collapse;">
-                    <thead style="background: #f8fafc;">
-                        <tr>
-                            <th style="padding: 10px; text-align: left;">Data</th>
-                            <th style="padding: 10px; text-align: left;">Categoria</th>
-                            <th style="padding: 10px; text-align: left;">Medição</th>
-                            <th style="padding: 10px; text-align: left;">Notas</th>
-                        </tr>
-                    </thead>
-                    <tbody>${rows}</tbody>
-                </table>
-            </body>
-            </html>
-        `;
     };
 
     const handleSendEmail = async () => {
@@ -169,20 +258,9 @@ const HealthDiary = () => {
         }
         setSendingEmail(true);
         try {
-            // Generate PDF
             const doc = await generatePDFHealthDiary(filteredLogs, { patientId: selectedPatientId }, patients);
             const pdfBase64 = doc.output('datauristring').split(',')[1];
             const filename = `diario-saude-${format(new Date(), 'dd-MM')}.pdf`;
-
-            const html = `
-                <div style="font-family: sans-serif; color: #333;">
-                    <h2>Diário de Saúde</h2>
-                    <p>Olá,</p>
-                    <p>Segue em anexo o seu histórico de saúde (PDF).</p>
-                    <br/>
-                    <p>Atenciosamente,<br/>Equipe SiG Remédios</p>
-                </div>
-            `;
 
             const { data: { session } } = await supabase.auth.getSession();
             const response = await fetch('/api/send-email', {
@@ -194,8 +272,43 @@ const HealthDiary = () => {
                 body: JSON.stringify({
                     to: emailData.to,
                     subject: 'Diário de Saúde - SiG Remédios',
-                    text: 'Segue em anexo o relatório de saúde.',
-                    html: html,
+                    text: 'Segue em anexo o relatorio de saude solicitado.',
+                    type: 'health-diary',
+                    observations: emailData.observations,
+                    healthLogsByPatient: (() => {
+                        // Agrupar logs por paciente
+                        const logsByPatient = {};
+                        filteredLogs.forEach(log => {
+                            const patientId = log.patient_id;
+                            if (!logsByPatient[patientId]) {
+                                logsByPatient[patientId] = [];
+                            }
+                            logsByPatient[patientId].push(log);
+                        });
+
+                        // Ordenar cada grupo por data e formatar
+                        return Object.entries(logsByPatient).map(([patientId, logs]) => {
+                            const patient = patients.find(p => p.id === patientId);
+                            const sortedLogs = logs
+                                .sort((a, b) => new Date(a.measured_at) - new Date(b.measured_at))
+                                .slice(0, 30)
+                                .map(log => ({
+                                    date: formatDateTime(log.measured_at),
+                                    category: getCategoryInfo(log.category).label,
+                                    value: log.value_secondary
+                                        ? `${log.value} / ${log.value_secondary} ${getCategoryInfo(log.category).unit}`
+                                        : `${log.value} ${getCategoryInfo(log.category).unit}`,
+                                    notes: log.notes || '-'
+                                }));
+
+                            return {
+                                patientName: patient?.name || 'Desconhecido',
+                                patientId: patientId,
+                                count: logs.length,
+                                logs: sortedLogs
+                            };
+                        });
+                    })(),
                     attachments: [{
                         filename: filename,
                         content: pdfBase64,
@@ -205,6 +318,13 @@ const HealthDiary = () => {
             });
 
             if (!response.ok) throw new Error('Falha no envio');
+
+            confetti({
+                particleCount: 150,
+                spread: 70,
+                origin: { y: 0.6 },
+                zIndex: 9999
+            });
 
             showToast('Email enviado!', 'success');
             setShowEmailModal(false);
@@ -232,10 +352,8 @@ const HealthDiary = () => {
         }
     };
 
-
     return (
         <div className="flex flex-col gap-8 pb-24 animate-in fade-in duration-500">
-            {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 no-print">
                 <div>
                     <h2 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Diário de Saúde</h2>
@@ -249,7 +367,6 @@ const HealthDiary = () => {
                 )}
             </div>
 
-            {/* Filters */}
             {!showForm && (
                 <Card className="no-print">
                     <CardContent className="pt-6">
@@ -275,7 +392,6 @@ const HealthDiary = () => {
                 </Card>
             )}
 
-            {/* Form */}
             {showForm && (
                 <Card className="border-l-4 border-l-primary shadow-2xl">
                     <CardHeader className="flex justify-between">
@@ -337,6 +453,7 @@ const HealthDiary = () => {
                                 label="Data e Hora"
                                 value={formData.measuredAt}
                                 onChange={e => setFormData({ ...formData, measuredAt: e.target.value })}
+                                max={maxDate}
                                 required
                             />
 
@@ -356,10 +473,8 @@ const HealthDiary = () => {
                 </Card>
             )}
 
-            {/* Tabs & Content */}
             {!showForm && (
                 <>
-                    {/* Tabs Header */}
                     <div className="flex flex-col md:flex-row gap-4 border-b border-slate-200 no-print justify-between items-center mb-6">
                         <div className="flex gap-4 overflow-x-auto w-full md:w-auto">
                             <button
@@ -374,7 +489,7 @@ const HealthDiary = () => {
                                 className={`pb-4 px-2 font-medium text-sm border-b-2 transition-colors whitespace-nowrap flex items-center gap-2 ${activeTab === 'list' ? 'border-primary text-primary' : 'border-transparent text-slate-500'}`}
                             >
                                 <FileText size={16} />
-                                Diário (Sinais Vitais)
+                                Sinais Vitais
                             </button>
                             <button
                                 onClick={() => setActiveTab('charts')}
@@ -385,7 +500,6 @@ const HealthDiary = () => {
                             </button>
                         </div>
 
-                        {/* Actions */}
                         <div className="flex gap-2 no-print overflow-x-auto pb-2">
                             <Button variant="outline" size="sm" onClick={() => setShowEmailModal(true)}>
                                 <Mail size={16} className="mr-2" /> Email
@@ -399,7 +513,6 @@ const HealthDiary = () => {
                         </div>
                     </div>
 
-                    {/* Content */}
                     {activeTab === 'adherence' ? (
                         <div className="animate-in fade-in slide-in-from-bottom-2">
                             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -407,41 +520,137 @@ const HealthDiary = () => {
                                     <CalendarView
                                         prescriptions={prescriptions}
                                         consumptionLog={consumptionLog}
+                                        healthLogs={healthLogs}
                                         onDateSelect={(date) => {
-                                            showToast(`Visualizando histórico de ${formatDate(date)}`, 'info');
+                                            setViewDate(date);
                                         }}
                                     />
                                 </div>
                                 <div>
                                     <Card className="h-full bg-slate-50 border-none shadow-inner">
                                         <CardContent className="p-6">
-                                            <h3 className="font-bold text-slate-700 mb-4 flex items-center gap-2">
-                                                <Pill size={20} />
-                                                Resumo do Mês
-                                            </h3>
-                                            <div className="space-y-4">
-                                                <p className="text-sm text-slate-500">
-                                                    Use o calendário para visualizar sua aderência ao tratamento.
-                                                    Os dias são coloridos baseados se você tomou todas as doses agendadas.
-                                                </p>
-                                                <div className="bg-white p-4 rounded-xl border border-slate-200">
-                                                    <div className="text-sm font-bold text-slate-700 mb-2">Legenda Visual:</div>
-                                                    <ul className="space-y-2 text-sm text-slate-600">
-                                                        <li className="flex items-center gap-2">
-                                                            <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
-                                                            <span>Tudo correto (100%)</span>
-                                                        </li>
-                                                        <li className="flex items-center gap-2">
-                                                            <div className="w-3 h-3 rounded-full bg-amber-500"></div>
-                                                            <span>Parcial (Alguns esquecidos)</span>
-                                                        </li>
-                                                        <li className="flex items-center gap-2">
-                                                            <div className="w-3 h-3 rounded-full bg-rose-500"></div>
-                                                            <span>Dia sem registros (0%)</span>
-                                                        </li>
-                                                    </ul>
+                                            {viewDate ? (
+                                                <div className="animate-in slide-in-from-right-4">
+                                                    <div className="flex items-center justify-between mb-4">
+                                                        <h3 className="font-bold text-slate-900 flex items-center gap-2">
+                                                            <Calendar size={20} className="text-primary" />
+                                                            {formatDate(viewDate)}
+                                                        </h3>
+                                                        <button onClick={() => setViewDate(null)} className="text-xs text-slate-500 hover:text-slate-700 bg-white px-2 py-1 rounded border border-slate-200">
+                                                            Fechar
+                                                        </button>
+                                                    </div>
+
+                                                    <div className="space-y-4">
+                                                        <div>
+                                                            <h4 className="text-xs font-bold uppercase text-slate-400 mb-2">Sinais Vitais</h4>
+                                                            {healthLogs.filter(l => l.measured_at.startsWith(viewDate)).length > 0 ? (
+                                                                <div className="flex flex-col gap-2 max-h-[300px] overflow-y-auto pr-1">
+                                                                    {healthLogs.filter(l => l.measured_at.startsWith(viewDate)).map(log => {
+                                                                        const info = getCategoryInfo(log.category);
+                                                                        const Icon = info.icon;
+                                                                        return (
+                                                                            <div key={log.id} className="bg-white p-3 rounded-lg border border-slate-100 shadow-sm flex flex-col gap-2">
+                                                                                <div className="flex items-center justify-between">
+                                                                                    <div className="flex items-center gap-2">
+                                                                                        <div className="p-1.5 rounded-full bg-slate-50 text-slate-500">
+                                                                                            <Icon size={14} />
+                                                                                        </div>
+                                                                                        <div>
+                                                                                            <div className="font-bold text-slate-700 text-sm">{info.label}</div>
+                                                                                            <div className="text-xs text-slate-400">{formatTime(log.measured_at)}</div>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                    <div className="flex items-center gap-3">
+                                                                                        <div className="text-right">
+                                                                                            <div className="font-bold" style={{ color: info.color }}>
+                                                                                                {log.value} <span className="text-xs text-slate-400">{info.unit}</span>
+                                                                                            </div>
+                                                                                            {log.value_secondary && <div className="text-xs text-slate-400">/ {log.value_secondary}</div>}
+                                                                                            <div className="text-[10px] text-slate-400 mt-1">{formatDateTime(log.measured_at)}</div>
+                                                                                        </div>
+                                                                                        {(user?.id === log.user_id) && (
+                                                                                            <div className="flex flex-col gap-1">
+                                                                                                <button
+                                                                                                    onClick={() => handleEdit(log)}
+                                                                                                    className="text-blue-400 hover:text-blue-600 p-1"
+                                                                                                    title="Editar"
+                                                                                                >
+                                                                                                    <Edit size={14} />
+                                                                                                </button>
+                                                                                                <button
+                                                                                                    onClick={() => handleDeleteClick(log.id)}
+                                                                                                    className="text-rose-400 hover:text-rose-600 p-1"
+                                                                                                    title="Excluir"
+                                                                                                >
+                                                                                                    <Trash2 size={14} />
+                                                                                                </button>
+                                                                                            </div>
+                                                                                        )}
+                                                                                    </div>
+                                                                                </div>
+                                                                                {log.notes && (
+                                                                                    <div className="text-xs text-slate-500 bg-slate-50 p-1.5 rounded border border-slate-100 italic">
+                                                                                        {log.notes}
+                                                                                    </div>
+                                                                                )}
+                                                                            </div>
+                                                                        );
+                                                                    })}
+                                                                </div>
+                                                            ) : (
+                                                                <div className="text-center py-4 bg-white/50 rounded-lg border border-dashed border-slate-200">
+                                                                    <p className="text-sm text-slate-400 italic">Nenhum sinal vital registrado.</p>
+                                                                </div>
+                                                            )}
+                                                        </div>
+
+                                                        <div className="p-4 bg-blue-50/50 rounded-xl border border-blue-100 mt-4">
+                                                            <h4 className="text-blue-900 font-bold mb-1 text-sm flex items-center gap-2">
+                                                                <Pill size={14} />
+                                                                Medicamentos
+                                                            </h4>
+                                                            <p className="text-blue-700 text-xs leading-relaxed">
+                                                                O controle detalhado de tomadas (checkboxes) é feito na tela <strong>Início</strong>.
+                                                                Aqui você visualiza a aderência geral do dia.
+                                                            </p>
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                            </div>
+                                            ) : (
+                                                <>
+                                                    <h3 className="font-bold text-slate-700 mb-4 flex items-center gap-2">
+                                                        <Pill size={20} />
+                                                        Resumo do Mês
+                                                    </h3>
+                                                    <div className="space-y-4">
+                                                        <p className="text-sm text-slate-500">
+                                                            Clique em um dia no calendário para ver os detalhes registrados.
+                                                        </p>
+                                                        <div className="bg-white p-4 rounded-xl border border-slate-200">
+                                                            <div className="text-sm font-bold text-slate-700 mb-2">Legenda Visual:</div>
+                                                            <ul className="space-y-2 text-sm text-slate-600">
+                                                                <li className="flex items-center gap-2">
+                                                                    <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
+                                                                    <span>Tudo correto (100%)</span>
+                                                                </li>
+                                                                <li className="flex items-center gap-2">
+                                                                    <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+                                                                    <span>Registros (Sinais Vitais)</span>
+                                                                </li>
+                                                                <li className="flex items-center gap-2">
+                                                                    <div className="w-3 h-3 rounded-full bg-amber-500"></div>
+                                                                    <span>Parcial (Alguns esquecidos)</span>
+                                                                </li>
+                                                                <li className="flex items-center gap-2">
+                                                                    <div className="w-3 h-3 rounded-full bg-rose-500"></div>
+                                                                    <span>Dia sem registros (0%)</span>
+                                                                </li>
+                                                            </ul>
+                                                        </div>
+                                                    </div>
+                                                </>
+                                            )}
                                         </CardContent>
                                     </Card>
                                 </div>
@@ -454,7 +663,7 @@ const HealthDiary = () => {
                                     Nenhum registro encontrado.
                                 </div>
                             ) : (
-                                filteredLogs.map(log => {
+                                paginatedLogs.map(log => {
                                     const info = getCategoryInfo(log.category);
                                     const Icon = info.icon;
                                     return (
@@ -501,6 +710,13 @@ const HealthDiary = () => {
                                     );
                                 })
                             )}
+                            {filteredLogs.length > 0 && (
+                                <Pagination
+                                    currentPage={currentPage}
+                                    totalPages={totalPages}
+                                    onPageChange={setCurrentPage}
+                                />
+                            )}
                         </div>
                     ) : (
                         <Card>
@@ -541,16 +757,16 @@ const HealthDiary = () => {
                         </Card>
                     )}
                 </>
-            )}
+            )
+            }
 
-            {/* Email Modal */}
             <Modal
                 isOpen={showEmailModal}
-                onClose={() => setShowEmailModal(false)}
+                onClose={() => !sendingEmail && setShowEmailModal(false)}
                 title="Enviar Relatório de Saúde"
                 footer={
                     <>
-                        <Button variant="ghost" onClick={() => setShowEmailModal(false)}>Cancelar</Button>
+                        <Button variant="ghost" onClick={() => setShowEmailModal(false)} disabled={sendingEmail}>Cancelar</Button>
                         <Button onClick={handleSendEmail} disabled={sendingEmail}>
                             {sendingEmail ? 'Enviando...' : 'Enviar Email'}
                         </Button>
@@ -570,7 +786,26 @@ const HealthDiary = () => {
                     <p className="text-xs text-slate-400 -mt-3">Separe por vírgula para múltiplos destinatários.</p>
                 </div>
             </Modal>
-        </div>
+
+            {/* Delete Confirmation Modal */}
+            <Modal
+                isOpen={showDeleteModal}
+                onClose={() => setShowDeleteModal(false)}
+                title="Excluir Registro"
+                footer={(
+                    <>
+                        <Button variant="ghost" onClick={() => setShowDeleteModal(false)}>Cancelar</Button>
+                        <Button onClick={confirmDelete} className="bg-rose-600 hover:bg-rose-700 text-white">
+                            Excluir
+                        </Button>
+                    </>
+                )}
+            >
+                <p className="text-slate-600">
+                    Tem certeza que deseja excluir este registro? Esta ação não pode ser desfeita.
+                </p>
+            </Modal>
+        </div >
     );
 };
 

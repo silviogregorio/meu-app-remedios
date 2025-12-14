@@ -5,7 +5,7 @@ import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Modal from '../components/ui/Modal';
 import Pagination from '../components/ui/Pagination';
-import { FileText, Printer, Calendar, CheckCircle, Clock, Mail, MessageCircle, Download, Gift, Activity, Filter, ArrowRight, PieChart } from 'lucide-react';
+import { FileText, Printer, Calendar, CheckCircle, Clock, Mail, MessageCircle, Download, Gift, Activity, Filter, ArrowRight, PieChart, Eye, Share2 } from 'lucide-react';
 import AdherenceChart from '../components/analytics/AdherenceChart';
 import ActivityChart from '../components/analytics/ActivityChart';
 import { supabase } from '../lib/supabase';
@@ -348,10 +348,22 @@ const Reports = () => {
             const doc = await generatePDFReport(reportData, filters, patients);
             const filename = `relatorio-sig-remedios-${format(new Date(), 'dd-MM-yyyy-HHmm')}.pdf`;
             doc.save(filename);
-            showToast('PDF gerado com sucesso!', 'success');
+            showToast('PDF salvo com sucesso!', 'success');
         } catch (error) {
             console.error('Erro ao gerar PDF:', error);
             showToast('Erro ao gerar PDF', 'error');
+        }
+    };
+
+    const handleViewPDF = async () => {
+        try {
+            const doc = await generatePDFReport(reportData, filters, patients);
+            const blob = doc.output('blob');
+            const url = URL.createObjectURL(blob);
+            window.open(url, '_blank');
+        } catch (error) {
+            console.error('Erro ao visualizar PDF:', error);
+            showToast('Erro ao abrir visualização', 'error');
         }
     };
 
@@ -732,9 +744,9 @@ const Reports = () => {
                     to: emailData.to,
                     subject: subject,
                     text: text,
-                    html: html,
                     observations: emailData.observations,
-                    type: (emailType === 'birthday') ? 'contact' : 'report', // Use 'contact' for generic/birthday template or 'report'
+                    type: (emailType === 'birthday') ? 'contact' : 'report',
+                    reportData: (typeof reportPayload !== 'undefined') ? reportPayload : null,
                     attachments: attachments
                 })
             });
@@ -1126,7 +1138,10 @@ const Reports = () => {
                                         <Printer size={18} className="mr-2" /> Imprimir
                                     </Button>
                                     <Button variant="outline" onClick={handleDownloadPDF}>
-                                        <Download size={18} className="mr-2" /> PDF
+                                        <Download size={18} className="mr-2" /> Baixar
+                                    </Button>
+                                    <Button variant="outline" onClick={handleViewPDF}>
+                                        <Eye size={18} className="mr-2" /> Visualizar
                                     </Button>
                                     <Button variant="outline" onClick={handleWhatsApp}>
                                         <MessageCircle size={18} className="mr-2" /> WhatsApp

@@ -3,12 +3,13 @@ import { useApp } from '../context/AppContext';
 import Card, { CardContent } from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import Pagination from '../components/ui/Pagination';
-import { Check, Clock, AlertCircle, Calendar, User, Pill, X, Bell, Calendar as CalendarIcon, DownloadCloud, CircleHelp } from 'lucide-react';
+import { Check, Clock, AlertCircle, Calendar, User, Pill, X, Bell, Calendar as CalendarIcon, DownloadCloud, CircleHelp, Trophy, Zap, Flame, Activity, Star, ShieldCheck, ThumbsUp, Medal, Sparkles } from 'lucide-react';
 import { formatDate, formatTime, formatDateFull } from '../utils/dateFormatter';
 import clsx from 'clsx';
 import { useNotifications } from '../hooks/useNotifications';
 import confetti from 'canvas-confetti';
 import { generateICS, generateFutureSchedule } from '../utils/icsGenerator';
+import { calculateStreak } from '../utils/gamification';
 import VoiceCommand from '../components/features/VoiceCommand';
 import OnboardingTour from '../components/OnboardingTour';
 import MotivationCard from '../components/features/MotivationCard';
@@ -163,6 +164,18 @@ const Home = () => {
                 <div className="flex flex-col gap-1 overflow-hidden mt-6">
                     <h1 id="tour-welcome" className="text-2xl font-bold text-slate-900 dark:text-white break-words line-clamp-2">
                         Olá, {getDisplayName()}
+                        {(() => {
+                            const streak = calculateStreak(prescriptions, consumptionLog);
+                            if (streak > 0) {
+                                return (
+                                    <span className="inline-flex items-center gap-1 ml-3 px-2 py-0.5 bg-orange-100 text-orange-600 rounded-full text-xs font-bold align-middle border border-orange-200 animate-in zoom-in spin-in-3 cursor-help" title="Sua ofensiva de dias seguidos!">
+                                        <Flame size={12} className="fill-current animate-pulse" />
+                                        {streak} Dia{streak > 1 ? 's' : ''}
+                                    </span>
+                                );
+                            }
+                            return null;
+                        })()}
                     </h1>
                     <p className="text-slate-500 dark:text-slate-400 capitalize">{todayDate}</p>
                 </div>
@@ -348,45 +361,85 @@ const Home = () => {
                     </CardContent>
                 </Card>
 
-                <Card id="tour-summary-card" className="bg-white border-slate-200 shadow-sm">
-                    <CardContent className="p-6 h-full flex flex-col justify-between">
-                        <div>
-                            <h3 className="font-bold text-slate-900 dark:text-slate-100 mb-1">Progresso Diário</h3>
-                            <p className="text-sm text-slate-500">
-                                {formatDate(new Date())}
-                            </p>
+                <Card id="tour-summary-card" className="bg-white border-slate-200 shadow-sm relative overflow-hidden">
+                    <CardContent className="p-6 h-full flex flex-col justify-between relative z-10">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h3 className="font-bold text-slate-900 dark:text-slate-100 mb-1 flex items-center gap-2">
+                                    <Zap className="text-amber-500 fill-amber-500 animate-pulse" size={18} />
+                                    Energia Diária
+                                </h3>
+                                <p className="text-sm text-slate-500 capitalize">
+                                    {formatDate(new Date())}
+                                </p>
+                            </div>
+                            {(() => {
+                                const total = todaysSchedule.length;
+                                const taken = todaysSchedule.filter(i => i.isTaken).length;
+                                const percentage = total > 0 ? Math.round((taken / total) * 100) : 100;
+
+                                return (
+                                    <div className="flex flex-col items-end">
+                                        <span className="text-2xl font-black text-slate-900">{percentage}%</span>
+                                        <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Concluído</span>
+                                    </div>
+                                );
+                            })()}
                         </div>
 
                         {(() => {
                             const total = todaysSchedule.length;
                             const taken = todaysSchedule.filter(i => i.isTaken).length;
-                            const percentage = total > 0 ? Math.round((taken / total) * 100) : 0;
+                            // Fix: If total is 0, percentage is 100% (Day Complete/Rest)
+                            const percentage = total > 0 ? Math.round((taken / total) * 100) : 100;
+                            const isComplete = percentage === 100;
+
+                            // State for animation
+                            const [animatedPercentage, setAnimatedPercentage] = useState(0);
+
+                            useEffect(() => {
+                                const timer = setTimeout(() => {
+                                    setAnimatedPercentage(percentage);
+                                }, 100);
+                                return () => clearTimeout(timer);
+                            }, [percentage]);
 
                             return (
-                                <div className="flex flex-col gap-4 mt-4">
-                                    <div className="relative pt-2">
-                                        <div className="flex mb-2 items-center justify-between">
-                                            <div className="text-right w-full">
-                                                <span className="text-xs font-semibold inline-block text-primary">
-                                                    {percentage}%
-                                                </span>
-                                            </div>
+                                <div className="flex flex-col gap-4 mt-6">
+                                    {/* Gamified Bar */}
+                                    <div className="relative h-4 bg-slate-100 rounded-full overflow-hidden shadow-inner">
+                                        <div
+                                            className="absolute top-0 left-0 h-full bg-gradient-to-r from-emerald-400 to-emerald-600 rounded-full shadow-[0_0_10px_rgba(16,185,129,0.5)] transition-all duration-[3000ms] ease-out"
+                                            style={{ width: `${animatedPercentage}%` }}
+                                        />
+                                    </div>
+
+                                    {/* Dynamic Message */}
+                                    <div className="bg-slate-50 rounded-xl p-4 border border-slate-100 flex items-start gap-4">
+                                        <div className={`p-3 rounded-full flex-shrink-0 ${isComplete ? 'bg-amber-100 border-2 border-amber-200' : 'bg-blue-100 text-blue-600'
+                                            }`}>
+                                            {isComplete ? <Star size={24} color="#d97706" fill="#fbbf24" className="animate-bounce drop-shadow-sm" /> : <Activity size={24} />}
                                         </div>
-                                        <div className="overflow-hidden h-2 mb-4 text-xs flex rounded bg-slate-100">
-                                            <div
-                                                style={{ width: `${percentage}%` }}
-                                                className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-primary transition-all duration-500"
-                                            ></div>
-                                        </div>
-                                        <div className="flex justify-between text-sm">
-                                            <span className="text-slate-600 font-medium">{taken} tomados</span>
-                                            <span className="text-slate-400">de {total}</span>
+                                        <div>
+                                            <p className="font-bold text-slate-700 mb-1">
+                                                {isComplete ? (
+                                                    total === 0 ? "Dia Livre! Aproveite." : "Objetivo Concluído!"
+                                                ) : "Continue assim!"}
+                                            </p>
+                                            <p className="text-sm text-slate-500 leading-relaxed">
+                                                {isComplete
+                                                    ? (total === 0 ? "Sua saúde está em dia." : "Você completou todas as atividades de hoje.")
+                                                    : `Você já completou ${percentage}% da sua meta diária.`}
+                                            </p>
                                         </div>
                                     </div>
                                 </div>
                             );
                         })()}
                     </CardContent>
+
+                    {/* Decorative Background Elements */}
+                    <div className="absolute -bottom-10 -right-10 w-32 h-32 bg-gradient-to-br from-indigo-50 to-blue-50 rounded-full blur-2xl opacity-50 pointer-events-none"></div>
                 </Card>
             </div>
 

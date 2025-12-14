@@ -1,11 +1,14 @@
 import React, { useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useApp } from '../../context/AppContext';
-import { Heart, AlertTriangle, Phone, Printer, X, Droplet, Mail, MessageCircle } from 'lucide-react';
+import { Heart, AlertTriangle, Phone, Printer, X, Droplet, Mail, MessageCircle, Download } from 'lucide-react';
 import Button from '../ui/Button';
 
+import { supabase } from '../../lib/supabase';
+import confetti from 'canvas-confetti';
+
 const SOSCard = ({ onClose }) => {
-    const { patients, prescriptions, user, medications, supabase } = useApp();
+    const { patients, prescriptions, user, medications } = useApp();
     const printRef = useRef();
 
     // Add class to body when mounted to handle print styles
@@ -54,6 +57,7 @@ const SOSCard = ({ onClose }) => {
         setSendingEmail(true);
 
         try {
+            console.log('User Data being used for SOS:', user);
             // Prepare Data for Email Template
             const medicationsList = activePrescriptions.map(p => {
                 const med = medications.find(m => m.id === p.medicationId);
@@ -66,7 +70,10 @@ const SOSCard = ({ onClose }) => {
                 allergies: selectedPatient.allergies,
                 conditions: selectedPatient.condition,
                 medications: medicationsList,
-                contacts: [{ name: 'Responsável', phone: user?.phone || 'Ver app' }], // Basic contact info
+                contacts: [{
+                    name: 'Responsável',
+                    phone: selectedPatient.phone || user?.phone || 'Ver app'
+                }], // Basic contact info
                 observations: 'Gerado via SOS Digital'
             };
 
@@ -81,12 +88,32 @@ const SOSCard = ({ onClose }) => {
                     subject: `🚨 SOS Médico: ${selectedPatient.name}`,
                     text: `Informações de emergência de ${selectedPatient.name}.`,
                     type: 'sos',
-                    sosData: sosData
+                    sosData: {
+                        patientName: selectedPatient.name,
+                        patientEmail: selectedPatient.email,
+                        patientPhone: selectedPatient.phone,
+                        bloodType: selectedPatient.bloodType,
+                        allergies: selectedPatient.allergies,
+                        conditions: selectedPatient.condition,
+                        medications: medicationsList,
+                        contacts: [{
+                            name: user?.user_metadata?.full_name || user?.email || 'Responsável',
+                            phone: selectedPatient.phone || user?.phone || user?.user_metadata?.phone || 'Não informado'
+                        }],
+                        observations: 'Gerado via SOS Digital'
+                    }
                 })
             });
 
             if (response.ok) {
                 showToast('Email de SOS enviado com sucesso!', 'success');
+                confetti({
+                    particleCount: 150,
+                    spread: 70,
+                    origin: { y: 0.6 },
+                    zIndex: 9999,
+                    colors: ['#ef4444', '#b91c1c', '#ffffff'] // Red and White theme
+                });
                 setEmailModalOpen(false);
                 setEmailAddress('');
             } else {
@@ -119,7 +146,7 @@ const SOSCard = ({ onClose }) => {
         window.open(`https://wa.me/?text=${text}`, '_blank');
     };
 
-    const handleWhatsApp = async () => {
+    const handleDownloadPDF = async () => {
         setGeneratingPDF(true);
         try {
             const html2canvas = (await import('html2canvas')).default;
@@ -128,7 +155,7 @@ const SOSCard = ({ onClose }) => {
             const canvas = await html2canvas(printRef.current, {
                 scale: 2,
                 backgroundColor: '#ffffff',
-                useCORS: true // Handle images if any
+                useCORS: true
             });
 
             const imgData = canvas.toDataURL('image/png');
@@ -138,26 +165,9 @@ const SOSCard = ({ onClose }) => {
 
             pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
 
-            // Try Native Share with File (Mobile)
-            const blob = pdf.output('blob');
-            const file = new File([blob], `SOS_${selectedPatient.name.replace(/\s+/g, '_')}.pdf`, { type: 'application/pdf' });
-
-            if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                await navigator.share({
-                    files: [file],
-                    title: `SOS Médico - ${selectedPatient.name}`,
-                    text: 'Segue ficha médica de emergência.'
-                });
-                showToast('PDF compartilhado!', 'success');
-            } else {
-                // Determine if we are on a mobile device where we want to trigger WhatsApp specifically?
-                // Actually, if Web Share fails, we download it and tell user to send.
-                pdf.save(`SOS_${selectedPatient.name}.pdf`);
-                showToast('PDF baixado! Envie o arquivo pelo WhatsApp.', 'info');
-
-                // Optional prompt for WhatsApp Web
-                // window.open(`https://wa.me/?text=Segue%20minha%20ficha%20médica%20de%20emergência%20(anexar%20PDF).`, '_blank');
-            }
+            // Force Download directly
+            pdf.save(`SOS_${selectedPatient.name.replace(/\s+/g, '_')}.pdf`);
+            showToast('PDF baixado com sucesso!', 'success');
 
         } catch (error) {
             console.error(error);
@@ -183,7 +193,7 @@ const SOSCard = ({ onClose }) => {
 
                         {/* 0. Patient Selector */}
                         {patients.length > 1 && (
-                            <div className="mb-6 print:hidden">
+                            <div className="mb-6 print:hidden" data-html2canvas-ignore="true">
                                 {patients.length <= 4 ? (
                                     <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
                                         {patients.map(p => (
@@ -235,6 +245,22 @@ const SOSCard = ({ onClose }) => {
                                 <p className="text-slate-500 font-medium">
                                     Nascimento: {selectedPatient.birthDate ? new Date(selectedPatient.birthDate).toLocaleDateString('pt-BR') : 'N/A'}
                                 </p>
+                                {(selectedPatient.email || selectedPatient.phone) && (
+                                    <div className="flex flex-col gap-1 mt-2 text-sm text-slate-500">
+                                        {selectedPatient.email && (
+                                            <div className="flex items-center gap-1">
+                                                <Mail size={14} className="text-slate-400" />
+                                                <span>{selectedPatient.email}</span>
+                                            </div>
+                                        )}
+                                        {selectedPatient.phone && (
+                                            <div className="flex items-center gap-1">
+                                                <Phone size={14} className="text-slate-400" />
+                                                <span>{selectedPatient.phone}</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                             {selectedPatient.bloodType && (
                                 <div className="bg-red-50 border-2 border-red-100 px-4 py-3 rounded-2xl flex flex-col items-center justify-center min-w-[80px]">
@@ -349,12 +375,12 @@ const SOSCard = ({ onClose }) => {
 
                         <Button
                             className="flex-1 sm:flex-none bg-emerald-700 hover:bg-emerald-800 text-white whitespace-nowrap"
-                            onClick={handleWhatsApp}
+                            onClick={handleDownloadPDF}
                             disabled={generatingPDF}
                         >
                             {generatingPDF ? '...' : (
                                 <>
-                                    <Printer size={18} className="mr-2" />
+                                    <Download size={18} className="mr-2" />
                                     Baixar PDF
                                 </>
                             )}

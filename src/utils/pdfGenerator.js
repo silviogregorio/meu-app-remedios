@@ -341,32 +341,22 @@ export const generatePDFHealthDiary = async (logs, filters, patients) => {
     drawHeader();
     let yPos = 55;
 
-    // --- Patient Info ---
-    if (filters.patientId !== 'all') {
-        const patient = patients.find(p => p.id === filters.patientId);
-        if (patient) {
-            doc.setDrawColor(...colors.border);
-            doc.setFillColor(...colors.lightBg);
-            doc.roundedRect(14, yPos, pageWidth - 28, 25, 3, 3, 'FD');
-
-            doc.setTextColor(...colors.text);
-            doc.setFontSize(10);
-            doc.setFont('helvetica', 'bold');
-            doc.text('PACIENTE', 20, yPos + 8);
-
-            doc.setFontSize(12);
-            doc.setTextColor(...colors.heading);
-            doc.text(patient.name, 20, yPos + 18);
-            yPos += 35;
+    // --- Agrupar logs por paciente ---
+    const logsByPatient = {};
+    logs.forEach(log => {
+        const patientId = log.patient_id;
+        if (!logsByPatient[patientId]) {
+            logsByPatient[patientId] = [];
         }
-    } else {
-        doc.setFontSize(14);
-        doc.setTextColor(...colors.heading);
-        doc.text('Histórico Geral', 14, yPos);
-        yPos += 15;
-    }
+        logsByPatient[patientId].push(log);
+    });
 
-    // --- Table ---
+    // Ordenar cada grupo por data
+    Object.keys(logsByPatient).forEach(patientId => {
+        logsByPatient[patientId].sort((a, b) => new Date(a.measured_at) - new Date(b.measured_at));
+    });
+
+    // --- Helper Functions ---
     const getCategoryLabel = (catId) => {
         const map = {
             'pressure': 'Pressão Arterial',
@@ -383,46 +373,88 @@ export const generatePDFHealthDiary = async (logs, filters, patients) => {
         return map[catId] || '';
     };
 
-    const tableData = logs.map(log => {
-        let val = `${log.value}`;
-        if (log.value_secondary) val += ` / ${log.value_secondary}`;
-        val += ` ${getUnit(log.category)}`;
+    // --- Iterar por cada paciente ---
+    Object.entries(logsByPatient).forEach(([patientId, patientLogs], index) => {
+        const patient = patients.find(p => p.id === patientId);
+        const patientName = patient?.name || 'Paciente Desconhecido';
 
-        return [
-            format(new Date(log.measured_at), "dd/MM/yyyy HH:mm", { locale: ptBR }),
-            getCategoryLabel(log.category),
-            val,
-            patients.find(p => p.id === log.patient_id)?.name || 'N/A',
-            log.notes || '-'
-        ];
-    });
+        // Adicionar nova página se não for o primeiro paciente e não houver espaço
+        if (index > 0 && yPos > pageHeight - 60) {
+            doc.addPage();
+            drawHeader();
+            yPos = 55;
+        }
 
-    autoTable(doc, {
-        startY: yPos,
-        head: [['Data/Hora', 'Categoria', 'Valor', 'Paciente', 'Observações']],
-        body: tableData,
-        theme: 'striped',
-        styles: {
-            font: 'helvetica',
-            fontSize: 9,
-            cellPadding: 3,
-            textColor: colors.text
-        },
-        headStyles: {
-            fillColor: [241, 245, 249],
-            textColor: colors.heading,
-            fontStyle: 'bold',
-            lineColor: colors.border,
-            lineWidth: 0.1
-        },
-        columnStyles: {
-            0: { cellWidth: 35 },
-            1: { cellWidth: 35 },
-            2: { cellWidth: 30 },
-            3: { cellWidth: 35 },
-            4: { cellWidth: 'auto' }
-        },
-        margin: { top: 10, left: 14, right: 14 }
+        // Espaçamento entre pacientes
+        if (index > 0) {
+            yPos += 10;
+        }
+
+        // --- Cabeçalho do Paciente ---
+        // Fundo claro com borda colorida à esquerda
+        doc.setDrawColor(226, 232, 240); // Slate-200
+        doc.setFillColor(248, 250, 252); // Slate-50 (fundo claro)
+        doc.roundedRect(14, yPos, pageWidth - 28, 20, 3, 3, 'FD');
+
+        // Borda colorida à esquerda
+        doc.setFillColor(124, 58, 237); // Purple-600
+        doc.rect(14, yPos + 3, 4, 14, 'F');
+
+        doc.setTextColor(30, 41, 59); // Slate-800 (texto escuro)
+        doc.setFontSize(14);
+        doc.setFont('helvetica', 'bold');
+        doc.text(patientName, 24, yPos + 10);
+
+        doc.setFontSize(9);
+        doc.setTextColor(100, 116, 139); // Slate-500
+        doc.setFont('helvetica', 'normal');
+        doc.text(`${patientLogs.length} registro(s)`, 24, yPos + 16);
+
+        yPos += 25;
+
+        // --- Tabela do Paciente ---
+        const tableData = patientLogs.map(log => {
+            let val = `${log.value}`;
+            if (log.value_secondary) val += ` / ${log.value_secondary}`;
+            val += ` ${getUnit(log.category)}`;
+
+            return [
+                format(new Date(log.measured_at), "dd/MM/yyyy HH:mm", { locale: ptBR }),
+                getCategoryLabel(log.category),
+                val,
+                log.notes || '-'
+            ];
+        });
+
+        autoTable(doc, {
+            startY: yPos,
+            head: [['Data/Hora', 'Categoria', 'Valor', 'Observações']],
+            body: tableData,
+            theme: 'striped',
+            styles: {
+                font: 'helvetica',
+                fontSize: 9,
+                cellPadding: 3,
+                textColor: colors.text
+            },
+            headStyles: {
+                fillColor: [241, 245, 249],
+                textColor: colors.heading,
+                fontStyle: 'bold',
+                lineColor: colors.border,
+                lineWidth: 0.1
+            },
+            columnStyles: {
+                0: { cellWidth: 40 },
+                1: { cellWidth: 40 },
+                2: { cellWidth: 35 },
+                3: { cellWidth: 'auto' }
+            },
+            margin: { top: 10, left: 14, right: 14 }
+        });
+
+        // Atualizar yPos após a tabela
+        yPos = doc.lastAutoTable.finalY + 5;
     });
 
     // --- Footer ---

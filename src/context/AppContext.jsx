@@ -603,6 +603,32 @@ export const AppProvider = ({ children }) => {
         }
     };
 
+    const updateHealthLog = async (id, updates) => {
+        if (!user) return;
+        try {
+            const { error } = await supabase
+                .from('health_logs')
+                .update({
+                    category: updates.category,
+                    value: String(updates.value),
+                    value_secondary: updates.valueSecondary ? String(updates.valueSecondary) : null,
+                    measured_at: updates.measuredAt,
+                    notes: updates.notes
+                })
+                .eq('id', id);
+
+            if (error) throw error;
+
+            setHealthLogs(prev => prev.map(log =>
+                log.id === id ? { ...log, ...updates, value_secondary: updates.valueSecondary, measured_at: updates.measuredAt } : log
+            ));
+            showToast('Registro atualizado!');
+        } catch (error) {
+            console.error('Erro ao atualizar registro de saúde:', error);
+            showToast('Erro ao atualizar registro', 'error');
+        }
+    };
+
     // Compartilhamento
     const sharePatient = async (patientId, email, permission) => {
         if (!user) return;
@@ -898,7 +924,7 @@ export const AppProvider = ({ children }) => {
             updateProfile,
 
             accountShares, shareAccount, unshareAccount,
-            healthLogs, addHealthLog, deleteHealthLog,
+            healthLogs, addHealthLog, updateHealthLog, deleteHealthLog,
             runCaregiverCheck,
             checkLowStock,
             logout: authSignOut

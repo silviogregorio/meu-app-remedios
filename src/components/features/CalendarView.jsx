@@ -3,7 +3,7 @@ import { ChevronLeft, ChevronRight, Check, X, AlertCircle } from 'lucide-react';
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, isToday } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
-const CalendarView = ({ prescriptions, consumptionLog, onDateSelect }) => {
+const CalendarView = ({ prescriptions, consumptionLog, healthLogs = [], onDateSelect }) => {
     const [currentDate, setCurrentDate] = useState(new Date());
 
     const nextMonth = () => setCurrentDate(addMonths(currentDate, 1));
@@ -14,19 +14,21 @@ const CalendarView = ({ prescriptions, consumptionLog, onDateSelect }) => {
         const start = startOfMonth(currentDate);
         const end = endOfMonth(currentDate);
         return eachDayOfInterval({ start, end });
-    }, [currentDate]);
+    }, [currentDate, healthLogs, prescriptions, consumptionLog]);
 
     // Helper to Get Day Status
     const getDayStatus = (date) => {
         const dateStr = format(date, 'yyyy-MM-dd');
+
+        // Check for Health Logs (Vital Signs)
+        const hasLogs = healthLogs && healthLogs.some(log => log.measured_at.startsWith(dateStr));
 
         // 1. Find prescriptions active on this date
         const activePrescriptions = prescriptions.filter(p => {
             const start = new Date(p.startDate);
             const end = new Date(p.endDate);
             // Ignore time components
-            const d = new Date(dateStr);
-            d.setHours(0, 0, 0, 0);
+            const d = new Date(dateStr + 'T00:00:00'); // Fix Timezone parsing for consistency
             start.setHours(0, 0, 0, 0);
             end.setHours(0, 0, 0, 0);
 
@@ -37,7 +39,11 @@ const CalendarView = ({ prescriptions, consumptionLog, onDateSelect }) => {
             return d >= start && d <= end;
         });
 
-        if (activePrescriptions.length === 0) return 'empty';
+        if (activePrescriptions.length === 0) {
+            // If no meds but has logs -> Logged (Blue)
+            if (hasLogs) return 'logged';
+            return 'empty';
+        }
 
         // 2. Count Total Expected Doses
         // Simplified: matches 'times' array length
@@ -50,7 +56,10 @@ const CalendarView = ({ prescriptions, consumptionLog, onDateSelect }) => {
             }
         });
 
-        if (expectedDoses === 0) return 'empty';
+        if (expectedDoses === 0) {
+            if (hasLogs) return 'logged';
+            return 'empty';
+        }
 
         // 3. Count Taken Doses
         const takenCount = consumptionLog.filter(log =>
@@ -60,7 +69,13 @@ const CalendarView = ({ prescriptions, consumptionLog, onDateSelect }) => {
         if (takenCount >= expectedDoses) return 'full';
         if (takenCount === 0) {
             // Only Red if date is in the past or today (and time passed? simplified to past date)
-            if (date < new Date().setHours(0, 0, 0, 0)) return 'missed';
+            if (date < new Date().setHours(0, 0, 0, 0)) {
+                // Even if missed meds, if has logs, maybe show partial/info? 
+                // Sticking to strict adherence priority: Red if missed meds logic.
+                // But maybe a small indicator modification? For now, let's prioritize adherence status.
+                return 'missed';
+            }
+            if (hasLogs) return 'logged'; // Today/Future with logs but no meds taken yet (or no meds due yet if future)
             return 'pending'; // Future/Today pending
         }
         return 'partial';
@@ -120,6 +135,10 @@ const CalendarView = ({ prescriptions, consumptionLog, onDateSelect }) => {
                         } else if (status === 'partial') {
                             bgClass = "bg-amber-50 hover:bg-amber-100 text-amber-700 border-amber-200";
                             statusIcon = <div className="w-1.5 h-1.5 rounded-full bg-amber-500 mx-auto mt-1" />;
+                        } else if (status === 'logged') {
+                            // Status specifically for Health Logs (Vital Signs) ONLY
+                            bgClass = "bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200";
+                            statusIcon = <div className="w-1.5 h-1.5 rounded-full bg-blue-500 mx-auto mt-1" />;
                         } else if (status === 'pending') {
                             bgClass = "bg-white hover:bg-slate-50 text-slate-400 border-slate-200 border-dashed";
                         }
@@ -150,6 +169,10 @@ const CalendarView = ({ prescriptions, consumptionLog, onDateSelect }) => {
                 <div className="flex items-center gap-1.5">
                     <div className="w-2 h-2 rounded-full bg-emerald-500" />
                     <span>Completo</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                    <div className="w-2 h-2 rounded-full bg-blue-500" />
+                    <span>Registros</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                     <div className="w-2 h-2 rounded-full bg-amber-500" />

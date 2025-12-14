@@ -12,7 +12,7 @@ const Toast = ({ message, type = 'success', onClose }) => {
 
     return (
         <div className={clsx(
-            "fixed top-4 right-4 z-[60] flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg animate-in slide-in-from-right-full duration-300",
+            "fixed top-4 right-4 z-[10000] flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg animate-in slide-in-from-right-full duration-300",
             type === 'success' ? "bg-white border-l-4 border-[#10b981]" : "bg-white border-l-4 border-red-500"
         )}>
             {type === 'success' ? (

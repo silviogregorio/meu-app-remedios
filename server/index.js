@@ -60,9 +60,18 @@ app.get('/api/health', (req, res) => {
 const validateEmail = [
     body('to')
         .trim()
-        .isEmail()
-        .withMessage('Email inválido')
-        .normalizeEmail(),
+        .notEmpty()
+        .withMessage('Email é obrigatório')
+        .custom((value) => {
+            // Split by comma and validate each email
+            const emails = value.split(',').map(e => e.trim());
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            const allValid = emails.every(email => emailRegex.test(email));
+            if (!allValid) {
+                throw new Error('Um ou mais emails são inválidos');
+            }
+            return true;
+        }),
     body('subject')
         .trim()
         .notEmpty()
@@ -79,7 +88,11 @@ const validateEmail = [
         .optional()
         .trim()
         .isLength({ max: 1000 })
-        .withMessage('Observações muito longas (máximo 1000 caracteres)')
+        .withMessage('Observações muito longas (máximo 1000 caracteres)'),
+    body('healthLogsData')
+        .optional()
+        .isArray()
+        .withMessage('healthLogsData deve ser um array')
 ];
 
 // Rota para enviar email
@@ -88,6 +101,7 @@ app.post('/api/send-email', emailLimiter, validateEmail, async (req, res) => {
         // Check validation errors
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
+            console.error('Validation errors:', JSON.stringify(errors.array(), null, 2));
             return res.status(400).json({
                 success: false,
                 error: errors.array()[0].msg,
@@ -95,10 +109,14 @@ app.post('/api/send-email', emailLimiter, validateEmail, async (req, res) => {
             });
         }
 
-        const { to, subject, text, observations, type, senderName, senderEmail } = req.body;
+        const { to, subject, text, observations, type, senderName, senderEmail, sosData, reportData, healthLogsData, healthLogsByPatient, attachments } = req.body;
+
+        console.log('Received Body Keys:', Object.keys(req.body));
+        console.log('healthLogsData:', req.body.healthLogsData ? `Array with ${req.body.healthLogsData.length} items` : 'undefined');
+        if (attachments) console.log('Has Attachments:', attachments.length);
 
         // Enviar email
-        const result = await sendEmail({ to, subject, text, observations, type, senderName, senderEmail });
+        const result = await sendEmail({ to, subject, text, observations, type, senderName, senderEmail, sosData, reportData, healthLogsData, healthLogsByPatient, attachments });
 
         res.json(result);
 

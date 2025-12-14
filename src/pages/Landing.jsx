@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, Bell, ArrowRight, Activity, Heart, Send, CheckCircle2, AlertCircle, Smartphone, Rocket, Zap, Globe, Layers, Instagram, Facebook, Youtube, MessageCircle, Video, BookOpen, LifeBuoy, FileText, Pill, Shield } from 'lucide-react';
+import { Users, Bell, ArrowRight, Activity, Heart, Send, CheckCircle2, AlertCircle, Smartphone, Rocket, Zap, Globe, Layers, Instagram, Facebook, Youtube, MessageCircle, Video, BookOpen, LifeBuoy, FileText, Pill, Shield, Calendar, Download, Printer, Share2, Lock } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import confetti from 'canvas-confetti';
+
 
 const Landing = () => {
     const navigate = useNavigate();
@@ -121,7 +123,7 @@ const Landing = () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     to: 'sigsis@gmail.com',
-                    subject: `Contato Site: ${contactForm.name}`,
+                    subject: `SiG Remédios - Contato: ${contactForm.name}`,
                     text: contactForm.message,
                     type: 'contact',
                     senderName: contactForm.name,
@@ -136,6 +138,15 @@ const Landing = () => {
                     type: 'success',
                     message: 'Mensagem enviada! Entraremos em contato em breve.'
                 });
+
+                // Trigger Confetti
+                confetti({
+                    particleCount: 150,
+                    spread: 70,
+                    origin: { y: 0.6 },
+                    colors: ['#10b981', '#3b82f6', '#f43f5e', '#f59e0b']
+                });
+
                 setContactForm({ name: '', email: '', message: '' });
                 // Limpar mensagem de sucesso após 5 segundos
                 setTimeout(() => setContactStatus(null), 5000);
@@ -252,70 +263,39 @@ const Landing = () => {
             </header>
 
             {/* Features Section - Premium Futurisc */}
-            <section id="features" className="bg-slate-50 py-24 px-6 relative overflow-hidden">
-                 <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent"></div>
-                 
-                 {/* Decorative background elements */}
-                 <div className="absolute top-20 left-10 w-64 h-64 bg-blue-400/5 rounded-full filter blur-3xl animate-blob"></div>
-                 <div className="absolute bottom-20 right-10 w-64 h-64 bg-purple-400/5 rounded-full filter blur-3xl animate-blob animation-delay-2000"></div>
+            <section id="features" className="bg-slate-50 py-16 px-6 relative overflow-hidden">
+                <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent"></div>
+
+                {/* Decorative background elements */}
+                <div className="absolute top-20 left-10 w-64 h-64 bg-blue-400/5 rounded-full filter blur-3xl animate-blob"></div>
+                <div className="absolute bottom-20 right-10 w-64 h-64 bg-purple-400/5 rounded-full filter blur-3xl animate-blob animation-delay-2000"></div>
 
                 <div className="max-w-7xl mx-auto relative z-10">
-                    <div className="text-center max-w-3xl mx-auto mb-20 animate-fade-in-up">
-                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 text-indigo-600 text-sm font-bold border border-indigo-100 mb-6 shadow-sm">
+                    <div className="text-center max-w-3xl mx-auto mb-12 animate-fade-in-up">
+                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 text-indigo-600 text-sm font-bold border border-indigo-100 mb-4 shadow-sm">
                             <Rocket className="w-4 h-4 animate-pulse" />
                             <span>Tecnologia de Ponta</span>
                         </div>
-                        <h2 className="text-4xl md:text-5xl font-extrabold text-slate-900 mb-6 tracking-tight">
-                            Funcionalidades que <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">Impressionam</span>
+                        <h2 className="text-4xl md:text-5xl font-extrabold text-slate-900 mb-4 tracking-tight">
+                            Sua Saúde e Segurança <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">Levadas a Sério</span>
                         </h2>
                         <p className="text-slate-600 text-lg md:text-xl leading-relaxed">
-                            Uma suíte completa de ferramentas projetada para dar superpoderes ao seu cuidado diário. Simples, bonito e poderoso.
+                            Uma suíte completa de ferramentas projetada para dar superpoderes ao seu cuidado diário.
                         </p>
                     </div>
 
-                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
-                        <FeatureCard
-                            icon={<Users className="w-8 h-8 text-blue-600" />}
-                            color="blue"
-                            title="Compartilhamento Familiar"
-                            description="Conecte cuidadores e familiares em tempo real. Quem ama, cuida junto e fica sempre sincronizado."
-                            delay="0s"
-                        />
-                        <FeatureCard
-                            icon={<Bell className="w-8 h-8 text-purple-600" />}
-                            color="purple"
-                            title="Lembretes Inteligentes"
-                            description="Nossa IA avisa a hora exata da medicação. Esqueça o medo de perder uma dose importante."
-                            delay="0.1s"
-                        />
-                        <FeatureCard
-                            icon={<Pill className="w-8 h-8 text-pink-600" />}
-                            color="pink"
-                            title="Controle de Estoque"
-                            description="Baixa automática a cada dose tomada. O sistema avisa você dias antes do remédio acabar."
-                            delay="0.2s"
-                        />
-                        <FeatureCard
-                            icon={<LifeBuoy className="w-8 h-8 text-teal-600" />}
-                            color="teal"
-                            title="Suporte VIP Integrado"
-                            description="Teve dúvida? Chame nosso suporte humanizado direto pelo App ou WhatsApp. Você nunca está sozinho."
-                            delay="0.3s"
-                        />
-                        <FeatureCard
-                            icon={<BookOpen className="w-8 h-8 text-amber-600" />}
-                            color="amber"
-                            title="Manual Interativo"
-                            description="Aprenda a usar cada recurso com nosso guia visual passo a passo. Tecnologia acessível para todas as idades."
-                            delay="0.4s"
-                        />
-                         <FeatureCard
-                            icon={<FileText className="w-8 h-8 text-cyan-600" />}
-                            color="cyan"
-                            title="Relatórios Médicos"
-                            description="Gere históricos detalhados em PDF para seu médico. Mostre a evolução do tratamento com dados reais."
-                            delay="0.5s"
-                        />
+                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-6">
+                        {featuresList.map((feature, index) => (
+                            <FeatureCard
+                                key={index}
+                                icon={feature.icon}
+                                color={feature.color}
+                                title={feature.title}
+                                description={feature.description}
+                                delay={`${index * 0.1}s`}
+                                index={index}
+                            />
+                        ))}
                     </div>
                 </div>
             </section>
@@ -624,17 +604,114 @@ const Landing = () => {
     );
 };
 
-const FeatureCard = ({ icon, title, description, delay }) => (
-    <div
-        className="bg-slate-50 p-6 md:p-8 rounded-2xl border border-slate-100 hover:shadow-xl hover:bg-white transition-all duration-300 group animate-float w-full"
-        style={{ animationDelay: delay }}
-    >
-        <div className="w-14 h-14 bg-white rounded-xl shadow-sm flex items-center justify-center mb-6 border border-slate-100 group-hover:scale-110 transition-transform duration-300">
-            {icon}
+const featuresList = [
+    {
+        icon: <Users className="w-8 h-8 text-blue-600" />,
+        color: "blue",
+        title: "Compartilhamento Familiar",
+        description: "Conecte cuidadores e familiares em tempo real. Quem ama, cuida junto e fica sempre sincronizado."
+    },
+    {
+        icon: <Bell className="w-8 h-8 text-purple-600" />,
+        color: "purple",
+        title: "Lembretes Inteligentes",
+        description: "Nossa IA avisa a hora exata da medicação. Esqueça o medo de perder uma dose importante."
+    },
+    {
+        icon: <Activity className="w-8 h-8 text-rose-600" />,
+        color: "rose",
+        title: "Diário de Saúde",
+        description: "Monitore Pressão, Glicose, Peso e Humor. Gráficos vitais completos para o controle da sua evolução."
+    },
+    {
+        icon: <Pill className="w-8 h-8 text-pink-600" />,
+        color: "pink",
+        title: "Controle de Estoque",
+        description: "Baixa automática a cada dose tomada. O sistema avisa você dias antes do remédio acabar."
+    },
+    {
+        icon: <LifeBuoy className="w-8 h-8 text-teal-600" />,
+        color: "teal",
+        title: "Suporte VIP Integrado",
+        description: "Teve dúvida? Chame nosso suporte humanizado direto pelo App ou WhatsApp. Você nunca está sozinho."
+    },
+    {
+        icon: <BookOpen className="w-8 h-8 text-amber-600" />,
+        color: "amber",
+        title: "Manual Interativo",
+        description: "Aprenda a usar cada recurso com nosso guia visual passo a passo. Tecnologia acessível para todas as idades."
+    },
+    {
+        icon: <FileText className="w-8 h-8 text-cyan-600" />,
+        color: "cyan",
+        title: "Relatórios Médicos",
+        description: "Gere históricos detalhados em PDF para seu médico. Mostre a evolução do tratamento com dados reais."
+    },
+    {
+        icon: <Calendar className="w-8 h-8 text-indigo-600" />,
+        color: "indigo",
+        title: "Google Agenda",
+        description: "Integração nativa. Seus horários de medicação sincronizados direto no seu calendário pessoal."
+    },
+    {
+        icon: <Shield className="w-8 h-8 text-red-600" />,
+        color: "red",
+        title: "SOS Digital",
+        description: "Cartão de emergência vital. Socorristas acessam tipagem sanguínea, alergias e remédios em 1 clique."
+    },
+    {
+        icon: <Share2 className="w-8 h-8 text-violet-600" />,
+        color: "violet",
+        title: "Envio Multi-Canal",
+        description: "Você escolhe como compartilhar: gerar PDF, enviar por Email, mandar no WhatsApp ou Imprimir. Tudo em 1 clique."
+    },
+    {
+        icon: <Lock className="w-8 h-8 text-slate-700" />,
+        color: "slate",
+        title: "Segurança dos Dados",
+        description: "Tecnologia de criptografia avançada. Seus dados médicos blindados e acessíveis somente a você ou quem compartilhar."
+    }
+];
+
+const FeatureCard = ({ icon, title, description, delay, index }) => {
+    // Alternating gradient logic
+    const isAlternating = index % 2 !== 0;
+
+    // Row-based Animation Logic (assuming 3 columns for LG, 2 for MD, 1 for mobile)
+    // To keep it simple but "different per line", we can alternate entrance direction based on index parity.
+    // Even items: Fade In Left
+    // Odd items: Fade In Right
+
+    // We add 'animate-shake' on hover manually via CSS or Tailwind utility extend if available.
+    // Since 'animate-shake' might not be in standard utils, we'll use a standard transform wiggle effect.
+
+    return (
+        <div
+            className={`
+                p-5 rounded-2xl border transition-all duration-300 group w-full relative overflow-hidden
+                ${isAlternating
+                    ? 'bg-gradient-to-br from-indigo-50 via-blue-100 to-indigo-200 border-indigo-200 hover:shadow-indigo-200/50'
+                    : 'bg-gradient-to-br from-white via-indigo-50 to-blue-50 border-indigo-100 hover:shadow-blue-100/50'
+                }
+                hover:shadow-xl hover:-translate-y-1 hover:animate-shake animate-float
+            `}
+            style={{
+                animationDelay: delay,
+                // Override animate-float to have distinct entrance if we wanted, 
+                // but user asked for "animation different per line". 
+                // The current 'animate-float' is a continuous up/down. 
+                // The Entrance is handled by parent, or we can add it here.
+                // Let's add a subtle continuous distinct float duration per row 
+                animationDuration: `${3 + (index % 3)}s`
+            }}
+        >
+            <div className={`w-12 h-12 rounded-xl shadow-sm flex items-center justify-center mb-4 border transition-transform duration-300 group-hover:scale-110 group-hover:animate-pulse ${isAlternating ? 'bg-white border-indigo-100' : 'bg-white border-slate-100'}`}>
+                {icon}
+            </div>
+            <h3 className="text-xl font-bold text-slate-900 mb-3 break-words relative z-10">{title}</h3>
+            <p className="text-slate-600 leading-relaxed text-sm md:text-base relative z-10">{description}</p>
         </div>
-        <h3 className="text-xl font-bold text-slate-900 mb-3 break-words">{title}</h3>
-        <p className="text-slate-600 leading-relaxed text-sm md:text-base">{description}</p>
-    </div>
-);
+    );
+};
 
 export default Landing;

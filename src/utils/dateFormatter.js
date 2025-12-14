@@ -8,7 +8,15 @@ import { ptBR } from 'date-fns/locale';
  */
 export const formatDate = (date) => {
     if (!date) return '';
-    const d = new Date(date);
+
+    let d;
+    // Fix: If string matches YYYY-MM-DD (without time), append T00:00:00 to force Local Time
+    if (typeof date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
+        d = new Date(`${date}T00:00:00`);
+    } else {
+        d = new Date(date);
+    }
+
     if (isNaN(d.getTime())) return ''; // Return empty if invalid date
     return format(d, 'dd/MM/yyyy', { locale: ptBR });
 };
