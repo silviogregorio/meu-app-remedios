@@ -151,177 +151,189 @@ const SOSCard = ({ onClose }) => {
         }
     };
 
-    return createPortal(content, document.body);
-};
+    const handlePrint = () => window.print();
 
-
-<div className="p-6 space-y-6" ref={printRef}>
-
-    {/* 1. Patient Info */}
-    <div className="flex items-start justify-between gap-4">
-        <div>
-            <h1 className="text-3xl font-bold text-slate-900 mb-1 leading-tight">
-                {selectedPatient.name}
-            </h1>
-            <p className="text-slate-500 font-medium">
-                Nascimento: {selectedPatient.birthDate ? new Date(selectedPatient.birthDate).toLocaleDateString('pt-BR') : 'N/A'}
-            </p>
-        </div>
-        {selectedPatient.bloodType && (
-            <div className="bg-red-50 border-2 border-red-100 px-4 py-3 rounded-2xl flex flex-col items-center justify-center min-w-[80px]">
-                <Droplet className="text-red-500 mb-1" size={20} fill="currentColor" />
-                <span className="text-xs text-red-400 font-bold uppercase tracking-wider">Tipo</span>
-                <span className="text-xl font-black text-red-700">{selectedPatient.bloodType}</span>
-            </div>
-        )}
-    </div>
-
-    {/* 2. WARNINGS (Allergies & Conditions) */}
-    <div className="space-y-3">
-        {selectedPatient.allergies && (
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex gap-3">
-                <AlertTriangle className="text-amber-600 shrink-0 mt-0.5" size={24} />
-                <div>
-                    <h4 className="font-bold text-amber-800 uppercase text-xs tracking-wider mb-1">Alergias & Intolerâncias</h4>
-                    <p className="font-bold text-amber-900 text-lg leading-snug">
-                        {selectedPatient.allergies}
-                    </p>
+    const content = (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 print:p-0 print:block animate-in fade-in duration-200">
+            <div className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl relative flex flex-col max-h-[90vh] print:shadow-none print:w-full print:max-w-none print:h-auto print:rounded-none overflow-hidden">
+                <div className="absolute top-4 right-4 z-10 print:hidden">
+                    <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full bg-white/50 hover:bg-slate-100">
+                        <X size={20} />
+                    </Button>
                 </div>
-            </div>
-        )}
 
-        {selectedPatient.condition && (
-            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-                <h4 className="font-bold text-blue-800 uppercase text-xs tracking-wider mb-1">Condição Médica Principal</h4>
-                <p className="font-bold text-blue-900 text-lg">
-                    {selectedPatient.condition}
-                </p>
-            </div>
-        )}
-    </div>
+                <div className="overflow-y-auto flex-1 custom-scrollbar">
+                    <div className="p-6 space-y-6" ref={printRef}>
 
-    {/* 3. Medication List */}
-    <div>
-        <h3 className="font-bold text-slate-900 border-b pb-2 mb-4 flex items-center justify-between">
-            <span>Medicamentos em Uso ({activePrescriptions.length})</span>
-            <span className="text-xs font-normal text-slate-500 bg-slate-100 px-2 py-1 rounded">Atualizado: {new Date().toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
-        </h3>
-
-        {activePrescriptions.length === 0 ? (
-            <p className="text-slate-400 italic text-center py-4">Nenhum medicamento ativo registrado.</p>
-        ) : (
-            <div className="grid gap-3">
-                {activePrescriptions.map(presc => {
-                    const med = useApp().medications.find(m => m.id === presc.medicationId);
-                    return (
-                        <div key={presc.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-100">
+                        {/* 1. Patient Info */}
+                        <div className="flex items-start justify-between gap-4">
                             <div>
-                                <p className="font-bold text-slate-900">
-                                    {med ? med.name : 'Medicamento Desconhecido'}
-                                    <span className="text-slate-500 font-normal ml-2 text-sm">
-                                        {med?.dosage}
-                                    </span>
-                                </p>
-                                <p className="text-sm text-slate-600 mt-0.5">
-                                    {presc.frequency}
-                                    {presc.continuousUse && <span className="text-blue-600 font-bold ml-2 text-xs bg-blue-50 px-1.5 rounded">Uso Contínuo</span>}
+                                <h1 className="text-3xl font-bold text-slate-900 mb-1 leading-tight">
+                                    {selectedPatient.name}
+                                </h1>
+                                <p className="text-slate-500 font-medium">
+                                    Nascimento: {selectedPatient.birthDate ? new Date(selectedPatient.birthDate).toLocaleDateString('pt-BR') : 'N/A'}
                                 </p>
                             </div>
+                            {selectedPatient.bloodType && (
+                                <div className="bg-red-50 border-2 border-red-100 px-4 py-3 rounded-2xl flex flex-col items-center justify-center min-w-[80px]">
+                                    <Droplet className="text-red-500 mb-1" size={20} fill="currentColor" />
+                                    <span className="text-xs text-red-400 font-bold uppercase tracking-wider">Tipo</span>
+                                    <span className="text-xl font-black text-red-700">{selectedPatient.bloodType}</span>
+                                </div>
+                            )}
                         </div>
-                    );
-                })}
-            </div>
-        )}
-    </div>
 
-    {/* 4. Contact Info */}
-    <div className="bg-slate-900 text-slate-300 rounded-xl p-4 mt-6 print:bg-slate-100 print:text-black">
-        <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3 print:text-black">Responsável / Cuidador</h4>
-        <div className="flex items-center gap-3">
-            <div className="bg-slate-800 p-2.5 rounded-full print:bg-white print:border">
-                <UserIcon user={user} />
-            </div>
-            <div>
-                <p className="font-bold text-white text-lg print:text-black">
-                    {user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Usuário'}
-                </p>
-                <p className="text-slate-400 text-sm print:text-slate-600">
-                    {user?.email}
-                </p>
-            </div>
-        </div>
-    </div>
+                        {/* 2. WARNINGS (Allergies & Conditions) */}
+                        <div className="space-y-3">
+                            {selectedPatient.allergies && (
+                                <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex gap-3">
+                                    <AlertTriangle className="text-amber-600 shrink-0 mt-0.5" size={24} />
+                                    <div>
+                                        <h4 className="font-bold text-amber-800 uppercase text-xs tracking-wider mb-1">Alergias & Intolerâncias</h4>
+                                        <p className="font-bold text-amber-900 text-lg leading-snug">
+                                            {selectedPatient.allergies}
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
 
-</div>
+                            {selectedPatient.condition && (
+                                <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                                    <h4 className="font-bold text-blue-800 uppercase text-xs tracking-wider mb-1">Condição Médica Principal</h4>
+                                    <p className="font-bold text-blue-900 text-lg">
+                                        {selectedPatient.condition}
+                                    </p>
+                                </div>
+                            )}
+                        </div>
 
-{/* Footer Actions */ }
-<div className="p-4 border-t border-slate-100 bg-slate-50 flex flex-col md:flex-row gap-3 print:hidden">
-    <Button variant="outline" onClick={onClose} className="md:w-auto w-full order-last md:order-first">
-        Fechar
-    </Button>
+                        {/* 3. Medication List */}
+                        <div>
+                            <h3 className="font-bold text-slate-900 border-b pb-2 mb-4 flex items-center justify-between">
+                                <span>Medicamentos em Uso ({activePrescriptions.length})</span>
+                                <span className="text-xs font-normal text-slate-500 bg-slate-100 px-2 py-1 rounded">Atualizado: {new Date().toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                            </h3>
 
-    <div className="flex gap-2 w-full md:w-auto flex-1 justify-end">
-        <Button
-            className="flex-1 md:flex-none bg-indigo-600 hover:bg-indigo-700 text-white"
-            onClick={handleEmail}
-        >
-            <Mail size={18} className="mr-2" />
-            Email
-        </Button>
-        <Button
-            className="flex-1 md:flex-none bg-green-600 hover:bg-green-700 text-white"
-            onClick={handleWhatsApp}
-            disabled={generatingPDF}
-        >
-            {generatingPDF ? 'Gerando...' : (
-                <>
-                    <MessageCircle size={18} className="mr-2" />
-                    WhatsApp / PDF
-                </>
-            )}
-        </Button>
-        <Button
-            className="flex-1 md:flex-none bg-slate-900 hover:bg-slate-800 text-white shadow-lg"
-            onClick={handlePrint}
-        >
-            <Printer size={18} className="mr-2" />
-            Imprimir
-        </Button>
-    </div>
-</div>
+                            {activePrescriptions.length === 0 ? (
+                                <p className="text-slate-400 italic text-center py-4">Nenhum medicamento ativo registrado.</p>
+                            ) : (
+                                <div className="grid gap-3">
+                                    {activePrescriptions.map(presc => {
+                                        const med = useApp().medications.find(m => m.id === presc.medicationId);
+                                        return (
+                                            <div key={presc.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-100">
+                                                <div>
+                                                    <p className="font-bold text-slate-900">
+                                                        {med ? med.name : 'Medicamento Desconhecido'}
+                                                        <span className="text-slate-500 font-normal ml-2 text-sm">
+                                                            {med?.dosage}
+                                                        </span>
+                                                    </p>
+                                                    <p className="text-sm text-slate-600 mt-0.5">
+                                                        {presc.frequency}
+                                                        {presc.continuousUse && <span className="text-blue-600 font-bold ml-2 text-xs bg-blue-50 px-1.5 rounded">Uso Contínuo</span>}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
 
-{/* Email Modal Overlay */ }
-{
-    emailModalOpen && (
-        <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/50 p-4">
-            <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 animate-in zoom-in-95">
-                <h3 className="text-xl font-bold text-slate-900 mb-2">Enviar SOS por Email</h3>
-                <p className="text-sm text-slate-500 mb-4">Enviaremos este cartão com formatação profissional.</p>
-                <form onSubmit={sendSOSViaEmail}>
-                    <input
-                        type="email"
-                        required
-                        placeholder="Email do destinatário"
-                        className="w-full px-4 py-3 rounded-xl border border-slate-300 mb-4 focus:ring-2 focus:ring-indigo-500 outline-none"
-                        value={emailAddress}
-                        onChange={e => setEmailAddress(e.target.value)}
-                    />
-                    <div className="flex gap-3">
-                        <Button type="button" variant="ghost" className="flex-1" onClick={() => setEmailModalOpen(false)}>
-                            Cancelar
+                        {/* 4. Contact Info */}
+                        <div className="bg-slate-900 text-slate-300 rounded-xl p-4 mt-6 print:bg-slate-100 print:text-black">
+                            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3 print:text-black">Responsável / Cuidador</h4>
+                            <div className="flex items-center gap-3">
+                                <div className="bg-slate-800 p-2.5 rounded-full print:bg-white print:border">
+                                    <UserIcon user={user} />
+                                </div>
+                                <div>
+                                    <p className="font-bold text-white text-lg print:text-black">
+                                        {user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Usuário'}
+                                    </p>
+                                    <p className="text-slate-400 text-sm print:text-slate-600">
+                                        {user?.email}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                {/* Footer Actions */}
+                <div className="p-4 border-t border-slate-100 bg-slate-50 flex flex-col md:flex-row gap-3 print:hidden">
+                    <Button variant="outline" onClick={onClose} className="md:w-auto w-full order-last md:order-first">
+                        Fechar
+                    </Button>
+
+                    <div className="flex gap-2 w-full md:w-auto flex-1 justify-end">
+                        <Button
+                            className="flex-1 md:flex-none bg-indigo-600 hover:bg-indigo-700 text-white"
+                            onClick={handleEmail}
+                        >
+                            <Mail size={18} className="mr-2" />
+                            Email
                         </Button>
-                        <Button type="submit" className="flex-1 bg-indigo-600 text-white" disabled={sendingEmail}>
-                            {sendingEmail ? 'Enviando...' : 'Enviar'}
+                        <Button
+                            className="flex-1 md:flex-none bg-green-600 hover:bg-green-700 text-white"
+                            onClick={handleWhatsApp}
+                            disabled={generatingPDF}
+                        >
+                            {generatingPDF ? 'Gerando...' : (
+                                <>
+                                    <MessageCircle size={18} className="mr-2" />
+                                    WhatsApp / PDF
+                                </>
+                            )}
+                        </Button>
+                        <Button
+                            className="flex-1 md:flex-none bg-slate-900 hover:bg-slate-800 text-white shadow-lg"
+                            onClick={handlePrint}
+                        >
+                            <Printer size={18} className="mr-2" />
+                            Imprimir
                         </Button>
                     </div>
-                </form>
-            </div>
-        </div>
-    )
-}
+                </div>
+
+                {/* Email Modal Overlay */}
+                {
+                    emailModalOpen && (
+                        <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/50 p-4">
+                            <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 animate-in zoom-in-95">
+                                <h3 className="text-xl font-bold text-slate-900 mb-2">Enviar SOS por Email</h3>
+                                <p className="text-sm text-slate-500 mb-4">Enviaremos este cartão com formatação profissional.</p>
+                                <form onSubmit={sendSOSViaEmail}>
+                                    <input
+                                        type="email"
+                                        required
+                                        placeholder="Email do destinatário"
+                                        className="w-full px-4 py-3 rounded-xl border border-slate-300 mb-4 focus:ring-2 focus:ring-indigo-500 outline-none"
+                                        value={emailAddress}
+                                        onChange={e => setEmailAddress(e.target.value)}
+                                    />
+                                    <div className="flex gap-3">
+                                        <Button type="button" variant="ghost" className="flex-1" onClick={() => setEmailModalOpen(false)}>
+                                            Cancelar
+                                        </Button>
+                                        <Button type="submit" className="flex-1 bg-indigo-600 text-white" disabled={sendingEmail}>
+                                            {sendingEmail ? 'Enviando...' : 'Enviar'}
+                                        </Button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    )
+                }
             </div >
         </div >
     );
+
+    return createPortal(content, document.body);
+};
 
 // Helper for user icon
 const UserIcon = () => (
