@@ -14,7 +14,9 @@ import confetti from 'canvas-confetti';
 import { generateICS, generateFutureSchedule } from '../utils/icsGenerator';
 import VoiceCommand from '../components/features/VoiceCommand';
 import OnboardingTour from '../components/OnboardingTour';
+import MotivationCard from '../components/features/MotivationCard';
 import { Calendar as CalendarIcon, DownloadCloud, CircleHelp } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
 
 const Home = () => {
     const { user, prescriptions, medications, patients, consumptionLog, logConsumption, removeConsumption, pendingShares, calculateStockDays } = useApp();
@@ -186,6 +188,10 @@ const Home = () => {
                     <span>Aprenda a Usar</span>
                 </button>
             </div>
+
+            {/* Motivation Card */}
+            <MotivationCard />
+
             {/* Low Stock Alert - Moved to Top */}
             {(() => {
                 // Filter meds that have active stock control and are running low (<= 3 days)
@@ -296,6 +302,10 @@ const Home = () => {
                                     timeText = `Em ${h}h ${m > 0 ? `${m}min` : ''}`;
                                 }
 
+                                import PillIcon from '../components/ui/PillIcon';
+
+                                // ... inside Home component render ...
+
                                 return (
                                     <div className="flex flex-col gap-4">
                                         <div className="flex items-start justify-between">
@@ -304,19 +314,33 @@ const Home = () => {
                                                     <Clock size={12} />
                                                     Próxima Dose
                                                 </span>
-                                                <h3 className="text-2xl font-bold mt-2">{nextDose.medicationName}</h3>
-                                                <p className="text-blue-100 text-lg">
-                                                    {Number(nextDose.doseAmount)}x {nextDose.dosage}
-                                                </p>
+
+                                                {/* BIG Visual Identity for Accessibility */}
+                                                <div className="flex items-center gap-4 mt-3">
+                                                    <div className="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center shrink-0 shadow-lg">
+                                                        <PillIcon
+                                                            shape={nextDose.medication?.shape || 'round'}
+                                                            color={nextDose.medication?.color || 'white'}
+                                                            size={48}
+                                                            className="drop-shadow-md"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <h3 className="text-3xl font-bold">{nextDose.medicationName}</h3>
+                                                        <p className="text-blue-100 text-xl font-medium">
+                                                            {Number(nextDose.doseAmount)}x {nextDose.dosage}
+                                                        </p>
+                                                    </div>
+                                                </div>
                                             </div>
                                             <div className="text-right">
-                                                <div className="text-3xl font-bold">{nextDose.time}</div>
-                                                <div className="text-blue-200 font-medium">{timeText}</div>
+                                                <div className="text-4xl font-bold tracking-tight">{nextDose.time}</div>
+                                                <div className="text-blue-200 font-medium text-lg mt-1">{timeText}</div>
                                             </div>
                                         </div>
-                                        <div className="flex items-center gap-2 text-sm text-blue-100 bg-blue-800/20 p-3 rounded-lg backdrop-blur-sm">
+                                        <div className="flex items-center gap-2 text-sm text-blue-100 bg-blue-800/20 p-3 rounded-lg backdrop-blur-sm mt-2">
                                             <User size={16} />
-                                            {nextDose.patientName}
+                                            Paciente: <span className="font-bold">{nextDose.patientName}</span>
                                         </div>
                                     </div>
                                 );

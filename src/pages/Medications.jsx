@@ -6,8 +6,29 @@ import Input from '../components/ui/Input';
 import Modal from '../components/ui/Modal';
 import Pagination from '../components/ui/Pagination';
 import { Plus, Pill, Trash2, Edit2, X, AlertTriangle, Search, User } from 'lucide-react';
+import PillIcon from '../components/ui/PillIcon'; // Import PillIcon
 
 const ITEMS_PER_PAGE = 6;
+
+const COLORS = [
+    { id: 'white', label: 'Branco', hex: 'bg-slate-100' },
+    { id: 'yellow', label: 'Amarelo', hex: 'bg-yellow-400' },
+    { id: 'blue', label: 'Azul', hex: 'bg-blue-400' },
+    { id: 'red', label: 'Vermelho', hex: 'bg-red-400' },
+    { id: 'green', label: 'Verde', hex: 'bg-green-400' },
+    { id: 'orange', label: 'Laranja', hex: 'bg-orange-400' },
+    { id: 'pink', label: 'Rosa', hex: 'bg-pink-400' },
+    { id: 'purple', label: 'Roxo', hex: 'bg-purple-400' },
+    { id: 'black', label: 'Escuro', hex: 'bg-slate-800' },
+];
+
+const SHAPES = [
+    { id: 'round', label: 'Redondo' },
+    { id: 'capsule', label: 'Cápsula' },
+    { id: 'oval', label: 'Oval' },
+    { id: 'square', label: 'Quadrado' },
+    { id: 'liquid', label: 'Líquido' },
+];
 
 const Medications = () => {
     const { medications, addMedication, updateMedication, deleteMedication, user } = useApp();
@@ -18,7 +39,14 @@ const Medications = () => {
     const [editingMedId, setEditingMedId] = useState(null);
     const [deleteMedId, setDeleteMedId] = useState(null);
 
-    const [medForm, setMedForm] = useState({ name: '', dosage: '', type: '', quantity: '' });
+    const [medForm, setMedForm] = useState({ 
+        name: '', 
+        dosage: '', 
+        type: '', 
+        quantity: '',
+        color: 'white', // Default
+        shape: 'round'  // Default
+    });
 
     // Reset page on search
     useEffect(() => {
@@ -36,7 +64,11 @@ const Medications = () => {
     const paginatedItems = filteredMedications.slice(startIndex, startIndex + ITEMS_PER_PAGE);
 
     const handleMedEdit = (med) => {
-        setMedForm(med);
+        setMedForm({
+            ...med,
+            color: med.color || 'white',
+            shape: med.shape || 'round'
+        });
         setEditingMedId(med.id);
         setShowForm(true);
     };
@@ -51,7 +83,7 @@ const Medications = () => {
     const handleCancel = () => {
         setShowForm(false);
         setEditingMedId(null);
-        setMedForm({ name: '', dosage: '', type: '', quantity: '' });
+        setMedForm({ name: '', dosage: '', type: '', quantity: '', color: 'white', shape: 'round' });
     };
 
     const [submitting, setSubmitting] = useState(false);
@@ -79,7 +111,7 @@ const Medications = () => {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <h2 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Medicamentos</h2>
-                    <p className="text-slate-500 dark:text-slate-400 mt-1">Gerencie seu estoque de remédios.</p>
+                    <p className="text-slate-500 dark:text-slate-400 mt-1">Gerencie seu estoque e a aparência dos remédios.</p>
                 </div>
                 {!showForm && (
                     <Button onClick={() => setShowForm(true)} className="shadow-xl shadow-primary/20">
@@ -111,7 +143,7 @@ const Medications = () => {
                             <h3 className="font-bold text-xl text-slate-900 dark:text-white">
                                 {editingMedId ? 'Editar Medicamento' : 'Novo Medicamento'}
                             </h3>
-                            <p className="text-sm text-slate-500 dark:text-slate-400">Preencha os dados abaixo</p>
+                            <p className="text-sm text-slate-500 dark:text-slate-400">Preencha os dados e escolha a aparência</p>
                         </div>
                         <button onClick={handleCancel} className="text-slate-400 hover:text-slate-600 p-2 rounded-full hover:bg-slate-100 transition-colors">
                             <X size={24} />
@@ -119,6 +151,56 @@ const Medications = () => {
                     </CardHeader>
                     <CardContent>
                         <form onSubmit={handleMedSubmit} className="flex flex-col gap-6">
+                            
+                            {/* Visual Preview */}
+                            <div className="flex justify-center mb-4">
+                                <div className="p-6 bg-slate-50 rounded-2xl flex flex-col items-center gap-2 border border-slate-100">
+                                    <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Aparência</span>
+                                    <PillIcon shape={medForm.shape} color={medForm.color} size={64} className="drop-shadow-sm" />
+                                    <p className="text-xs text-slate-500 mt-1">Como vai aparecer no app</p>
+                                </div>
+                            </div>
+
+                            {/* Shape & Color Selection */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-slate-50 rounded-xl border border-slate-100">
+                                <div>
+                                    <label className="text-sm font-semibold text-slate-700 mb-3 block">Formato</label>
+                                    <div className="flex flex-wrap gap-2">
+                                        {SHAPES.map(s => (
+                                            <button
+                                                key={s.id}
+                                                type="button"
+                                                onClick={() => setMedForm({ ...medForm, shape: s.id })}
+                                                className={`px-3 py-2 text-xs font-bold rounded-lg border transition-all ${medForm.shape === s.id 
+                                                    ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' 
+                                                    : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-300'}`}
+                                            >
+                                                {s.label}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="text-sm font-semibold text-slate-700 mb-3 block">Cor</label>
+                                    <div className="flex flex-wrap gap-2">
+                                        {COLORS.map(c => (
+                                            <button
+                                                key={c.id}
+                                                type="button"
+                                                onClick={() => setMedForm({ ...medForm, color: c.id })}
+                                                className={`w-8 h-8 rounded-full border-2 transition-all ${medForm.color === c.id 
+                                                    ? 'ring-2 ring-offset-2 ring-indigo-500 scale-110 border-transparent' 
+                                                    : 'border-slate-200 hover:scale-105'}`}
+                                                style={{ backgroundColor: c.id === 'white' ? '#f8fafc' : undefined }} // Little tweak for white
+                                                title={c.label}
+                                            >
+                                                <div className={`w-full h-full rounded-full ${c.id === 'white' ? 'bg-slate-100' : c.hex} opacity-90`} />
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                            
                             <Input
                                 label="Nome do Medicamento"
                                 placeholder="Ex: Dipirona"
@@ -150,7 +232,7 @@ const Medications = () => {
                                 step="0.1"
                             />
                             <p className="text-xs text-slate-500 bg-blue-50 p-2 rounded-lg -mt-4 border border-blue-100">
-                                <span className="font-bold">Dica:</span> Para líquidos (xaropes, gotas), cadastre o volume total em <strong>ml</strong> ou <strong>gotas</strong> (ex: 100ml), não o número de frascos. Assim o desconto da dose será exato.
+                                <span className="font-bold">Dica:</span> Para líquidos (xaropes, gotas), cadastre o volume total.
                             </p>
                             <div className="flex gap-4 mt-4 pt-6 border-t border-slate-50">
                                 <Button type="button" variant="ghost" onClick={handleCancel} className="flex-1">
@@ -184,8 +266,10 @@ const Medications = () => {
                             {paginatedItems.map(item => (
                                 <Card key={item.id} className="group hover:border-primary/30">
                                     <div className="flex flex-col md:flex-row md:items-center p-6 gap-6">
-                                        <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shrink-0 shadow-sm group-hover:scale-110 transition-transform duration-300">
-                                            <Pill size={32} />
+                                        
+                                        {/* Avatar Column */}
+                                        <div className="w-16 h-16 rounded-2xl bg-slate-50 flex items-center justify-center shrink-0 shadow-sm group-hover:scale-110 transition-transform duration-300 border border-slate-100">
+                                            <PillIcon shape={item.shape} color={item.color} size={32} />
                                         </div>
 
                                         <div className="flex-1 min-w-0">
@@ -196,7 +280,7 @@ const Medications = () => {
 
                                             <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
                                                 <span className="bg-slate-100 dark:bg-slate-800 px-2.5 py-0.5 rounded-md font-medium text-slate-600 dark:text-slate-300">
-                                                    {item.type || 'Sem tipo'}
+                                                    {item.type || 'Sem tipo'}  
                                                 </span>
                                                 {item.quantity && (
                                                     <span className="text-slate-600 dark:text-slate-400">

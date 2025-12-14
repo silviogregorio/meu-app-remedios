@@ -8,6 +8,7 @@ export const PrescriptionService = {
         medicationId: p.medication_id,
         startDate: p.start_date,
         endDate: p.end_date,
+        continuousUse: p.continuous_use,
         times: Array.isArray(p.times) ? p.times : (typeof p.times === 'string' ? JSON.parse(p.times) : []),
         doseAmount: p.dose_amount || 1
     }),
@@ -20,6 +21,7 @@ export const PrescriptionService = {
             frequency: prescriptionData.frequency,
             start_date: prescriptionData.startDate,
             end_date: prescriptionData.endDate,
+            continuous_use: prescriptionData.continuousUse,
             times: prescriptionData.times,
             instructions: prescriptionData.instructions,
             dose_amount: prescriptionData.doseAmount
@@ -41,6 +43,7 @@ export const PrescriptionService = {
         if (updatedData.frequency) dbData.frequency = updatedData.frequency;
         if (updatedData.startDate) dbData.start_date = updatedData.startDate;
         if (updatedData.endDate) dbData.end_date = updatedData.endDate;
+        if (updatedData.continuousUse !== undefined) dbData.continuous_use = updatedData.continuousUse;
         if (updatedData.times) dbData.times = updatedData.times;
         if (updatedData.instructions) dbData.instructions = updatedData.instructions;
         if (updatedData.doseAmount) dbData.dose_amount = updatedData.doseAmount;

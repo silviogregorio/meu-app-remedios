@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Menu, Bell, Sun, Moon, LogOut, User as UserIcon } from 'lucide-react';
+import { Menu, Bell, Sun, Moon, LogOut, User as UserIcon, Heart, Search } from 'lucide-react'; // Added Search
 import { useApp } from '../../context/AppContext';
 import NotificationsModal from '../ui/NotificationsModal';
+import SOSCard from '../features/SOSCard';
+import MedicationSearchModal from '../features/MedicationSearchModal'; // Added Import
 
 import { useTheme } from '../../context/ThemeContext';
 
@@ -10,6 +12,8 @@ const Header = ({ onMenuClick, isPinned }) => {
     const { user, pendingShares, logout } = useApp();
     const { theme, setTheme } = useTheme();
     const [showNotifications, setShowNotifications] = useState(false);
+    const [showSOS, setShowSOS] = useState(false);
+    const [showSearch, setShowSearch] = useState(false); // Added State
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
     const navigate = useNavigate();
 
@@ -50,6 +54,28 @@ const Header = ({ onMenuClick, isPinned }) => {
 
             {user && (
                 <div className="flex items-center gap-4">
+
+                    {/* Search Button (Mobile/Desktop) */}
+                    <button
+                        id="tour-search-btn"
+                        onClick={() => setShowSearch(true)}
+                        className="flex items-center gap-2 p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-full transition-colors"
+                        title="Buscar Medicamento"
+                    >
+                        <Search size={22} />
+                        <span className="hidden md:inline text-sm font-medium">Buscar</span>
+                    </button>
+
+                    {/* SOS Button */}
+                    <button
+                        id="tour-sos-btn"
+                        onClick={() => setShowSOS(true)}
+                        className="bg-red-600 hover:bg-red-700 text-white px-4 py-1.5 rounded-full font-bold shadow-lg shadow-red-500/30 transition-all hover:scale-105 flex items-center gap-2 animate-pulse-slow"
+                    >
+                        <Heart size={18} fill="currentColor" />
+                        <span className="hidden sm:inline">SOS</span>
+                    </button>
+
                     <button
                         onClick={toggleTheme}
                         className="p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-full transition-colors"
@@ -98,7 +124,7 @@ const Header = ({ onMenuClick, isPinned }) => {
                                 <div
                                     className="fixed inset-0 z-30"
                                     onClick={() => setIsUserMenuOpen(false)}
-                                />
+                                ></div>
                                 <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-slate-900 rounded-xl shadow-lg border border-gray-100 dark:border-slate-800 py-1 z-40 animate-fade-in-down">
                                     <button
                                         onClick={() => {
@@ -128,6 +154,13 @@ const Header = ({ onMenuClick, isPinned }) => {
             <NotificationsModal
                 isOpen={showNotifications}
                 onClose={() => setShowNotifications(false)}
+            />
+
+            {showSOS && <SOSCard onClose={() => setShowSOS(false)} />}
+
+            <MedicationSearchModal
+                isOpen={showSearch}
+                onClose={() => setShowSearch(false)}
             />
         </header>
     );

@@ -5,6 +5,8 @@ export const PatientService = {
         ...p,
         userId: p.user_id,
         birthDate: p.birth_date,
+        bloodType: p.blood_type,
+        allergies: p.allergies,
         sharedWith: p.patient_shares ? p.patient_shares.map(s => ({
             email: s.shared_with_email,
             permission: s.permission,
@@ -19,6 +21,8 @@ export const PatientService = {
             email: patientData.email,
             birth_date: patientData.birthDate,
             phone: patientData.phone,
+            blood_type: patientData.bloodType,
+            allergies: patientData.allergies,
             condition: patientData.condition,
             cep: patientData.cep,
             street: patientData.street,
@@ -45,6 +49,8 @@ export const PatientService = {
         if (updatedData.email !== undefined) dbData.email = updatedData.email;
         if (updatedData.birthDate) dbData.birth_date = updatedData.birthDate;
         if (updatedData.phone) dbData.phone = updatedData.phone;
+        if (updatedData.bloodType !== undefined) dbData.blood_type = updatedData.bloodType;
+        if (updatedData.allergies !== undefined) dbData.allergies = updatedData.allergies;
         if (updatedData.condition) dbData.condition = updatedData.condition;
         if (updatedData.cep) dbData.cep = updatedData.cep;
         if (updatedData.street) dbData.street = updatedData.street;

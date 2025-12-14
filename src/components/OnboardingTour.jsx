@@ -33,6 +33,14 @@ const OnboardingTour = ({ onTourEnd }) => {
                     align: 'start'
                 }
             },
+            {
+                element: '#tour-search-btn',
+                popover: {
+                    title: '🔍 Buscar Bula Simplificada',
+                    description: 'Dúvidas sobre um remédio? Clique aqui, fale ou digite o nome e veja para que serve e os cuidados. Tudo seguro e rápido.',
+                    side: "bottom"
+                }
+            },
             // Conditional Alerts
             ...(document.querySelector('.bg-amber-50') ? [{
                 element: '.bg-amber-50',
@@ -81,18 +89,18 @@ const OnboardingTour = ({ onTourEnd }) => {
                 element: '#header-menu-toggle',
                 popover: {
                     title: '☰ Menu Principal',
-                    description: 'Agora vamos conhecer as ferramentas de cadastro. Clique em Próximo para abrir o menu lateral.',
+                    description: 'Organizamos tudo em 3 partes para facilitar sua vida!\n\nClique em **Próximo** para ver como ficou fácil navegar.',
                     side: "bottom"
                 }
             },
 
-            // SIDEBAR ITEMS
+            // --- GRUPO: CADASTROS (A Base de Tudo) ---
             {
                 element: '#tour-nav-patients',
                 onHighlightStarted: ensureSidebarOpen,
                 popover: {
-                    title: '1. Pacientes (Pessoas) 👥',
-                    description: 'O SiG Remédios é multi-usuário. Aqui você cadastra **quem** vai tomar os remédios.\nPode ser você, seu pai, sua mãe, ou até um filho.\n\nCada paciente tem seu próprio histórico e agenda separados.',
+                    title: '1. Comece Por Aqui: Pessoas 👥',
+                    description: 'Na seção **Cadastros**, o primeiro passo é dizer **QUEM** vai usar.\n\nCadastre aqui você, seu pai, sua mãe... \nO sistema separa a lista de cada um, para ninguém tomar remédio trocado.',
                     side: "right"
                 }
             },
@@ -100,8 +108,8 @@ const OnboardingTour = ({ onTourEnd }) => {
                 element: '#tour-nav-medications',
                 onHighlightStarted: ensureSidebarOpen,
                 popover: {
-                    title: '2. Medicamentos (Estoque) 💊',
-                    description: 'Aqui você cadastra as **caixinhas** de remédio.\nInforme o nome, a dosagem (ex: 50mg) e quantos comprimidos vêm na caixa.\n\nAssim, o sistema consegue descontar do estoque a cada dose tomada e te avisar quando precisa comprar.',
+                    title: '2. Seu Estoque (Caixinhas) 💊',
+                    description: 'Agora, cadastre os remédios que você tem em casa.\n\n✨ **Novidade:** Você escolhe a **Cor** e o **Formato** (redondo, cápsula) para ficar igualzinho ao real. Ajuda muito a não confundir!',
                     side: "right"
                 }
             },
@@ -109,17 +117,19 @@ const OnboardingTour = ({ onTourEnd }) => {
                 element: '#tour-nav-prescriptions',
                 onHighlightStarted: ensureSidebarOpen,
                 popover: {
-                    title: '3. Prescrições (O Cérebro) 🧠',
-                    description: 'Esta é a parte mais importante. Aqui você cria a "Receita Digital".\n\nVocê escolhe o **Paciente**, seleciona o **Medicamento** e diz a regra:\nEx: "Tomar de 8 em 8 horas por 10 dias".\n\nO sistema gera toda a agenda futura automaticamente baseada nisso.',
+                    title: '3. A Receita Médica (O Cérebro) 🧠',
+                    description: 'É aqui que a mágica acontece. Você junta a **Pessoa** com o **Remédio** e diz o horário.\n\nExemplo: "Pai" toma "Dipirona" de 8 em 8 horas.\nPronto! O sistema monta a agenda sozinho.',
                     side: "right"
                 }
             },
+
+            // --- GRUPO: DIA A DIA (Uso Diário) ---
             {
                 element: '#tour-nav-diary',
                 onHighlightStarted: ensureSidebarOpen,
                 popover: {
                     title: '4. Diário de Saúde ❤️',
-                    description: 'O médico sempre pergunta: "Teve febre? Dor? Como estava a pressão?".\n\nUse esta tela para anotar sintomas, medições de pressão/glicemia e sentimentos.\nFica tudo salvo com data e hora para mostrar na consulta.',
+                    description: 'Na seção **Dia a Dia**, use esta tela sempre que sentir algo diferente.\n\nTeve dor de cabeça? A pressão subiu? Anote aqui. \nO sistema guarda tudo com data e hora.',
                     side: "right"
                 }
             },
@@ -127,17 +137,19 @@ const OnboardingTour = ({ onTourEnd }) => {
                 element: '#tour-nav-reports',
                 onHighlightStarted: ensureSidebarOpen,
                 popover: {
-                    title: '5. Relatórios Completos 📈',
-                    description: 'Seu médico pediu um histórico? É aqui!\n\nGere relatórios em PDF com tudo o que aconteceu: adesão aos remédios e sintomas do diário.\n\nVocê pode **imprimir** para levar na consulta ou **enviar o arquivo PDF** diretamente para o WhatsApp ou E-mail do seu médico.\n\nÉ a melhor forma de manter o profissional de saúde informado sobre o progresso do tratamento.',
+                    title: '5. Relatórios para o Médico 📄',
+                    description: 'Seu médico pediu um resumo?\n\nEle gera um **PDF Completo** mostrando se você tomou os remédios direitinho e o que sentiu no mês.\nÉ só imprimir ou mandar no Zap do doutor.',
                     side: "right"
                 }
             },
+
+            // --- GRUPO: SISTEMA (Configurações) ---
             {
                 element: '#tour-nav-share',
                 onHighlightStarted: ensureSidebarOpen,
                 popover: {
-                    title: '6. Acesso Geral (Cuidado! 🔐)',
-                    description: 'Este menu é como uma **Chave Mestra**.\n\nAo adicionar alguém aqui, você dá permissão para essa pessoa ver e mexer em **TUDO**: todos os seus pacientes, todos os remédios e todas as receitas.\n\nUse apenas para pessoas de extrema confiança (como esposa, marido ou pais).\n\n⚠️ **Dica:** Se você quer compartilhar apenas **UM** paciente com uma enfermeira ou cuidador, **NÃO use este menu**. Vá no menu "Pacientes" e compartilhe separadamente por lá.',
+                    title: '6. Acesso Geral (Cuidadores) 🔐',
+                    description: 'Precisa que uma enfermeira ou filho cuide de tudo?\n\nAdicione o e-mail dela aqui. Ela terá acesso total para ajudar a gerenciar as receitas e estoques.',
                     side: "right"
                 }
             },
@@ -145,8 +157,8 @@ const OnboardingTour = ({ onTourEnd }) => {
                 element: '#tour-nav-profile',
                 onHighlightStarted: ensureSidebarOpen,
                 popover: {
-                    title: '7. Seu Perfil e Backups 💾',
-                    description: 'Além de alterar senha e nome, aqui você encontra uma função vital: **Fazer Backup**.\n\nBaixe uma cópia de TODOS os seus dados para o seu celular sempre que quiser.\nSeus dados são seus!',
+                    title: '7. Segurança dos Dados 💾',
+                    description: 'Aqui você altera sua senha e faz **Backup**.\n\nRecomendamos baixar uma cópia dos seus dados de vez em quando para o seu celular. É seguro e garantido.',
                     side: "right"
                 }
             }

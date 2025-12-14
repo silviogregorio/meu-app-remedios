@@ -92,7 +92,8 @@ const VoiceCommand = ({ schedule, onToggle }) => {
         // Remove keywords (whole words only) to isolate medication name
         const stopWords = [
             'marcar', 'desmarcar', 'desmarque', 'como', 'tomado', 'tomei', 'tomar',
-            'registrar', 'o', 'a', 'os', 'as', 'um', 'uma', 'que', 'de', 'do', 'da'
+            'registrar', 'o', 'a', 'os', 'as', 'um', 'uma', 'que', 'de', 'do', 'da',
+            'remedio', 'remédio', 'medicamento', 'pilula', 'pílula', 'comprimido', 'ja', 'já'
         ];
 
         let cleanText = text;

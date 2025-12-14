@@ -53,6 +53,7 @@ const Prescriptions = () => {
         frequency: '',
         startDate: getLocalToday(),
         endDate: getFutureDate(6),
+        continuousUse: false,
         duration: '7',
         times: ['08:00'],
         doseAmount: '1'
@@ -121,6 +122,7 @@ const Prescriptions = () => {
             frequency: '',
             startDate: getLocalToday(),
             endDate: getFutureDate(6),
+            continuousUse: false,
             duration: '7',
             times: ['08:00'],
             doseAmount: '1'
@@ -234,7 +236,7 @@ const Prescriptions = () => {
         if (formData.times.some(time => !time)) errors.push('Preencha todos os horários');
 
         // Validate Date Order
-        if (new Date(formData.endDate) < new Date(formData.startDate)) {
+        if (!formData.continuousUse && new Date(formData.endDate) < new Date(formData.startDate)) {
             errors.push('A data final não pode ser anterior à data inicial');
         }
 
@@ -384,6 +386,25 @@ const Prescriptions = () => {
 
                             {/* Date Section with Auto Calculation */}
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                                <div className="md:col-span-3 pb-2 border-b border-slate-200 mb-2 flex items-center justify-between">
+                                    <label className="text-sm font-semibold text-slate-700 ml-1 flex items-center gap-2">
+                                        <Calendar size={16} />
+                                        Período do Tratamento
+                                    </label>
+                                    <div className="flex items-center gap-2">
+                                        <input
+                                            type="checkbox"
+                                            id="continuousUse"
+                                            checked={formData.continuousUse}
+                                            onChange={e => setFormData({ ...formData, continuousUse: e.target.checked, endDate: e.target.checked ? null : getFutureDate(6), duration: e.target.checked ? '' : '7' })}
+                                            className="w-4 h-4 rounded border-slate-300 text-primary focus:ring-primary"
+                                        />
+                                        <label htmlFor="continuousUse" className="text-sm text-slate-600 font-medium cursor-pointer select-none">
+                                            Uso Contínuo (Sem data final)
+                                        </label>
+                                    </div>
+                                </div>
+
                                 <Input
                                     label="Data de Início"
                                     type="date"
@@ -394,17 +415,21 @@ const Prescriptions = () => {
                                 <Input
                                     label="Duração (dias)"
                                     type="number"
-                                    placeholder="Ex: 7"
+                                    placeholder={formData.continuousUse ? "Indeterminado" : "Ex: 7"}
                                     value={formData.duration}
                                     onChange={handleDurationChange}
-                                    required
+                                    disabled={formData.continuousUse}
+                                    required={!formData.continuousUse}
+                                    className={formData.continuousUse ? "opacity-50 cursor-not-allowed bg-slate-100" : ""}
                                 />
                                 <Input
                                     label="Data Final"
                                     type="date"
-                                    value={formData.endDate}
+                                    value={formData.endDate || ''}
                                     onChange={handleEndDateChange}
-                                    required
+                                    disabled={formData.continuousUse}
+                                    required={!formData.continuousUse}
+                                    className={formData.continuousUse ? "opacity-50 cursor-not-allowed bg-slate-100" : ""}
                                 />
                             </div>
 
@@ -501,7 +526,10 @@ const Prescriptions = () => {
                                             </div>
                                             <div className="flex items-center gap-2 text-xs text-slate-400 mt-1">
                                                 <Calendar size={14} className="shrink-0" />
-                                                <span>{formatDate(prescription.startDate)} até {formatDate(prescription.endDate)}</span>
+                                                <span>
+                                                    {formatDate(prescription.startDate)}
+                                                    {prescription.continuousUse ? ' (Uso Contínuo)' : ` até ${formatDate(prescription.endDate)}`}
+                                                </span>
                                             </div>
                                         </div>
 

@@ -68,7 +68,9 @@ const Patients = () => {
         email: '',
         birthDate: '',
         phone: '',
-        condition: '',
+        bloodType: '',
+        allergies: '',
+        condition: '', // Do not remove existing fields
         cep: '',
         street: '',
         number: '',
@@ -136,6 +138,8 @@ const Patients = () => {
             email: '',
             birthDate: '',
             phone: '',
+            bloodType: '',
+            allergies: '',
             condition: '',
             cep: '',
             street: '',
@@ -304,12 +308,40 @@ const Patients = () => {
                                     onChange={handlePhoneChange}
                                     maxLength={15}
                                 />
+                                <div className="flex flex-col gap-1.5 w-1/2">
+                                    <label className="text-sm font-semibold text-slate-700 ml-1">Tipo Sanguíneo</label>
+                                    <select
+                                        className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-slate-900 focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-200"
+                                        value={formData.bloodType || ''}
+                                        onChange={e => setFormData({ ...formData, bloodType: e.target.value })}
+                                    >
+                                        <option value="">Selecione...</option>
+                                        <option value="A+">A+</option>
+                                        <option value="A-">A-</option>
+                                        <option value="B+">B+</option>
+                                        <option value="B-">B-</option>
+                                        <option value="AB+">AB+</option>
+                                        <option value="AB-">AB-</option>
+                                        <option value="O+">O+</option>
+                                        <option value="O-">O-</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div className="flex gap-6">
                                 <Input
                                     label="Condição Principal"
                                     placeholder="Ex: Hipertensão"
                                     containerClassName="w-1/2"
                                     value={formData.condition}
                                     onChange={e => setFormData({ ...formData, condition: e.target.value })}
+                                />
+                                <Input
+                                    label="Alergias (SOS)"
+                                    placeholder="Ex: Dipirona, Penicilina..."
+                                    containerClassName="w-1/2"
+                                    value={formData.allergies}
+                                    onChange={e => setFormData({ ...formData, allergies: e.target.value })}
                                 />
                             </div>
 
@@ -448,6 +480,12 @@ const Patients = () => {
                                                         </span>
                                                     </>
                                                 )}
+                                                {patient.bloodType && (
+                                                    <span className="bg-red-50 px-2.5 py-0.5 rounded-md font-bold text-red-600 border border-red-100 flex items-center gap-1">
+                                                        <span className="text-xs">🩸</span>
+                                                        {patient.bloodType}
+                                                    </span>
+                                                )}
                                                 {patient.condition && (
                                                     <>
                                                         <span className="w-1.5 h-1.5 bg-slate-300 rounded-full"></span>
@@ -455,6 +493,14 @@ const Patients = () => {
                                                     </>
                                                 )}
                                             </div>
+
+                                            {patient.allergies && (
+                                                <div className="mb-2">
+                                                    <span className="text-xs font-bold text-amber-600 bg-amber-50 px-2 py-1 rounded border border-amber-100 inline-block">
+                                                        ⚠️ Alergias: {patient.allergies}
+                                                    </span>
+                                                </div>
+                                            )}
 
                                             {fullAddress && (
                                                 <div className="flex items-center gap-2 text-sm text-slate-400 truncate">

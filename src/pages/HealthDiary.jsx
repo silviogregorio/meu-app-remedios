@@ -4,11 +4,14 @@ import Card, { CardHeader, CardContent } from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Modal from '../components/ui/Modal';
-import { Heart, Activity, Thermometer, Weight, Plus, Trash2, Calendar, FileText, Mail, Printer, MessageCircle } from 'lucide-react';
+import { Heart, Activity, Thermometer, Weight, Plus, Trash2, Calendar, FileText, Mail, Printer, MessageCircle, Pill } from 'lucide-react';
 import { formatDate, formatDateTime, formatTime } from '../utils/dateFormatter';
 import { generatePDFHealthDiary } from '../utils/pdfGenerator';
 import { format } from 'date-fns';
 import { supabase } from '../lib/supabase';
+import CalendarView from '../components/features/CalendarView'; // Import CalendarView
+import { useNavigate } from 'react-router-dom'; // For navigation
+
 import {
     LineChart,
     Line,
@@ -23,10 +26,12 @@ import {
 
 
 const HealthDiary = () => {
-    const { patients, healthLogs, addHealthLog, deleteHealthLog, user, showToast } = useApp();
+    // Add prescriptions and consumptionLog to destructured values
+    const { patients, healthLogs, addHealthLog, deleteHealthLog, user, showToast, prescriptions, consumptionLog } = useApp();
+    const navigate = useNavigate();
 
     const [showForm, setShowForm] = useState(false);
-    const [activeTab, setActiveTab] = useState('list'); // 'list' | 'charts'
+    const [activeTab, setActiveTab] = useState('adherence'); // 'adherence' | 'list' | 'charts'
     const [selectedPatientId, setSelectedPatientId] = useState('all');
     const [filterCategory, setFilterCategory] = useState('all');
 
@@ -355,158 +360,223 @@ const HealthDiary = () => {
             {!showForm && (
                 <>
                     <div className="flex gap-4 border-b border-slate-200 no-print">
-                        <button
-                            onClick={() => setActiveTab('list')}
-                            className={`pb-4 px-2 font-medium text-sm border-b-2 transition-colors ${activeTab === 'list' ? 'border-primary text-primary' : 'border-transparent text-slate-500'}`}
-                        >
-                            Histórico
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('charts')}
-                            className={`pb-4 px-2 font-medium text-sm border-b-2 transition-colors ${activeTab === 'charts' ? 'border-primary text-primary' : 'border-transparent text-slate-500'}`}
-                        >
-                            Gráficos
-                        </button>
-                    </div>
-
-                    {/* Actions */}
-                    <div className="flex gap-2 no-print">
-                        <Button variant="outline" size="sm" onClick={() => setShowEmailModal(true)}>
-                            <Mail size={16} className="mr-2" /> Enviar por Email
-                        </Button>
-                        <Button variant="outline" size="sm" onClick={handlePrint}>
-                            <Printer size={16} className="mr-2" /> Imprimir
-                        </Button>
-                        <Button variant="outline" size="sm" onClick={handleWhatsApp}>
-                            <MessageCircle size={16} className="mr-2" /> WhatsApp
-                        </Button>
-                    </div>
-
-                    {activeTab === 'list' ? (
-                        <div className="flex flex-col gap-4">
-                            {filteredLogs.length === 0 ? (
-                                <div className="text-center py-12 text-slate-500 bg-white rounded-xl border border-dashed">
-                                    Nenhum registro encontrado.
+                        {/* Tabs */}
+                        {!showForm && (
+                            <>
+                                <div className="flex gap-4 border-b border-slate-200 no-print overflow-x-auto">
+                                    <button
+                                        onClick={() => setActiveTab('adherence')}
+                                        className={`pb-4 px-2 font-medium text-sm border-b-2 transition-colors whitespace-nowrap flex items-center gap-2 ${activeTab === 'adherence' ? 'border-primary text-primary' : 'border-transparent text-slate-500'}`}
+                                    >
+                                        <Calendar size={16} />
+                                        Frequência (Calendário)
+                                    </button>
+                                    <button
+                                        onClick={() => setActiveTab('list')}
+                                        className={`pb-4 px-2 font-medium text-sm border-b-2 transition-colors whitespace-nowrap flex items-center gap-2 ${activeTab === 'list' ? 'border-primary text-primary' : 'border-transparent text-slate-500'}`}
+                                    >
+                                        <FileText size={16} />
+                                        Diário (Sinais Vitais)
+                                    </button>
+                                    <button
+                                        onClick={() => setActiveTab('charts')}
+                                        className={`pb-4 px-2 font-medium text-sm border-b-2 transition-colors whitespace-nowrap flex items-center gap-2 ${activeTab === 'charts' ? 'border-primary text-primary' : 'border-transparent text-slate-500'}`}
+                                    >
+                                        <Activity size={16} />
+                                        Gráficos
+                                    </button>
                                 </div>
-                            ) : (
-                                filteredLogs.map(log => {
-                                    const info = getCategoryInfo(log.category);
-                                    const Icon = info.icon;
-                                    return (
-                                        <Card key={log.id} className="group hover:border-primary/30 transition-all">
-                                            <div className="flex items-center p-4 gap-4">
-                                                <div className="w-12 h-12 rounded-full flex items-center justify-center text-white shadow-md" style={{ backgroundColor: info.color }}>
-                                                    <Icon size={20} />
-                                                </div>
-                                                <div className="flex-1">
-                                                    <div className="flex justify-between items-start">
-                                                        <div>
-                                                            <h4 className="font-bold text-slate-900">{info.label}</h4>
-                                                            <p className="text-xs text-slate-500">{formatDateTime(log.measured_at)}</p>
-                                                        </div>
-                                                        <div className="text-right">
-                                                            <div className="text-xl font-bold" style={{ color: info.color }}>
-                                                                {log.value}
-                                                                {log.value_secondary && <span className="text-sm opacity-75">/{log.value_secondary}</span>}
-                                                                <span className="text-sm ml-1 text-slate-400 font-normal">{info.unit}</span>
+
+                                {/* Actions */}
+                                <div className="flex gap-2 no-print overflow-x-auto pb-2">
+                                    <Button variant="outline" size="sm" onClick={() => setShowEmailModal(true)}>
+                                        <Mail size={16} className="mr-2" /> Email
+                                    </Button>
+                                    <Button variant="outline" size="sm" onClick={handlePrint}>
+                                        <Printer size={16} className="mr-2" /> Imprimir
+                                    </Button>
+                                    <Button variant="outline" size="sm" onClick={handleWhatsApp}>
+                                        <MessageCircle size={16} className="mr-2" /> WhatsApp
+                                    </Button>
+                                </div>
+
+                                {activeTab === 'adherence' ? (
+                                    <div className="animate-in fade-in slide-in-from-bottom-2">
+                                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                                            <div className="lg:col-span-2">
+                                                <CalendarView
+                                                    prescriptions={prescriptions}
+                                                    consumptionLog={consumptionLog}
+                                                    onDateSelect={(date) => {
+                                                        // Navigation to Home with this date selected? 
+                                                        // Or just show a toast for now as "List view" is in Home.
+                                                        // Ideally we should move the list logic here or direct them.
+                                                        // Let's redirect to Home with query param? Home doesn't read query param yet.
+                                                        // For now, let's just show a simple list of that day below.
+                                                        showToast(`Visualizando histórico de ${formatDate(date)}`, 'info');
+                                                    }}
+                                                />
+                                            </div>
+                                            <div>
+                                                <Card className="h-full bg-slate-50 border-none shadow-inner">
+                                                    <CardContent className="p-6">
+                                                        <h3 className="font-bold text-slate-700 mb-4 flex items-center gap-2">
+                                                            <Pill size={20} />
+                                                            Resumo do Mês
+                                                        </h3>
+                                                        <div className="space-y-4">
+                                                            <p className="text-sm text-slate-500">
+                                                                Use o calendário para visualizar sua aderência ao tratamento.
+                                                                Os dias são coloridos baseados se você tomou todas as doses agendadas.
+                                                            </p>
+                                                            <div className="bg-white p-4 rounded-xl border border-slate-200">
+                                                                <div className="text-sm font-bold text-slate-700 mb-2">Legenda Visual:</div>
+                                                                <ul className="space-y-2 text-sm text-slate-600">
+                                                                    <li className="flex items-center gap-2">
+                                                                        <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
+                                                                        <span>Tudo correto (100%)</span>
+                                                                    </li>
+                                                                    <li className="flex items-center gap-2">
+                                                                        <div className="w-3 h-3 rounded-full bg-amber-500"></div>
+                                                                        <span>Parcial (Alguns esquecidos)</span>
+                                                                    </li>
+                                                                    <li className="flex items-center gap-2">
+                                                                        <div className="w-3 h-3 rounded-full bg-rose-500"></div>
+                                                                        <span>Dia sem registros (0%)</span>
+                                                                    </li>
+                                                                </ul>
                                                             </div>
                                                         </div>
-                                                    </div>
-                                                    {log.notes && (
-                                                        <div className="mt-2 bg-slate-50 p-2 rounded text-sm text-slate-600">
-                                                            {log.notes}
-                                                        </div>
-                                                    )}
-                                                    <div className="flex justify-between items-center mt-2">
-                                                        <span className="text-xs bg-slate-100 px-2 py-1 rounded text-slate-500">
-                                                            {patients.find(p => p.id === log.patient_id)?.name || 'Desconhecido'}
-                                                        </span>
-                                                        {(user?.id === log.user_id) && (
-                                                            <button
-                                                                onClick={() => deleteHealthLog(log.id)}
-                                                                className="text-rose-400 hover:text-rose-600 p-1"
-                                                            >
-                                                                <Trash2 size={16} />
-                                                            </button>
-                                                        )}
-                                                    </div>
-                                                </div>
+                                                    </CardContent>
+                                                </Card>
                                             </div>
-                                        </Card>
-                                    );
-                                })
-                            )}
-                        </div>
-                    ) : (
-                        <Card>
-                            <CardContent className="h-96 pt-6">
-                                {filteredLogs.length > 0 ? (
-                                    <ResponsiveContainer width="100%" height="100%">
-                                        <LineChart data={getChartData()}>
-                                            <CartesianGrid strokeDasharray="3 3" />
-                                            <XAxis dataKey="date" fontSize={12} tickMargin={10} />
-                                            <YAxis />
-                                            <Tooltip />
-                                            <Legend />
-                                            <Line
-                                                type="monotone"
-                                                dataKey="value"
-                                                name="Valor Principal"
-                                                stroke="#3b82f6"
-                                                activeDot={{ r: 8 }}
-                                                strokeWidth={2}
-                                            />
-                                            {filteredLogs.some(l => l.value_secondary) && (
-                                                <Line
-                                                    type="monotone"
-                                                    dataKey="valueSecond"
-                                                    name="Secundário (Diastólica)"
-                                                    stroke="#ef4444"
-                                                    strokeWidth={2}
-                                                />
-                                            )}
-                                        </LineChart>
-                                    </ResponsiveContainer>
-                                ) : (
-                                    <div className="h-full flex items-center justify-center text-slate-400">
-                                        Sem dados para o gráfico.
+                                        </div>
                                     </div>
+                                ) : activeTab === 'list' ? (
+                                    <div className="flex flex-col gap-4">
+                                        {filteredLogs.length === 0 ? (
+                                            <div className="text-center py-12 text-slate-500 bg-white rounded-xl border border-dashed">
+                                                Nenhum registro encontrado.
+                                            </div>
+                                        ) : (
+                                            filteredLogs.map(log => {
+                                                const info = getCategoryInfo(log.category);
+                                                const Icon = info.icon;
+                                                return (
+                                                    <Card key={log.id} className="group hover:border-primary/30 transition-all">
+                                                        <div className="flex items-center p-4 gap-4">
+                                                            <div className="w-12 h-12 rounded-full flex items-center justify-center text-white shadow-md" style={{ backgroundColor: info.color }}>
+                                                                <Icon size={20} />
+                                                            </div>
+                                                            <div className="flex-1">
+                                                                <div className="flex justify-between items-start">
+                                                                    <div>
+                                                                        <h4 className="font-bold text-slate-900">{info.label}</h4>
+                                                                        <p className="text-xs text-slate-500">{formatDateTime(log.measured_at)}</p>
+                                                                    </div>
+                                                                    <div className="text-right">
+                                                                        <div className="text-xl font-bold" style={{ color: info.color }}>
+                                                                            {log.value}
+                                                                            {log.value_secondary && <span className="text-sm opacity-75">/{log.value_secondary}</span>}
+                                                                            <span className="text-sm ml-1 text-slate-400 font-normal">{info.unit}</span>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                                {log.notes && (
+                                                                    <div className="mt-2 bg-slate-50 p-2 rounded text-sm text-slate-600">
+                                                                        {log.notes}
+                                                                    </div>
+                                                                )}
+                                                                <div className="flex justify-between items-center mt-2">
+                                                                    <span className="text-xs bg-slate-100 px-2 py-1 rounded text-slate-500">
+                                                                        {patients.find(p => p.id === log.patient_id)?.name || 'Desconhecido'}
+                                                                    </span>
+                                                                    {(user?.id === log.user_id) && (
+                                                                        <button
+                                                                            onClick={() => deleteHealthLog(log.id)}
+                                                                            className="text-rose-400 hover:text-rose-600 p-1"
+                                                                        >
+                                                                            <Trash2 size={16} />
+                                                                        </button>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </Card>
+                                                );
+                                            })
+                                        )}
+                                    </div>
+                                ) : (
+                                    <Card>
+                                        <CardContent className="h-96 pt-6">
+                                            {filteredLogs.length > 0 ? (
+                                                <ResponsiveContainer width="100%" height="100%">
+                                                    <LineChart data={getChartData()}>
+                                                        <CartesianGrid strokeDasharray="3 3" />
+                                                        <XAxis dataKey="date" fontSize={12} tickMargin={10} />
+                                                        <YAxis />
+                                                        <Tooltip />
+                                                        <Legend />
+                                                        <Line
+                                                            type="monotone"
+                                                            dataKey="value"
+                                                            name="Valor Principal"
+                                                            stroke="#3b82f6"
+                                                            activeDot={{ r: 8 }}
+                                                            strokeWidth={2}
+                                                        />
+                                                        {filteredLogs.some(l => l.value_secondary) && (
+                                                            <Line
+                                                                type="monotone"
+                                                                dataKey="valueSecond"
+                                                                name="Secundário (Diastólica)"
+                                                                stroke="#ef4444"
+                                                                strokeWidth={2}
+                                                            />
+                                                        )}
+                                                    </LineChart>
+                                                </ResponsiveContainer>
+                                            ) : (
+                                                <div className="h-full flex items-center justify-center text-slate-400">
+                                                    Sem dados para o gráfico.
+                                                </div>
+                                            )}
+                                        </CardContent>
+                                    </Card>
                                 )}
-                            </CardContent>
-                        </Card>
-                    )}
-                </>
-            )}
+                            </>
+                        )}
 
-            {/* Email Modal */}
-            <Modal
-                isOpen={showEmailModal}
-                onClose={() => setShowEmailModal(false)}
-                title="Enviar Relatório de Saúde"
-                footer={
-                    <>
-                        <Button variant="ghost" onClick={() => setShowEmailModal(false)}>Cancelar</Button>
-                        <Button onClick={handleSendEmail} disabled={sendingEmail}>
-                            {sendingEmail ? 'Enviando...' : 'Enviar Email'}
-                        </Button>
-                    </>
-                }
-            >
-                <div className="flex flex-col gap-4">
-                    <p className="text-sm text-slate-500">
-                        O relatório incluirá a tabela e os gráficos (link) dos filtros atuais.
-                    </p>
-                    <Input
-                        label="Para:"
-                        placeholder="email@exemplo.com, outro@email.com"
-                        value={emailData.to}
-                        onChange={e => setEmailData({ ...emailData, to: e.target.value })}
-                    />
-                    <p className="text-xs text-slate-400 -mt-3">Separe por vírgula para múltiplos destinatários.</p>
-                </div>
-            </Modal>
-        </div>
-    );
+                        {/* Email Modal */}
+                        <Modal
+                            isOpen={showEmailModal}
+                            onClose={() => setShowEmailModal(false)}
+                            title="Enviar Relatório de Saúde"
+                            footer={
+                                <>
+                                    <Button variant="ghost" onClick={() => setShowEmailModal(false)}>Cancelar</Button>
+                                    <Button onClick={handleSendEmail} disabled={sendingEmail}>
+                                        {sendingEmail ? 'Enviando...' : 'Enviar Email'}
+                                    </Button>
+                                </>
+                            }
+                        >
+                            <div className="flex flex-col gap-4">
+                                <p className="text-sm text-slate-500">
+                                    O relatório incluirá a tabela e os gráficos (link) dos filtros atuais.
+                                </p>
+                                <Input
+                                    label="Para:"
+                                    placeholder="email@exemplo.com, outro@email.com"
+                                    value={emailData.to}
+                                    onChange={e => setEmailData({ ...emailData, to: e.target.value })}
+                                />
+                                <p className="text-xs text-slate-400 -mt-3">Separe por vírgula para múltiplos destinatários.</p>
+                            </div>
+                        </Modal>
+                    </div>
+                    );
 };
 
-export default HealthDiary;
+                    export default HealthDiary;

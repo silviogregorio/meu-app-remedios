@@ -7,23 +7,41 @@ import { useApp } from '../../context/AppContext';
 const Sidebar = ({ isOpen, onClose, isPinned, onTogglePin }) => {
     const { logout, user } = useApp();
 
-    const navItems = [
-        { path: '/app', icon: Home, label: 'Início' },
-        { path: '/patients', icon: Users, label: 'Pacientes' },
-        { path: '/medications', icon: Pill, label: 'Medicamentos' },
-        { path: '/prescriptions', icon: ClipboardList, label: 'Prescrições' },
-        { path: '/diary', icon: Heart, label: 'Diário de Saúde' },
-        { path: '/reports', icon: FileText, label: 'Relatórios' },
-        { path: '/share', icon: Share2, label: 'Acesso Geral' },
-        { path: '/manual', icon: BookOpen, label: 'Manual' },
-        { path: '/contact', icon: LifeBuoy, label: 'Fale Conosco' },
-        { path: '/profile', icon: User, label: 'Perfil' },
+    // Grouped Navigation
+    const navGroups = [
+        {
+            title: 'Dia a Dia',
+            items: [
+                { path: '/app', icon: Home, label: 'Início' },
+                { path: '/diary', icon: Heart, label: 'Diário' },
+                { path: '/reports', icon: FileText, label: 'Relatórios' },
+            ]
+        },
+        {
+            title: 'Cadastros',
+            items: [
+                { path: '/patients', icon: Users, label: 'Pacientes' },
+                { path: '/medications', icon: Pill, label: 'Medicamentos' },
+                { path: '/prescriptions', icon: ClipboardList, label: 'Prescrições' },
+            ]
+        },
+        {
+            title: 'Sistema',
+            items: [
+                { path: '/share', icon: Share2, label: 'Acesso Geral' },
+                { path: '/manual', icon: BookOpen, label: 'Manual' },
+                { path: '/contact', icon: LifeBuoy, label: 'Ajuda' },
+                { path: '/profile', icon: User, label: 'Perfil' },
+            ]
+        }
     ];
 
     const adminEmails = ['sigremedios@gmail.com', 'sigsis@gmail.com', 'silviogregorio@gmail.com'];
     if (adminEmails.includes(user?.email)) {
-        navItems.push({ path: '/admin/sponsors', icon: Briefcase, label: 'Parceiros (Admin)' });
-        navItems.push({ path: '/admin/support', icon: MessageSquare, label: 'Suporte (Admin)' });
+        navGroups[2].items.push(
+            { path: '/admin/sponsors', icon: Briefcase, label: 'Parceiros' },
+            { path: '/admin/support', icon: MessageSquare, label: 'Suporte' }
+        );
     }
 
     return (
@@ -41,11 +59,11 @@ const Sidebar = ({ isOpen, onClose, isPinned, onTogglePin }) => {
             {/* Sidebar */}
             <aside
                 className={clsx(
-                    "fixed top-0 left-0 h-full w-64 bg-white dark:bg-slate-900 shadow-2xl z-50 transform transition-transform duration-300 ease-in-out border-r border-transparent dark:border-slate-800",
+                    "fixed top-0 left-0 h-full w-64 bg-slate-50 dark:bg-slate-900 shadow-2xl z-50 transform transition-transform duration-300 ease-in-out border-r border-transparent dark:border-slate-800 overflow-y-auto",
                     isOpen ? "translate-x-0" : (isPinned ? "md:translate-x-0 -translate-x-full" : "-translate-x-full")
                 )}
             >
-                <div className="flex items-center justify-between p-4 border-b border-gray-100 dark:border-slate-800">
+                <div className="flex items-center justify-between p-4 bg-white dark:bg-slate-900 sticky top-0 z-10 border-b border-gray-100 dark:border-slate-800">
                     <h2 className="text-xl font-bold text-[#10b981]">SiG Remédios</h2>
                     <div className="flex items-center gap-1">
                         {/* Pin Button (Desktop Only) */}
@@ -68,23 +86,32 @@ const Sidebar = ({ isOpen, onClose, isPinned, onTogglePin }) => {
                     </div>
                 </div>
 
-                <nav className="flex flex-col p-4 gap-2">
-                    {navItems.map(({ path, icon: Icon, label }) => (
-                        <NavLink
-                            key={path}
-                            to={path}
-                            onClick={onClose}
-                            id={`tour-nav-${path.replace('/', '')}`}
-                            className={({ isActive }) => clsx(
-                                "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200",
-                                isActive
-                                    ? "bg-[#10b981]/10 text-[#10b981] font-medium"
-                                    : "text-gray-600 dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-slate-200"
-                            )}
-                        >
-                            <Icon size={20} />
-                            <span>{label}</span>
-                        </NavLink>
+                <nav className="flex flex-col p-4 pb-20">
+                    {navGroups.map((group, groupIndex) => (
+                        <div key={group.title} className="mb-6">
+                            <h3 className="px-4 text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
+                                {group.title}
+                            </h3>
+                            <div className="space-y-1">
+                                {group.items.map(({ path, icon: Icon, label }) => (
+                                    <NavLink
+                                        key={path}
+                                        to={path}
+                                        onClick={onClose}
+                                        id={`tour-nav-${path.replace('/', '').replace(/\//g, '-')}`}
+                                        className={({ isActive }) => clsx(
+                                            "flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-200",
+                                            isActive
+                                                ? "bg-white dark:bg-slate-800 text-[#10b981] font-bold shadow-sm"
+                                                : "text-slate-600 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-200"
+                                        )}
+                                    >
+                                        <Icon size={20} className={clsx(isActive ? "text-[#10b981]" : "text-slate-400")} />
+                                        <span>{label}</span>
+                                    </NavLink>
+                                ))}
+                            </div>
+                        </div>
                     ))}
                 </nav>
 
