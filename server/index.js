@@ -146,7 +146,8 @@ app.use((req, res) => {
     });
 });
 
-// Iniciar servidor
+
+// Iniciar servidor (apenas em desenvolvimento local)
 const startServer = async () => {
     try {
         // Verificar configuração SMTP
@@ -172,4 +173,11 @@ const startServer = async () => {
     }
 };
 
-startServer();
+// Iniciar apenas se não estiver na Vercel (serverless)
+if (process.env.VERCEL !== '1') {
+    startServer();
+}
+
+// Exportar para Vercel serverless functions
+export default app;
+
