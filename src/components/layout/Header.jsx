@@ -48,7 +48,7 @@ const Header = ({ onMenuClick, isPinned }) => {
                 </button>
                 <div className={`flex items-center gap-2 ${isPinned ? 'md:hidden' : ''}`}>
                     <img src="/assets/logo.png" alt="SiG Remédios" className="w-8 h-8 object-contain animate-heartbeat" />
-                    <h1 className="text-xl font-bold text-[#10b981]">SiG Remédios</h1>
+                    <h1 className="hidden sm:block text-xl font-bold text-[#10b981]">SiG Remédios</h1>
                 </div>
             </div>
 
@@ -74,14 +74,6 @@ const Header = ({ onMenuClick, isPinned }) => {
                     >
                         <Heart size={18} fill="currentColor" />
                         <span className="hidden sm:inline">SOS</span>
-                    </button>
-
-                    <button
-                        onClick={toggleTheme}
-                        className="p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-full transition-colors"
-                        title={theme === 'dark' ? 'Mudar para Claro' : 'Mudar para Escuro'}
-                    >
-                        {theme === 'dark' ? <Sun size={24} /> : <Moon size={24} />}
                     </button>
 
                     <button
@@ -136,6 +128,18 @@ const Header = ({ onMenuClick, isPinned }) => {
                                         <UserIcon size={16} />
                                         Editar Perfil
                                     </button>
+
+                                    <button
+                                        onClick={() => {
+                                            toggleTheme();
+                                            setIsUserMenuOpen(false);
+                                        }}
+                                        className="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800 flex items-center gap-2"
+                                    >
+                                        {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+                                        {theme === 'dark' ? 'Modo Claro' : 'Modo Escuro'}
+                                    </button>
+
                                     <div className="h-px bg-gray-100 dark:bg-slate-800 my-1"></div>
                                     <button
                                         onClick={handleLogout}
