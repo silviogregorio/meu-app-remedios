@@ -3,20 +3,18 @@ import { useApp } from '../context/AppContext';
 import Card, { CardContent } from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import Pagination from '../components/ui/Pagination';
-import { Check, Clock, AlertCircle, Calendar, User, Pill, X, Bell } from 'lucide-react';
+import { Check, Clock, AlertCircle, Calendar, User, Pill, X, Bell, Calendar as CalendarIcon, DownloadCloud, CircleHelp } from 'lucide-react';
 import { formatDate, formatTime, formatDateFull } from '../utils/dateFormatter';
 import clsx from 'clsx';
-
-const ITEMS_PER_PAGE = 6;
-
 import { useNotifications } from '../hooks/useNotifications';
 import confetti from 'canvas-confetti';
 import { generateICS, generateFutureSchedule } from '../utils/icsGenerator';
 import VoiceCommand from '../components/features/VoiceCommand';
 import OnboardingTour from '../components/OnboardingTour';
 import MotivationCard from '../components/features/MotivationCard';
-import { Calendar as CalendarIcon, DownloadCloud, CircleHelp } from 'lucide-react';
-import React, { useState, useEffect } from 'react';
+import PillIcon from '../components/ui/PillIcon';
+
+const ITEMS_PER_PAGE = 6;
 
 const Home = () => {
     const { user, prescriptions, medications, patients, consumptionLog, logConsumption, removeConsumption, pendingShares, calculateStockDays } = useApp();
@@ -24,11 +22,6 @@ const Home = () => {
     const [todaysSchedule, setTodaysSchedule] = useState([]);
     const [currentPage, setCurrentPage] = useState(1);
     const [startTour, setStartTour] = useState(false);
-
-    // ... (filters state)
-    // We only need to replace the top destructuring line but replace_file_content needs context.
-    // I will replace the destructuring line and the alert block separately or together?
-    // Doing it separately is safer. This block replaces the destructuring.
 
     // Filters
     const [selectedDate, setSelectedDate] = useState(() => {
@@ -41,9 +34,6 @@ const Home = () => {
     const [selectedPatient, setSelectedPatient] = useState('all');
     const [selectedMedication, setSelectedMedication] = useState('all');
     const [selectedStatus, setSelectedStatus] = useState('all');
-
-    // Auto-start tour removed to prevent looping issues.
-    // User can trigger it manually via the Help button.
 
     useEffect(() => {
         console.log('Home: Generating schedule', { prescriptions, medications, patients, selectedDate });
@@ -114,7 +104,6 @@ const Home = () => {
     }, [prescriptions, medications, patients, consumptionLog, selectedDate, selectedPatient, selectedMedication, selectedStatus]);
 
 
-
     const handleToggleStatus = (item) => {
         // Guard clause for Read Only
         const patient = patients.find(p => p.id === item.patientId);
@@ -165,14 +154,12 @@ const Home = () => {
     const getDisplayName = () => {
         if (!user) return 'Visitante';
         const nameOrEmail = user.user_metadata?.full_name || user.email || 'Usuário';
-        // Se for email (tem @), pega o que vem antes. Se for nome, pega o primeiro nome.
         return nameOrEmail.includes('@') ? nameOrEmail.split('@')[0] : nameOrEmail.split(' ')[0];
     };
 
     return (
         <div className="flex flex-col gap-6 pb-20">
             <div className="flex items-center justify-between w-full">
-                {/* Debug Banner Removed */}
                 <div className="flex flex-col gap-1 overflow-hidden mt-6">
                     <h1 id="tour-welcome" className="text-2xl font-bold text-slate-900 dark:text-white break-words line-clamp-2">
                         Olá, {getDisplayName()}
@@ -192,9 +179,8 @@ const Home = () => {
             {/* Motivation Card */}
             <MotivationCard />
 
-            {/* Low Stock Alert - Moved to Top */}
+            {/* Low Stock Alert */}
             {(() => {
-                // Filter meds that have active stock control and are running low (<= 3 days)
                 const lowStockMeds = medications.filter(med => {
                     const days = calculateStockDays ? calculateStockDays(med.id) : null;
                     return days !== null && days <= 3;
@@ -302,10 +288,6 @@ const Home = () => {
                                     timeText = `Em ${h}h ${m > 0 ? `${m}min` : ''}`;
                                 }
 
-                                import PillIcon from '../components/ui/PillIcon';
-
-                                // ... inside Home component render ...
-
                                 return (
                                     <div className="flex flex-col gap-4">
                                         <div className="flex items-start justify-between">
@@ -365,8 +347,6 @@ const Home = () => {
                         })()}
                     </CardContent>
                 </Card>
-
-
 
                 <Card id="tour-summary-card" className="bg-white border-slate-200 shadow-sm">
                     <CardContent className="p-6 h-full flex flex-col justify-between">
@@ -456,8 +436,6 @@ const Home = () => {
                 })()
             }
 
-
-
             {/* Filters Section */}
             <Card className="border-l-4 border-l-primary">
                 <CardContent className="p-4">
@@ -494,7 +472,6 @@ const Home = () => {
                             )}
                         </div>
                     </div>
-                    {/* The closing div and brace were added here */}
 
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                         {/* Date Filter */}
