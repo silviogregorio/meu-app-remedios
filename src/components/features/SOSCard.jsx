@@ -5,7 +5,7 @@ import { Heart, AlertTriangle, Phone, Printer, X, Droplet, Mail, MessageCircle }
 import Button from '../ui/Button';
 
 const SOSCard = ({ onClose }) => {
-    const { patients, prescriptions, user, medications } = useApp();
+    const { patients, prescriptions, user, medications, supabase } = useApp();
     const printRef = useRef();
 
     // Add class to body when mounted to handle print styles
@@ -74,7 +74,7 @@ const SOSCard = ({ onClose }) => {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${(await useApp().supabase.auth.getSession()).data.session?.access_token}`
+                    'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
                 },
                 body: JSON.stringify({
                     to: emailAddress,
@@ -98,6 +98,25 @@ const SOSCard = ({ onClose }) => {
         } finally {
             setSendingEmail(false);
         }
+    };
+
+    const handleWhatsAppText = () => {
+        // Create a summary text
+        const medsText = activePrescriptions.map(p => {
+            const med = medications.find(m => m.id === p.medicationId);
+            return `- ${med?.name} (${med?.dosage}) ${p.frequency}`;
+        }).join('%0A');
+
+        const text = `*SOS MÉDICO - EMERGÊNCIA*%0A%0A` +
+            `*Paciente:* ${selectedPatient.name}%0A` +
+            (selectedPatient.bloodType ? `*Tipo Sanguíneo:* ${selectedPatient.bloodType}%0A` : '') +
+            (selectedPatient.allergies ? `*Alergias:* ${selectedPatient.allergies}%0A` : '') +
+            (selectedPatient.condition ? `*Condição:* ${selectedPatient.condition}%0A` : '') +
+            `%0A*Medicamentos:*%0A${medsText}%0A%0A` +
+            `*Responsável:* ${user?.user_metadata?.full_name || 'Ver Contato'}%0A` +
+            `*Contato:* ${user?.phone || 'N/A'}`;
+
+        window.open(`https://wa.me/?text=${text}`, '_blank');
     };
 
     const handleWhatsApp = async () => {
@@ -170,8 +189,8 @@ const SOSCard = ({ onClose }) => {
                                         key={p.id}
                                         onClick={() => setSelectedPatientId(p.id)}
                                         className={`px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-colors ${selectedPatientId === p.id
-                                                ? 'bg-slate-900 text-white shadow-md'
-                                                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                                            ? 'bg-slate-900 text-white shadow-md'
+                                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                                             }`}
                                     >
                                         {p.name.split(' ')[0]}
@@ -279,33 +298,43 @@ const SOSCard = ({ onClose }) => {
                 </div>
 
                 {/* Footer Actions */}
-                <div className="p-4 border-t border-slate-100 bg-slate-50 flex flex-col md:flex-row gap-3 print:hidden">
-                    <Button variant="outline" onClick={onClose} className="md:w-auto w-full order-last md:order-first">
+                <div className="p-4 border-t border-slate-100 bg-slate-50 flex flex-col sm:flex-row gap-3 print:hidden flex-wrap">
+                    <Button variant="outline" onClick={onClose} className="w-full sm:w-auto order-last sm:order-first">
                         Fechar
                     </Button>
 
-                    <div className="flex gap-2 w-full md:w-auto flex-1 justify-end">
+                    <div className="flex gap-2 w-full sm:w-auto flex-1 justify-end flex-wrap">
                         <Button
-                            className="flex-1 md:flex-none bg-indigo-600 hover:bg-indigo-700 text-white"
+                            className="flex-1 sm:flex-none bg-indigo-600 hover:bg-indigo-700 text-white whitespace-nowrap"
                             onClick={handleEmail}
                         >
                             <Mail size={18} className="mr-2" />
                             Email
                         </Button>
+
                         <Button
-                            className="flex-1 md:flex-none bg-green-600 hover:bg-green-700 text-white"
+                            className="flex-1 sm:flex-none bg-green-500 hover:bg-green-600 text-white whitespace-nowrap"
+                            onClick={handleWhatsAppText}
+                        >
+                            <MessageCircle size={18} className="mr-2" />
+                            Enviar ZAP
+                        </Button>
+
+                        <Button
+                            className="flex-1 sm:flex-none bg-emerald-700 hover:bg-emerald-800 text-white whitespace-nowrap"
                             onClick={handleWhatsApp}
                             disabled={generatingPDF}
                         >
-                            {generatingPDF ? 'Gerando...' : (
+                            {generatingPDF ? '...' : (
                                 <>
-                                    <MessageCircle size={18} className="mr-2" />
-                                    WhatsApp / PDF
+                                    <Printer size={18} className="mr-2" />
+                                    Baixar PDF
                                 </>
                             )}
                         </Button>
+
                         <Button
-                            className="flex-1 md:flex-none bg-slate-900 hover:bg-slate-800 text-white shadow-lg"
+                            className="flex-1 sm:flex-none bg-slate-900 hover:bg-slate-800 text-white shadow-lg whitespace-nowrap"
                             onClick={handlePrint}
                         >
                             <Printer size={18} className="mr-2" />
