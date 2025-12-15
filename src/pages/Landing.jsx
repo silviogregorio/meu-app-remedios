@@ -117,16 +117,13 @@ const Landing = () => {
         setContactStatus(null);
 
         try {
-            const response = await fetch(getApiEndpoint('/api/send-email'), {
+            const response = await fetch(getApiEndpoint('/api/contact'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    to: 'sigsis@gmail.com',
-                    subject: `SiG Remédios - Contato: ${contactForm.name}`,
-                    text: contactForm.message,
-                    type: 'contact',
-                    senderName: contactForm.name,
-                    senderEmail: contactForm.email
+                    name: contactForm.name,
+                    email: contactForm.email,
+                    message: contactForm.message
                 })
             });
 

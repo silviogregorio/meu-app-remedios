@@ -102,6 +102,43 @@ app.use((req, res, next) => {
     next();
 });
 
+// Rota DEDICADA para Contato (Landing Page) - Isolamento de falha
+app.post('/api/contact', async (req, res) => {
+    try {
+        console.log(`[Contact] Recebendo mensagem de ${req.body.name}`);
+
+        const { name, email, message } = req.body;
+
+        if (!name || (!email && !req.body.senderEmail) || !message) {
+            return res.status(400).json({ success: false, error: 'Campos obrigatórios: nome, email, mensagem' });
+        }
+
+        // Hardcoded destination for security and simplicity
+        const to = 'sigsis@gmail.com';
+        const subject = `SiG Remédios - Contato: ${name}`;
+
+        // Enviar email usando o serviço existente, mas com payload controlado
+        const result = await sendEmail({
+            to,
+            subject,
+            text: message, // O template usa 'text' para preencher 'message'
+            type: 'contact',
+            senderName: name,
+            senderEmail: email || req.body.senderEmail,
+            observations: `Contato via Web de: ${email}`
+        });
+
+        res.json(result);
+
+    } catch (error) {
+        console.error('Erro na rota de contato:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message || 'Erro ao enviar mensagem de contato'
+        });
+    }
+});
+
 // Alias: /send-email (para caso o Vercel rewrite remova o prefixo /api)
 app.post('/send-email', validateEmail, async (req, res) => {
     // Reutiliza a lógica (pode ser refatorado para função separada, mas aqui vamos redirecionar internamente 
