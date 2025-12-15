@@ -215,7 +215,7 @@ const Landing = () => {
                 <div className="flex-1 space-y-8 animate-fade-in-up">
                     <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-sm font-medium border border-blue-100">
                         <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></span>
-                        Novo: Compartilhamento de Conta Familiar
+                        Saúde: o bem mais precioso que temos, além da família.
                     </div>
                     <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight leading-tight text-slate-900">
                         Cuidar da saúde <br className="hidden md:block" />
