@@ -103,7 +103,7 @@ app.use((req, res, next) => {
 });
 
 // Alias: /send-email (para caso o Vercel rewrite remova o prefixo /api)
-app.post('/send-email', emailLimiter, validateEmail, async (req, res) => {
+app.post('/send-email', validateEmail, async (req, res) => {
     // Reutiliza a lógica (pode ser refatorado para função separada, mas aqui vamos redirecionar internamente 
     // ou simplesmente processar se extrairmos a função.
     // Para evitar duplicidade de código sem refatorar tudo agora, vou fazer o forward 307.
@@ -112,7 +112,7 @@ app.post('/send-email', emailLimiter, validateEmail, async (req, res) => {
 });
 
 // Rota para enviar email
-app.post('/api/send-email', emailLimiter, validateEmail, async (req, res) => {
+app.post('/api/send-email', validateEmail, async (req, res) => {
     try {
         // Check validation errors
         const errors = validationResult(req);

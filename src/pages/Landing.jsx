@@ -692,16 +692,13 @@ const FeatureCard = ({ icon, title, description, delay, index }) => {
                     ? 'bg-gradient-to-br from-indigo-50 via-blue-100 to-indigo-200 border-indigo-200 hover:shadow-indigo-200/50'
                     : 'bg-gradient-to-br from-white via-indigo-50 to-blue-50 border-indigo-100 hover:shadow-blue-100/50'
                 }
-                hover:shadow-xl hover:-translate-y-1 hover:animate-shake animate-float
+                hover:shadow-xl
             `}
             style={{
-                animationDelay: delay,
-                // Override animate-float to have distinct entrance if we wanted, 
-                // but user asked for "animation different per line". 
-                // The current 'animate-float' is a continuous up/down. 
-                // The Entrance is handled by parent, or we can add it here.
-                // Let's add a subtle continuous distinct float duration per row 
-                animationDuration: `${3 + (index % 3)}s`
+                // Removed animationDelay to stop entrance staggering if it disrupts reading, 
+                // but user specifically complained about "screen moving" (continuous animation).
+                // I will keep entrance delay if it's just once, but remove continuous float.
+                animationDelay: delay
             }}
         >
             <div className={`w-12 h-12 rounded-xl shadow-sm flex items-center justify-center mb-4 border transition-transform duration-300 group-hover:scale-110 group-hover:animate-pulse ${isAlternating ? 'bg-white border-indigo-100' : 'bg-white border-slate-100'}`}>
