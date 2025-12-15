@@ -286,7 +286,7 @@ export const generatePDFReport = async (reportData, filters, patients) => {
  * @param {Object} filters - Current filters (patientId, etc)
  * @param {Array} patients - List of patients
  */
-export const generatePDFHealthDiary = async (logs, filters, patients) => {
+export const generatePDFHealthDiary = async (logs, filters, patients, medicationLogs = []) => {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.width;
     const pageHeight = doc.internal.pageSize.height;
@@ -332,7 +332,14 @@ export const generatePDFHealthDiary = async (logs, filters, patients) => {
         doc.text('Diário de Saúde', 45, 20);
         doc.setFontSize(10);
         doc.setFont('helvetica', 'normal');
-        doc.text('Acompanhamento de Sinais Vitais', 45, 28);
+        if (filters.date) {
+            // Se tiver data filtrada, mostrar data explícita (convertendo YYYY-MM-DD para Date local corretamente para formatação)
+            const [y, m, d] = filters.date.split('-').map(Number);
+            const dateObj = new Date(y, m - 1, d);
+            doc.text(`Registro do dia ${format(dateObj, "dd/MM/yyyy")}`, 45, 28);
+        } else {
+            doc.text('Acompanhamento de Sinais Vitais', 45, 28);
+        }
 
         doc.setFontSize(9);
         doc.text(`Gerado em: ${format(new Date(), "dd/MM/yyyy HH:mm")}`, pageWidth - 15, 18, { align: 'right' });
@@ -343,18 +350,48 @@ export const generatePDFHealthDiary = async (logs, filters, patients) => {
 
     // --- Agrupar logs por paciente ---
     const logsByPatient = {};
+    const medsByPatient = {};
+
+    // Sinais Vitais
     logs.forEach(log => {
         const patientId = log.patient_id;
-        if (!logsByPatient[patientId]) {
-            logsByPatient[patientId] = [];
-        }
+        if (!logsByPatient[patientId]) logsByPatient[patientId] = [];
         logsByPatient[patientId].push(log);
     });
 
-    // Ordenar cada grupo por data
-    Object.keys(logsByPatient).forEach(patientId => {
-        logsByPatient[patientId].sort((a, b) => new Date(a.measured_at) - new Date(b.measured_at));
+    // Medicamentos (apenas tomados)
+    medicationLogs.forEach(medLog => {
+        const prescription = medLog.prescription || {}; // Get patientId from joined data if available, or try to find logic
+        // medicationLogs comes from consumptionLog state which has 'profile:taken_by'.
+        // Wait, consumptionLog in AppContext stores raw DB data usually. 
+        // We need to ensure medicationLogs has patientId.
+        // In HealthDiary render, we'll filter carefully.
+        // Assuming medicationLogs has 'prescriptionId', we need to match it to find patient.
+        // BUT, for PDF simplicity, we should pass enriched logs or ensuring we can group them.
+        // Let's assume the caller passes logs that HAVE patientId attached or we can find it.
+        // Actually, LogService.transform keeps flat structure. 
+        // We might need to map patientId from prescriptions in the caller.
+        // Let's rely on 'patient_id' being present if possible, or use a helper.
+
+        let patientId = medLog.patientId; // Caller must ensure this exists
+        if (!patientId && medLog.prescription) patientId = medLog.prescription.patientId;
+
+        if (patientId) {
+            if (!medsByPatient[patientId]) medsByPatient[patientId] = [];
+            medsByPatient[patientId].push(medLog);
+        }
     });
+
+    // Ordenar
+    Object.keys(logsByPatient).forEach(id => {
+        logsByPatient[id].sort((a, b) => new Date(a.measured_at) - new Date(b.measured_at));
+    });
+    Object.keys(medsByPatient).forEach(id => {
+        medsByPatient[id].sort((a, b) => new Date(a.date + 'T' + a.scheduledTime) - new Date(b.date + 'T' + b.scheduledTime));
+    });
+
+    // Obter lista única de pacientes ativos neste relatório
+    const allPatientIds = new Set([...Object.keys(logsByPatient), ...Object.keys(medsByPatient)]);
 
     // --- Helper Functions ---
     const getCategoryLabel = (catId) => {
@@ -374,7 +411,9 @@ export const generatePDFHealthDiary = async (logs, filters, patients) => {
     };
 
     // --- Iterar por cada paciente ---
-    Object.entries(logsByPatient).forEach(([patientId, patientLogs], index) => {
+    Array.from(allPatientIds).forEach((patientId, index) => {
+        const patientLogs = logsByPatient[patientId] || [];
+        const patientMeds = medsByPatient[patientId] || [];
         const patient = patients.find(p => p.id === patientId);
         const patientName = patient?.name || 'Paciente Desconhecido';
 
@@ -408,9 +447,9 @@ export const generatePDFHealthDiary = async (logs, filters, patients) => {
         doc.setFontSize(9);
         doc.setTextColor(100, 116, 139); // Slate-500
         doc.setFont('helvetica', 'normal');
-        doc.text(`${patientLogs.length} registro(s)`, 24, yPos + 16);
+        doc.text(`${patientLogs.length} medições • ${patientMeds.length} medicamentos`, 24, yPos + 16);
 
-        yPos += 25;
+        yPos += 30; // Increased from 25 to 30 to give space for the title
 
         // --- Tabela do Paciente ---
         const tableData = patientLogs.map(log => {
@@ -425,6 +464,13 @@ export const generatePDFHealthDiary = async (logs, filters, patients) => {
                 log.notes || '-'
             ];
         });
+
+        if (patientLogs.length > 0) {
+            doc.setFontSize(10);
+            doc.setTextColor(...colors.heading);
+            doc.setFont('helvetica', 'bold');
+            doc.text('Histórico de Sinais Vitais', 14, yPos - 3);
+        }
 
         autoTable(doc, {
             startY: yPos,
@@ -453,8 +499,80 @@ export const generatePDFHealthDiary = async (logs, filters, patients) => {
             margin: { top: 10, left: 14, right: 14 }
         });
 
-        // Atualizar yPos após a tabela
-        yPos = doc.lastAutoTable.finalY + 5;
+        // Atualizar yPos após a tabela de Sinais
+        yPos = doc.lastAutoTable.finalY + 10;
+
+        // --- Tabela de Medicamentos (Se houver) ---
+        if (patientMeds.length > 0) {
+            // Verificar espaço para próxima tabela
+            if (yPos > pageHeight - 40) {
+                doc.addPage();
+                drawHeader();
+                yPos = 55;
+            }
+
+            doc.setFontSize(10);
+            doc.setTextColor(...colors.heading);
+            doc.setFont('helvetica', 'bold');
+            doc.text('Histórico de Medicamentos', 14, yPos - 3);
+
+            const medTableData = patientMeds.map(log => {
+                // Log should have medicationName attached by caller or we find it
+                const medName = log.medicationName || log.medication?.name || 'Medicamento';
+
+                return [
+                    format(new Date(log.date + 'T' + log.scheduledTime), "dd/MM/yyyy", { locale: ptBR }),
+                    medName,
+                    log.scheduledTime,
+                    log.status,
+                    log.takenByName || '-'
+                ];
+            });
+
+            autoTable(doc, {
+                startY: yPos,
+                head: [['Data', 'Medicamento', 'Hora', 'Status', 'Resp.']],
+                body: medTableData,
+                theme: 'striped',
+                styles: {
+                    font: 'helvetica',
+                    fontSize: 9,
+                    cellPadding: 3,
+                    textColor: colors.text
+                },
+                headStyles: {
+                    fillColor: [241, 245, 249],
+                    textColor: colors.heading,
+                    fontStyle: 'bold',
+                    lineColor: colors.border,
+                    lineWidth: 0.1
+                },
+                columnStyles: {
+                    0: { cellWidth: 25 },
+                    1: { cellWidth: 'auto' },
+                    2: { cellWidth: 15 },
+                    3: { cellWidth: 25, fontStyle: 'bold' },
+                    4: { cellWidth: 35 }
+                },
+                didParseCell: function (data) {
+                    if (data.section === 'body' && data.column.index === 3) {
+                        const status = data.cell.raw;
+                        if (status === 'Tomado') {
+                            data.cell.styles.textColor = [22, 101, 52]; // Green
+                        } else if (status === 'Não Tomado') {
+                            data.cell.styles.textColor = [220, 38, 38]; // Red
+                        } else if (status === 'Atrasado') {
+                            data.cell.styles.textColor = [217, 119, 6]; // Amber
+                        } else {
+                            data.cell.styles.textColor = [100, 116, 139]; // Slate
+                        }
+                    }
+                },
+                margin: { top: 10, left: 14, right: 14 }
+            });
+
+            yPos = doc.lastAutoTable.finalY + 5;
+        }
     });
 
     // --- Footer ---

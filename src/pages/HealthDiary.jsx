@@ -4,7 +4,8 @@ import Card, { CardHeader, CardContent } from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Modal from '../components/ui/Modal';
-import { Heart, Activity, Thermometer, Weight, Plus, Trash2, Calendar, FileText, Mail, Printer, MessageCircle, Pill, Edit } from 'lucide-react';
+import ConfirmationModal from '../components/ui/ConfirmationModal';
+import { Trash2, Edit2, Plus, Calendar as CalendarIcon, FileDown, Share2, Clock, CheckCircle2, XCircle, AlertCircle, Circle, Printer, Mail, MessageCircle, FileText, Activity, Heart, Weight, Thermometer, Edit, Pill } from 'lucide-react';
 import { formatDate, formatDateTime, formatTime } from '../utils/dateFormatter';
 import { generatePDFHealthDiary } from '../utils/pdfGenerator';
 import { format } from 'date-fns';
@@ -26,7 +27,7 @@ import {
 } from 'recharts';
 
 const HealthDiary = () => {
-    const { patients, healthLogs, addHealthLog, updateHealthLog, deleteHealthLog, user, showToast, prescriptions, consumptionLog } = useApp();
+    const { patients, healthLogs, addHealthLog, updateHealthLog, deleteHealthLog, user, showToast, prescriptions, consumptionLog, medications, logConsumption, removeConsumption } = useApp();
     const navigate = useNavigate();
 
     const [showForm, setShowForm] = useState(false);
@@ -36,8 +37,41 @@ const HealthDiary = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const ITEMS_PER_PAGE = 6;
 
-    const [viewDate, setViewDate] = useState(null);
+    const [viewDate, setViewDate] = useState(format(new Date(), 'yyyy-MM-dd'));
     const [editingLogId, setEditingLogId] = useState(null);
+
+    // Dose Management Modal
+    const [doseModalOpen, setDoseModalOpen] = useState(false);
+    const [selectedPrescriptionForDosing, setSelectedPrescriptionForDosing] = useState(null);
+
+    const handleDoseClick = (prescription) => {
+        setSelectedPrescriptionForDosing(prescription);
+        setDoseModalOpen(true);
+    };
+
+    const handleToggleDose = async (time, isTaken) => {
+        if (!selectedPrescriptionForDosing || !viewDate) return;
+
+        try {
+            if (isTaken) {
+                // If it is taken, we want to REMOVE it (untake)
+                await removeConsumption(selectedPrescriptionForDosing.id, time, viewDate);
+            } else {
+                // If not taken, we want to LOG it (take)
+                await logConsumption({
+                    prescriptionId: selectedPrescriptionForDosing.id,
+                    medicationId: selectedPrescriptionForDosing.medicationId,
+                    date: viewDate,
+                    scheduledTime: time,
+                    takenBy: user?.id,
+                    status: 'taken'
+                });
+            }
+        } catch (error) {
+            console.error(error);
+            showToast('Erro ao atualizar dose', 'error');
+        }
+    };
 
     const handleEdit = (log) => {
         // Convert stored UTC/ISO date to Local format for input (YYYY-MM-DDTHH:mm)
@@ -168,7 +202,7 @@ const HealthDiary = () => {
         text += '========================\n';
         if (selectedPatientId !== 'all') {
             const p = patients.find(pat => pat.id === selectedPatientId);
-            text += `*Paciente:* *_${p?.name}_*\n`;
+            text += `*Paciente:* *_${p?.name || 'N/A'}_*\n`;
         }
 
         text += `*Gerado em:* ${formatDateTime(new Date())}\n`;
@@ -205,7 +239,7 @@ const HealthDiary = () => {
                 // Cabeçalho do paciente (apenas se houver múltiplos pacientes)
                 if (Object.keys(logsByPatient).length > 1) {
                     if (patientIndex > 0) text += '\n';
-                    text += `--- *_${patientName}_* ---\n`;
+                    text += `-- - * _${patientName} _ * ---\n`;
                 }
 
                 // Registros do paciente (limitado a 30 total)
@@ -222,22 +256,22 @@ const HealthDiary = () => {
                     else if (log.category === 'heart_rate') tag = '[BPM]';
                     else tag = '[REG]';
 
-                    text += `${tag} *${info.label}*\n`;
-                    text += `Data: ${formatDateTime(log.measured_at)}\n`;
+                    text += `${tag} * ${info.label}*\n`;
+                    text += `Data: ${formatDateTime(log.measured_at)} \n`;
 
-                    let val = `${log.value}`;
-                    if (log.value_secondary) val += ` / ${log.value_secondary}`;
-                    val += ` ${info.unit}`;
+                    let val = `${log.value} `;
+                    if (log.value_secondary) val += ` / ${log.value_secondary} `;
+                    val += ` ${info.unit} `;
 
-                    text += `Valor: *${val}*\n`;
+                    text += `Valor: * ${val}*\n`;
 
                     if (log.notes) {
-                        text += `Obs: ${log.notes}\n`;
+                        text += `Obs: ${log.notes} \n`;
                     }
                 });
 
                 if (logs.length > 30) {
-                    text += `_... e mais ${logs.length - 30} registro(s) de ${patientName}_\n`;
+                    text += `_... e mais ${logs.length - 30} registro(s) de ${patientName} _\n`;
                 }
             });
         }
@@ -261,14 +295,14 @@ const HealthDiary = () => {
         try {
             const doc = await generatePDFHealthDiary(filteredLogs, { patientId: selectedPatientId }, patients);
             const pdfBase64 = doc.output('datauristring').split(',')[1];
-            const filename = `diario-saude-${format(new Date(), 'dd-MM')}.pdf`;
+            const filename = `diario - saude - ${format(new Date(), 'dd-MM')}.pdf`;
 
             const { data: { session } } = await supabase.auth.getSession();
             const response = await fetch(getApiEndpoint('/api/send-email'), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${session?.access_token}`
+                    'Authorization': `Bearer ${session?.access_token} `
                 },
                 body: JSON.stringify({
                     to: emailData.to,
@@ -342,9 +376,241 @@ const HealthDiary = () => {
         window.open(`https://wa.me/?text=${text}`, '_blank');
     };
 
-    const handlePrint = async () => {
+    const handlePrint = async (e) => {
+        if (e) e.preventDefault();
         try {
-            const doc = await generatePDFHealthDiary(filteredLogs, { patientId: selectedPatientId }, patients);
+            // Determine filter date range based on View (Day or All)
+            let logsToPrint = filteredLogs;
+
+            if (viewDate) {
+                // Filter HEALTH LOGS by viewDate (Local Time match)
+                logsToPrint = filteredLogs.filter(log => {
+                    const localDate = format(new Date(log.measured_at), 'yyyy-MM-dd');
+                    return localDate === viewDate;
+                });
+            }
+
+            // 2. Prepare Medication Schedule (Taken AND Pending/Missed)
+            let dailyMedicationSchedule = [];
+
+            if (viewDate) {
+                // If specific day selected, generate FULL schedule (prescriptions active today)
+                const targetDate = viewDate; // yyyy-mm-dd
+
+                // Generate slots for each prescription
+                console.log(`[DEBUG] Filtering prescriptions for date: ${targetDate}`);
+                console.log(`[DEBUG] Total prescriptions: ${prescriptions.length}`);
+
+                // UI MATCHING LOGIC
+                const activePrescriptions = prescriptions.filter(p => {
+                    const dateStr = targetDate;
+                    const d = new Date(dateStr + 'T00:00:00');
+                    const start = new Date(p.startDate);
+                    const end = new Date(p.endDate);
+                    start.setHours(0, 0, 0, 0);
+                    end.setHours(0, 0, 0, 0);
+
+                    // Debug Log similar to previous one but with Objects
+                    // console.log(`[DEBUG] Presc ${p.id}, D:${d.toISOString()}, S:${start.toISOString()}, E:${end ? end.toISOString() : 'null'}`);
+
+                    if (p.continuousUse) return d >= start;
+                    return d >= start && d <= end;
+                });
+
+                console.log(`[DEBUG] Active prescriptions found: ${activePrescriptions.length}`);
+
+                // Generate slots for each prescription
+                activePrescriptions.forEach(pres => {
+                    const med = medications.find(m => m.id === pres.medicationId);
+
+                    if (pres.times && Array.isArray(pres.times)) {
+                        pres.times.forEach(time => {
+                            // Find matching log
+                            const log = consumptionLog.find(l =>
+                                l.prescriptionId === pres.id &&
+                                l.date === targetDate &&
+                                l.scheduledTime === time
+                            );
+
+                            // Calculate Status
+                            let status = 'Pendente';
+                            let takenByName = null;
+
+                            if (log) {
+                                status = 'Tomado'; // taken
+                                takenByName = log.takenByName; // or profile join
+                            } else {
+                                // Logic for Missed/Late
+                                const now = new Date();
+                                const todayStr = format(now, 'yyyy-MM-dd');
+
+                                if (targetDate < todayStr) {
+                                    status = 'Não Tomado';
+                                } else if (targetDate === todayStr) {
+                                    const [h, m] = time.split(':').map(Number);
+                                    const schedDate = new Date();
+                                    schedDate.setHours(h, m, 0, 0);
+                                    const diffMins = (now - schedDate) / (1000 * 60);
+
+                                    if (diffMins > 30) status = 'Atrasado';
+                                }
+                            }
+
+                            dailyMedicationSchedule.push({
+                                date: targetDate, // For sorting comp in pdfGen
+                                scheduledTime: time,
+                                medicationName: med?.name || 'Medicamento',
+                                patientId: pres.patientId,
+                                status: status,
+                                takenByName: takenByName
+                            });
+                        });
+                    }
+                });
+
+            } else {
+                // Fallback for All Time View (Only Taken logs)
+                dailyMedicationSchedule = consumptionLog
+                    .filter(log => {
+                        const pres = prescriptions.find(p => p.id === log.prescriptionId);
+                        if (!pres) return false;
+                        if (selectedPatientId !== 'all' && pres.patientId !== selectedPatientId) return false;
+                        return true;
+                    })
+                    .map(log => {
+                        const pres = prescriptions.find(p => p.id === log.prescriptionId);
+                        const med = pres ? medications.find(m => m.id === pres.medicationId) : null;
+                        return {
+                            ...log,
+                            status: 'Tomado', // If valid log exists
+                            patientId: pres?.patientId,
+                            medicationName: med?.name || 'Medicamento Desconhecido'
+                        };
+                    });
+            }
+
+            console.log(`[DEBUG] Final dailyMedicationSchedule:`, dailyMedicationSchedule);
+
+            const doc = await generatePDFHealthDiary(logsToPrint, { patientId: selectedPatientId, date: viewDate }, patients, dailyMedicationSchedule);
+            // doc.autoPrint(); // Removed to fix "two screens" issue
+            window.open(doc.output('bloburl'), '_blank');
+        } catch (error) {
+            console.error(error);
+            showToast('Erro ao imprimir', 'error');
+        }
+    };
+
+    const handlePrint_Legacy = async () => {
+        try {
+            // Determine filter date range based on View (Day or All)
+            let logsToPrint = filteredLogs;
+            let medsToPrintSource = consumptionLog;
+
+            if (viewDate) {
+                // Filter HEALTH LOGS by viewDate (Local Time match)
+                logsToPrint = filteredLogs.filter(log => {
+                    const localDate = format(new Date(log.measured_at), 'yyyy-MM-dd');
+                    return localDate === viewDate;
+                });
+            }
+
+            // 2. Prepare Medication Schedule (Taken AND Pending/Missed)
+            let dailyMedicationSchedule = [];
+
+            if (viewDate) {
+                // If specific day selected, generate FULL schedule (prescriptions active today)
+                const targetDate = viewDate; // yyyy-mm-dd
+
+                // Get active prescriptions for this date
+                const activePrescriptions = prescriptions.filter(p => {
+                    // Patient Filter
+                    if (selectedPatientId !== 'all' && p.patientId !== selectedPatientId) return false;
+
+                    // Date Range Filter (Ensure clean comparisons)
+                    if (p.startDate && p.startDate.slice(0, 10) > targetDate) return false;
+                    if (p.endDate && p.endDate.slice(0, 10) < targetDate) return false;
+
+                    // Continuous Use logic (if applicable, usually doesn't have endDate or endDate is far)
+                    // Assuming basic check works.
+                    return true;
+                });
+
+                // Generate slots for each prescription
+                activePrescriptions.forEach(pres => {
+                    const med = medications.find(m => m.id === pres.medicationId);
+
+                    if (pres.times && Array.isArray(pres.times)) {
+                        pres.times.forEach(time => {
+                            // Find matching log
+                            const log = consumptionLog.find(l =>
+                                l.prescriptionId === pres.id &&
+                                l.date === targetDate &&
+                                l.scheduledTime === time
+                            );
+
+                            // Calculate Status
+                            let status = 'Pendente';
+                            let takenByName = null;
+
+                            if (log) {
+                                status = 'Tomado'; // taken
+                                takenByName = log.takenByName; // or profile join
+                            } else {
+                                // Logic for Missed/Late
+                                const now = new Date();
+                                const todayStr = format(now, 'yyyy-MM-dd');
+
+                                if (targetDate < todayStr) {
+                                    status = 'Não Tomado';
+                                } else if (targetDate === todayStr) {
+                                    const [h, m] = time.split(':').map(Number);
+                                    const schedDate = new Date();
+                                    schedDate.setHours(h, m, 0, 0);
+                                    const diffMins = (now - schedDate) / (1000 * 60);
+
+                                    if (diffMins > 30) status = 'Atrasado';
+                                }
+                            }
+
+                            dailyMedicationSchedule.push({
+                                date: targetDate,
+                                start_date: targetDate, // For sorting comp in pdfGen
+                                scheduledTime: time,
+                                medicationName: med?.name || 'Medicamento',
+                                patientId: pres.patientId || pres.patient_id,
+                                status: status,
+                                takenByName: takenByName
+                            });
+                        });
+                    }
+                });
+
+            } else {
+                // If NO viewDate (Print All History View? Or just unsupported?)
+                // The user usually prints what they see. If they see "Overview", maybe just logs?
+                // But user complained about "Day 14". 
+                // Let's keep the "Only Logs" fallback for 'all time' or try to iterate all days? (Too heavy).
+                // Fallback to existing logic for "All Time": just what was taken.
+                dailyMedicationSchedule = consumptionLog
+                    .filter(log => {
+                        const pres = prescriptions.find(p => p.id === log.prescriptionId);
+                        if (!pres) return false;
+                        if (selectedPatientId !== 'all' && pres.patientId !== selectedPatientId) return false;
+                        return true;
+                    })
+                    .map(log => {
+                        const pres = prescriptions.find(p => p.id === log.prescriptionId);
+                        const med = pres ? medications.find(m => m.id === pres.medicationId) : null;
+                        return {
+                            ...log,
+                            status: 'Tomado', // If valid log exists
+                            patientId: pres?.patientId,
+                            medicationName: med?.name || 'Medicamento Desconhecido'
+                        };
+                    });
+            }
+
+            const doc = await generatePDFHealthDiary(logsToPrint, { patientId: selectedPatientId, date: viewDate }, patients, dailyMedicationSchedule);
             doc.autoPrint();
             window.open(doc.output('bloburl'));
         } catch (error) {
@@ -482,7 +748,7 @@ const HealthDiary = () => {
                                 onClick={() => setActiveTab('adherence')}
                                 className={`pb-4 px-2 font-medium text-sm border-b-2 transition-colors whitespace-nowrap flex items-center gap-2 ${activeTab === 'adherence' ? 'border-primary text-primary' : 'border-transparent text-slate-500'}`}
                             >
-                                <Calendar size={16} />
+                                <CalendarIcon size={16} />
                                 Frequência (Calendário)
                             </button>
                             <button
@@ -501,16 +767,21 @@ const HealthDiary = () => {
                             </button>
                         </div>
 
-                        <div className="flex gap-2 no-print overflow-x-auto pb-2">
-                            <Button variant="outline" size="sm" onClick={() => setShowEmailModal(true)}>
-                                <Mail size={16} className="mr-2" /> Email
-                            </Button>
-                            <Button variant="outline" size="sm" onClick={handlePrint}>
-                                <Printer size={16} className="mr-2" /> Imprimir
-                            </Button>
-                            <Button variant="outline" size="sm" onClick={handleWhatsApp}>
-                                <MessageCircle size={16} className="mr-2" /> WhatsApp
-                            </Button>
+                        <div className="flex flex-col items-end gap-1 no-print">
+                            <div className="flex gap-2 bg-white/50 p-1 rounded-lg border border-slate-100">
+                                <Button variant="outline" size="sm" onClick={() => setShowEmailModal(true)} title="Enviar por Email">
+                                    <Mail size={16} className="mr-2" /> Email
+                                </Button>
+                                <Button variant="outline" size="sm" onClick={handlePrint} title="Imprimir PDF">
+                                    <Printer size={16} className="mr-2" /> Imprimir
+                                </Button>
+                                <Button variant="outline" size="sm" onClick={handleWhatsApp} title="Enviar no WhatsApp">
+                                    <MessageCircle size={16} className="mr-2" /> WhatsApp
+                                </Button>
+                            </div>
+                            <p className="text-[10px] text-slate-400 italic pr-1">
+                                Selecione um dia no calendário para gerar os relatórios.
+                            </p>
                         </div>
                     </div>
 
@@ -522,6 +793,7 @@ const HealthDiary = () => {
                                         prescriptions={prescriptions}
                                         consumptionLog={consumptionLog}
                                         healthLogs={healthLogs}
+                                        selectedDate={viewDate}
                                         onDateSelect={(date) => {
                                             setViewDate(date);
                                         }}
@@ -534,7 +806,7 @@ const HealthDiary = () => {
                                                 <div className="animate-in slide-in-from-right-4">
                                                     <div className="flex items-center justify-between mb-4">
                                                         <h3 className="font-bold text-slate-900 flex items-center gap-2">
-                                                            <Calendar size={20} className="text-primary" />
+                                                            <CalendarIcon size={20} className="text-primary" />
                                                             {formatDate(viewDate)}
                                                         </h3>
                                                         <button onClick={() => setViewDate(null)} className="text-xs text-slate-500 hover:text-slate-700 bg-white px-2 py-1 rounded border border-slate-200">
@@ -545,53 +817,73 @@ const HealthDiary = () => {
                                                     <div className="space-y-4">
                                                         <div>
                                                             <h4 className="text-xs font-bold uppercase text-slate-400 mb-2">Sinais Vitais</h4>
-                                                            {healthLogs.filter(l => l.measured_at.startsWith(viewDate)).length > 0 ? (
+                                                            {healthLogs.filter(l =>
+                                                                l.measured_at.startsWith(viewDate) &&
+                                                                (selectedPatientId === 'all' || l.patient_id === selectedPatientId)
+                                                            ).length > 0 ? (
                                                                 <div className="flex flex-col gap-2 max-h-[300px] overflow-y-auto pr-1">
-                                                                    {healthLogs.filter(l => l.measured_at.startsWith(viewDate)).map(log => {
+                                                                    {healthLogs.filter(l =>
+                                                                        l.measured_at.startsWith(viewDate) &&
+                                                                        (selectedPatientId === 'all' || l.patient_id === selectedPatientId)
+                                                                    ).map(log => {
                                                                         const info = getCategoryInfo(log.category);
                                                                         const Icon = info.icon;
+                                                                        const patientName = patients.find(p => p.id === log.patient_id)?.name || 'Desconhecido';
+
                                                                         return (
-                                                                            <div key={log.id} className="bg-white p-3 rounded-lg border border-slate-100 shadow-sm flex flex-col gap-2">
-                                                                                <div className="flex items-center justify-between">
-                                                                                    <div className="flex items-center gap-2">
-                                                                                        <div className="p-1.5 rounded-full bg-slate-50 text-slate-500">
-                                                                                            <Icon size={14} />
+                                                                            <div key={log.id} className="bg-white p-3 rounded-lg border border-slate-100 shadow-sm flex flex-col gap-2 relative overflow-hidden">
+                                                                                {/* Patient Name Header - Centered */}
+                                                                                <div className="flex justify-center border-b border-slate-50 pb-2 mb-1">
+                                                                                    <span className="text-[10px] font-bold text-primary bg-primary/10 px-3 py-1 rounded-full text-center truncate max-w-full">
+                                                                                        {patientName}
+                                                                                    </span>
+                                                                                </div>
+
+                                                                                <div className="flex items-start justify-between gap-3">
+                                                                                    <div className="flex items-start gap-3 min-w-0 flex-1">
+                                                                                        <div className="p-2 rounded-full bg-slate-50 text-slate-500 shrink-0 mt-0.5">
+                                                                                            <Icon size={16} />
                                                                                         </div>
-                                                                                        <div>
-                                                                                            <div className="font-bold text-slate-700 text-sm">{info.label}</div>
-                                                                                            <div className="text-xs text-slate-400">{formatTime(log.measured_at)}</div>
+                                                                                        <div className="min-w-0 flex-1">
+                                                                                            <div className="font-bold text-slate-700 text-sm leading-tight break-words">
+                                                                                                {info.label}
+                                                                                            </div>
+                                                                                            <div className="text-xs text-slate-400 mt-0.5 font-medium">
+                                                                                                {formatTime(log.measured_at)}
+                                                                                            </div>
                                                                                         </div>
                                                                                     </div>
-                                                                                    <div className="flex items-center gap-3">
+
+                                                                                    <div className="flex items-start gap-2 shrink-0 pl-2">
                                                                                         <div className="text-right">
-                                                                                            <div className="font-bold" style={{ color: info.color }}>
-                                                                                                {log.value} <span className="text-xs text-slate-400">{info.unit}</span>
+                                                                                            <div className="font-bold whitespace-nowrap text-sm" style={{ color: info.color }}>
+                                                                                                {log.value}
+                                                                                                <span className="text-[10px] text-slate-400 mx-1">{info.unit}</span>
+                                                                                                {log.value_secondary && <span className="text-xs text-slate-400">/ {log.value_secondary}</span>}
                                                                                             </div>
-                                                                                            {log.value_secondary && <div className="text-xs text-slate-400">/ {log.value_secondary}</div>}
-                                                                                            <div className="text-[10px] text-slate-400 mt-1">{formatDateTime(log.measured_at)}</div>
                                                                                         </div>
                                                                                         {(user?.id === log.user_id) && (
-                                                                                            <div className="flex flex-col gap-1">
+                                                                                            <div className="flex flex-col gap-1 items-center justify-center">
                                                                                                 <button
                                                                                                     onClick={() => handleEdit(log)}
                                                                                                     className="text-blue-400 hover:text-blue-600 p-1"
                                                                                                     title="Editar"
                                                                                                 >
-                                                                                                    <Edit size={14} />
+                                                                                                    <Edit size={12} />
                                                                                                 </button>
                                                                                                 <button
                                                                                                     onClick={() => handleDeleteClick(log.id)}
                                                                                                     className="text-rose-400 hover:text-rose-600 p-1"
                                                                                                     title="Excluir"
                                                                                                 >
-                                                                                                    <Trash2 size={14} />
+                                                                                                    <Trash2 size={12} />
                                                                                                 </button>
                                                                                             </div>
                                                                                         )}
                                                                                     </div>
                                                                                 </div>
                                                                                 {log.notes && (
-                                                                                    <div className="text-xs text-slate-500 bg-slate-50 p-1.5 rounded border border-slate-100 italic">
+                                                                                    <div className="text-xs text-slate-500 bg-slate-50 p-2 rounded border border-slate-100 italic mt-1 leading-relaxed">
                                                                                         {log.notes}
                                                                                     </div>
                                                                                 )}
@@ -606,15 +898,101 @@ const HealthDiary = () => {
                                                             )}
                                                         </div>
 
-                                                        <div className="p-4 bg-blue-50/50 rounded-xl border border-blue-100 mt-4">
-                                                            <h4 className="text-blue-900 font-bold mb-1 text-sm flex items-center gap-2">
-                                                                <Pill size={14} />
-                                                                Medicamentos
+                                                        <div className="mt-6 border-t border-slate-100 pt-4">
+                                                            <h4 className="text-slate-800 font-bold mb-3 text-sm flex items-center gap-2 uppercase tracking-wide">
+                                                                <Pill size={16} className="text-primary" />
+                                                                Medicamentos ({formatDate(viewDate)})
                                                             </h4>
-                                                            <p className="text-blue-700 text-xs leading-relaxed">
-                                                                O controle detalhado de tomadas (checkboxes) é feito na tela <strong>Início</strong>.
-                                                                Aqui você visualiza a aderência geral do dia.
-                                                            </p>
+
+                                                            <div className="flex flex-col gap-2">
+                                                                {prescriptions.filter(p => {
+                                                                    if (selectedPatientId !== 'all' && p.patientId !== selectedPatientId) return false;
+
+                                                                    const dateStr = viewDate;
+                                                                    const d = new Date(dateStr + 'T00:00:00');
+                                                                    const start = new Date(p.startDate);
+                                                                    const end = new Date(p.endDate);
+                                                                    start.setHours(0, 0, 0, 0);
+                                                                    end.setHours(0, 0, 0, 0);
+
+                                                                    if (p.continuousUse) return d >= start;
+                                                                    return d >= start && d <= end;
+                                                                }).length > 0 ? (
+                                                                    prescriptions.filter(p => {
+                                                                        if (selectedPatientId !== 'all' && p.patientId !== selectedPatientId) return false;
+
+                                                                        const dateStr = viewDate;
+                                                                        const d = new Date(dateStr + 'T00:00:00');
+                                                                        const start = new Date(p.startDate);
+                                                                        const end = new Date(p.endDate);
+                                                                        start.setHours(0, 0, 0, 0);
+                                                                        end.setHours(0, 0, 0, 0);
+
+                                                                        if (p.continuousUse) return d >= start;
+                                                                        return d >= start && d <= end;
+                                                                    }).map(prescription => {
+                                                                        const med = medications.find(m => m.id === prescription.medicationId);
+                                                                        const patientName = patients.find(p => p.id === prescription.patientId)?.name || 'Desconhecido';
+
+                                                                        // Check status for this day
+                                                                        const expectedCount = prescription.times ? prescription.times.length : 0;
+                                                                        const takenCount = consumptionLog.filter(l =>
+                                                                            l.prescriptionId === prescription.id &&
+                                                                            l.date === viewDate &&
+                                                                            l.status === 'taken'
+                                                                        ).length;
+
+                                                                        let statusColor = 'bg-slate-100 text-slate-500';
+                                                                        let statusText = 'Pendente';
+
+                                                                        if (takenCount >= expectedCount && expectedCount > 0) {
+                                                                            statusColor = 'bg-emerald-100 text-emerald-700';
+                                                                            statusText = 'Completo';
+                                                                        } else if (takenCount > 0) {
+                                                                            statusColor = 'bg-amber-100 text-amber-700';
+                                                                            statusText = 'Parcial';
+                                                                        } else if (new Date(viewDate) < new Date().setHours(0, 0, 0, 0)) {
+                                                                            statusColor = 'bg-rose-100 text-rose-700';
+                                                                            statusText = 'Não Tomado';
+                                                                        }
+
+                                                                        return (
+                                                                            <div
+                                                                                key={prescription.id}
+                                                                                onClick={() => handleDoseClick(prescription)}
+                                                                                className="bg-white p-3 rounded-lg border border-slate-100 shadow-sm flex flex-col gap-2 cursor-pointer hover:bg-slate-50 hover:border-blue-200 transition-all active:scale-[0.98]"
+                                                                                title="Clique para gerenciar doses"
+                                                                            >
+                                                                                {/* Patient Name Header - Centered */}
+                                                                                <div className="flex justify-center border-b border-slate-50 pb-2 mb-1">
+                                                                                    <span className="text-[10px] font-bold text-primary bg-primary/10 px-3 py-1 rounded-full text-center truncate max-w-full">
+                                                                                        {patientName}
+                                                                                    </span>
+                                                                                </div>
+
+                                                                                <div className="flex items-center justify-between">
+                                                                                    <div className="flex flex-col">
+                                                                                        <span className="font-bold text-slate-700 text-sm">{med?.name || 'Medicamento'}</span>
+                                                                                        <span className="text-xs text-slate-500">
+                                                                                            {prescription.doseAmount} {med?.unit} • {prescription.times?.length}x dia
+                                                                                        </span>
+                                                                                        <span className="text-[10px] text-slate-400 mt-1">
+                                                                                            {prescription.times?.join(' - ')}
+                                                                                        </span>
+                                                                                    </div>
+                                                                                    <div className={`px-2 py-1 rounded text-xs font-bold ${statusColor}`}>
+                                                                                        {statusText}
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                        );
+                                                                    })
+                                                                ) : (
+                                                                    <div className="text-center py-4 bg-slate-50 rounded-lg border border-dashed border-slate-200">
+                                                                        <p className="text-sm text-slate-400 italic">Sem medicamentos agendados.</p>
+                                                                    </div>
+                                                                )}
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -789,24 +1167,108 @@ const HealthDiary = () => {
             </Modal>
 
             {/* Delete Confirmation Modal */}
-            <Modal
+            <ConfirmationModal
                 isOpen={showDeleteModal}
                 onClose={() => setShowDeleteModal(false)}
-                title="Excluir Registro"
-                footer={(
-                    <>
-                        <Button variant="ghost" onClick={() => setShowDeleteModal(false)}>Cancelar</Button>
-                        <Button onClick={confirmDelete} className="bg-rose-600 hover:bg-rose-700 text-white">
-                            Excluir
-                        </Button>
-                    </>
-                )}
+                onConfirm={confirmDelete}
+                title="Excluir Registro de Saúde"
+                description="Tem certeza que deseja excluir este registro de sinal vital? Esta ação não pode ser desfeita."
+            />
+            {/* Dose Management Modal */}
+            <Modal
+                isOpen={doseModalOpen}
+                onClose={() => setDoseModalOpen(false)}
+                title="Gerenciar Doses"
+                footer={<Button onClick={() => setDoseModalOpen(false)}>Fechar</Button>}
             >
-                <p className="text-slate-600">
-                    Tem certeza que deseja excluir este registro? Esta ação não pode ser desfeita.
-                </p>
+                {selectedPrescriptionForDosing && viewDate && (() => {
+                    const med = medications.find(m => m.id === selectedPrescriptionForDosing.medicationId);
+                    return (
+                        <div className="flex flex-col gap-4">
+                            <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 mb-2">
+                                <h4 className="font-bold text-slate-900">{med?.name}</h4>
+                                <p className="text-sm text-slate-500">
+                                    {selectedPrescriptionForDosing.doseAmount} {med?.unit} • {formatDate(viewDate)}
+                                </p>
+                            </div>
+
+                            <div className="space-y-3">
+                                <p className="text-xs font-bold text-slate-400 uppercase tracking-wide">Horários Agendados</p>
+                                {selectedPrescriptionForDosing.times?.map(time => {
+                                    // Check if taken
+                                    const isTaken = consumptionLog.some(l =>
+                                        l.prescriptionId === selectedPrescriptionForDosing.id &&
+                                        l.date === viewDate &&
+                                        l.status === 'taken' &&
+                                        l.scheduledTime === time
+                                    );
+
+                                    // Calculate Status Detail
+                                    let statusLabel = 'Pendente';
+                                    let statusColorClass = 'bg-slate-100 text-slate-500 hover:bg-slate-200';
+                                    let StatusIcon = Circle; // Assuming Circle is imported from 'lucide-react'
+
+                                    if (isTaken) {
+                                        statusLabel = 'Tomado';
+                                        statusColorClass = 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200';
+                                        StatusIcon = CheckCircle2; // Assuming CheckCircle2 is imported from 'lucide-react'
+                                    } else {
+                                        // Not taken logic
+                                        const now = new Date();
+                                        const viewDateObj = new Date(viewDate + 'T00:00:00');
+                                        const today = new Date();
+                                        today.setHours(0, 0, 0, 0);
+
+                                        // Parse scheduled time
+                                        const [h, m] = time.split(':').map(Number);
+                                        const scheduledDate = new Date(viewDate + 'T00:00:00');
+                                        scheduledDate.setHours(h, m, 0, 0);
+
+                                        if (viewDateObj < today) {
+                                            statusLabel = 'Não Tomado';
+                                            statusColorClass = 'bg-rose-100 text-rose-700 hover:bg-rose-200';
+                                            StatusIcon = XCircle; // Assuming XCircle is imported from 'lucide-react'
+                                        } else if (viewDateObj.getTime() === today.getTime()) {
+                                            // If today, check time with 30min tolerance
+                                            const diffMins = (now - scheduledDate) / (1000 * 60);
+                                            if (diffMins > 30) {
+                                                statusLabel = 'Atrasado';
+                                                statusColorClass = 'bg-amber-100 text-amber-700 hover:bg-amber-200';
+                                                StatusIcon = AlertCircle; // Assuming AlertCircle is imported from 'lucide-react'
+                                            }
+                                        }
+                                    }
+
+                                    return (
+                                        <div key={time} className="flex items-center justify-between p-3 rounded-lg border border-slate-100 hover:bg-slate-50 transition-colors">
+                                            <div className="flex items-center gap-3">
+                                                <Clock size={16} className="text-slate-400" />
+                                                <span className="font-bold text-slate-700">{time}</span>
+                                            </div>
+
+                                            <button
+                                                onClick={() => handleToggleDose(time, isTaken)}
+                                                className={`
+                                                     flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-all
+                                                     ${statusColorClass}
+                                                 `}
+                                                title={isTaken ? 'Clique para desmarcar' : 'Clique para marcar como Tomado'}
+                                            >
+                                                <StatusIcon size={16} />
+                                                {statusLabel}
+                                            </button>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                            <p className="text-xs text-center text-slate-400 mt-2">
+                                Clique no status (Pendente/Tomado) para alterar.
+                            </p>
+                        </div>
+                    );
+                })()}
             </Modal>
-        </div >
+        </div>
     );
 };
 

@@ -5,6 +5,7 @@ import Card, { CardHeader, CardContent } from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Modal from '../components/ui/Modal';
+import ConfirmationModal from '../components/ui/ConfirmationModal';
 import Pagination from '../components/ui/Pagination';
 import { Plus, Edit2, Trash2, X, Search, ClipboardList, Clock, User, Pill, Calendar } from 'lucide-react';
 import { formatDate } from '../utils/dateFormatter';
@@ -620,29 +621,13 @@ const Prescriptions = () => {
             )}
 
             {/* Delete Modal */}
-            <Modal
+            <ConfirmationModal
                 isOpen={!!deleteId}
                 onClose={() => setDeleteId(null)}
+                onConfirm={confirmDelete}
                 title="Excluir Prescrição"
-                footer={
-                    <>
-                        <Button variant="ghost" onClick={() => setDeleteId(null)}>Cancelar</Button>
-                        <Button variant="danger" onClick={confirmDelete}>Confirmar Exclusão</Button>
-                    </>
-                }
-            >
-                <div className="text-center py-4">
-                    <div className="w-16 h-16 bg-rose-100 rounded-full flex items-center justify-center text-rose-500 mx-auto mb-4">
-                        <Trash2 size={32} />
-                    </div>
-                    <p className="text-slate-600 text-lg">
-                        Tem certeza que deseja excluir esta prescrição?
-                    </p>
-                    <p className="text-slate-400 text-sm mt-2">
-                        Essa ação não pode ser desfeita.
-                    </p>
-                </div>
-            </Modal>
+                description="Tem certeza que deseja excluir esta prescrição? Essa ação não pode ser desfeita."
+            />
         </div>
     );
 };

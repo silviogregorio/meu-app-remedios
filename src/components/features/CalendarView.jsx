@@ -3,7 +3,7 @@ import { ChevronLeft, ChevronRight, Check, X, AlertCircle } from 'lucide-react';
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, isToday } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
-const CalendarView = ({ prescriptions, consumptionLog, healthLogs = [], onDateSelect }) => {
+const CalendarView = ({ prescriptions, consumptionLog, healthLogs = [], onDateSelect, selectedDate }) => {
     const [currentDate, setCurrentDate] = useState(new Date());
 
     const nextMonth = () => setCurrentDate(addMonths(currentDate, 1));
@@ -120,12 +120,15 @@ const CalendarView = ({ prescriptions, consumptionLog, healthLogs = [], onDateSe
                     ))}
 
                     {days.map(day => {
+                        const dateStr = format(day, 'yyyy-MM-dd');
                         const status = getDayStatus(day);
-                        const isSelected = false; // Could add state for selected day logic if needed inside
+                        const isSelected = selectedDate === dateStr;
+                        const isCurrentDay = isToday(day);
 
                         let bgClass = "bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-100";
                         let statusIcon = null;
 
+                        // Base Status Styles
                         if (status === 'full') {
                             bgClass = "bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-200";
                             statusIcon = <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 mx-auto mt-1" />;
@@ -136,27 +139,38 @@ const CalendarView = ({ prescriptions, consumptionLog, healthLogs = [], onDateSe
                             bgClass = "bg-amber-50 hover:bg-amber-100 text-amber-700 border-amber-200";
                             statusIcon = <div className="w-1.5 h-1.5 rounded-full bg-amber-500 mx-auto mt-1" />;
                         } else if (status === 'logged') {
-                            // Status specifically for Health Logs (Vital Signs) ONLY
                             bgClass = "bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200";
                             statusIcon = <div className="w-1.5 h-1.5 rounded-full bg-blue-500 mx-auto mt-1" />;
                         } else if (status === 'pending') {
                             bgClass = "bg-white hover:bg-slate-50 text-slate-400 border-slate-200 border-dashed";
                         }
 
-                        if (isToday(day)) {
-                            bgClass += " ring-2 ring-primary ring-offset-2";
+                        // Today Highlight (Secondary)
+                        if (isCurrentDay) {
+                            // Use a lighter ring if not selected, or just bold text
+                            bgClass += " ring-1 ring-primary ring-offset-1 font-bold";
+                        }
+
+                        // Selected Highlight (Primary - Overrides)
+                        if (isSelected) {
+                            bgClass = "bg-slate-800 text-white border-slate-800 shadow-lg scale-105 z-10 hover:bg-slate-700";
+                            // Adjust icon for dark background
+                            if (statusIcon) {
+                                // Clone icon with white border or just keep it (dots usually visible on dark if colored brightly, but maybe need adjustment)
+                                // Status dots are colored. Emerald on Slate-800 is visible.
+                            }
                         }
 
                         return (
                             <button
                                 key={day.toString()}
-                                onClick={() => onDateSelect(format(day, 'yyyy-MM-dd'))}
+                                onClick={() => onDateSelect(dateStr)}
                                 className={`
                                     aspect-square rounded-xl border flex flex-col items-center justify-center transition-all relative
                                     ${bgClass}
                                 `}
                             >
-                                <span className="text-sm font-bold">{format(day, 'd')}</span>
+                                <span className="text-sm">{format(day, 'd')}</span>
                                 {statusIcon}
                             </button>
                         );

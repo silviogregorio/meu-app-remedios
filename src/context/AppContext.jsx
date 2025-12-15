@@ -581,10 +581,8 @@ export const AppProvider = ({ children }) => {
         if (!user) return;
         try {
             const newHealthLog = await LogService.addHealthLog(logData, user.id);
-            // Optimistic update done by Realtime usually, but let's be safe
-            // Actually, we don't have 'newHealthLog.transform' in the loop, we just use useApp to fetchAll.
-            // But if we want instant UI update without waiting for fetchAll(true):
-            // Health logs in Context (line 20) are just raw data + profiles expanded.
+            // Manual State Update for immediate UI reflection (Realtime backup)
+            setHealthLogs(prev => [newHealthLog, ...prev]);
             showToast('Registro de saúde adicionado!');
         } catch (error) {
             console.error('Erro ao adicionar registro de saúde:', error);
@@ -595,8 +593,9 @@ export const AppProvider = ({ children }) => {
     const deleteHealthLog = async (id) => {
         try {
             await LogService.deleteHealthLog(id);
+            // Optimistic update
+            setHealthLogs(prev => prev.filter(l => l.id !== id));
             showToast('Registro excluído.', 'info');
-            // Optimistic update handled by Realtime for now
         } catch (error) {
             console.error('Erro ao excluir registro de saúde:', error);
             showToast('Erro ao excluir registro', 'error');

@@ -4,7 +4,7 @@ export const LogService = {
     transform: (l) => ({
         ...l,
         prescriptionId: l.prescription_id,
-        scheduledTime: l.scheduled_time,
+        scheduledTime: l.scheduled_time ? l.scheduled_time.slice(0, 5) : null,
         takenAt: l.taken_at,
         takenBy: l.taken_by,
         takenByName: l.profiles?.full_name
@@ -27,7 +27,23 @@ export const LogService = {
             .insert([dbData])
             .select('*, profiles:taken_by(full_name)');
 
-        if (error) throw error;
+        if (error) {
+            // 409 Conflict / 23505 Unique Violation -> Já registrado
+            if (error.code === '23505' || error.status === 409) {
+                const { data: existing } = await supabase
+                    .from('consumption_log')
+                    .select('*, profiles:taken_by(full_name)')
+                    .eq('prescription_id', logData.prescriptionId)
+                    .eq('date', logData.date)
+                    .eq('scheduled_time', logData.scheduledTime)
+                    .single();
+
+                if (existing) {
+                    return { newLog: LogService.transform(existing), updatedMedication: null };
+                }
+            }
+            throw error;
+        }
         const newLog = LogService.transform(data[0]);
         let updatedMedication = null;
 
