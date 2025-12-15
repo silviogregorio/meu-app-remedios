@@ -95,6 +95,22 @@ const validateEmail = [
         .withMessage('healthLogsData deve ser um array')
 ];
 
+
+// Middleware de Log
+app.use((req, res, next) => {
+    console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+    next();
+});
+
+// Alias: /send-email (para caso o Vercel rewrite remova o prefixo /api)
+app.post('/send-email', emailLimiter, validateEmail, async (req, res) => {
+    // Reutiliza a lógica (pode ser refatorado para função separada, mas aqui vamos redirecionar internamente 
+    // ou simplesmente processar se extrairmos a função.
+    // Para evitar duplicidade de código sem refatorar tudo agora, vou fazer o forward 307.
+    // Mas 307 mantém o método POST.
+    res.redirect(307, '/api/send-email');
+});
+
 // Rota para enviar email
 app.post('/api/send-email', emailLimiter, validateEmail, async (req, res) => {
     try {
