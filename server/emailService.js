@@ -217,7 +217,7 @@ export const sendEmail = async ({ to, subject, text, observations, type = 'invit
               <div class="value" style="margin-bottom: 12px;">${senderName} (${senderEmail})</div>
               
               <span class="label">Mensagem</span>
-              <div class="value">${message.replace(/\n/g, '<br>')}</div>
+              <div class="value">${message ? String(message).replace(/\n/g, '<br>') : ''}</div>
             </div>
 
             <div class="cta-container">
@@ -326,7 +326,7 @@ export const sendEmail = async ({ to, subject, text, observations, type = 'invit
         </div>
         <div class="content">
           <div class="welcome-text">Olá!</div>
-          <p>${data.text.replace(/\n/g, '<br>')}</p>
+          <p>${data.text ? String(data.text).replace(/\n/g, '<br>') : ''}</p>
           
           ${data.observations ? `
           <div class="message-box">
