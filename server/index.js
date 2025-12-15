@@ -13,8 +13,8 @@ const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
 
 // Rate limiter: max 10 emails per 15 minutes per IP
 const emailLimiter = rateLimit({
-    windowMs: 1 * 60 * 1000, // 1 minute (Reduced for testing)
-    max: 20, // limit each IP to 20 requests per windowMs
+    windowMs: 60 * 60 * 1000, // 1 hour
+    max: 30, // limit each IP to 30 requests per windowMs
     message: {
         success: false,
         error: 'Muitas requisições. Tente novamente em 15 minutos.'
