@@ -9,7 +9,7 @@ import { getApiEndpoint } from '../config/api';
 const Landing = () => {
     const navigate = useNavigate();
 
-    const [contactForm, setContactForm] = useState({ name: '', email: '', message: '' });
+    const [contactForm, setContactForm] = useState({ name: '', email: '', phone: '', message: '' });
     const [sendingContact, setSendingContact] = useState(false);
     const [contactStatus, setContactStatus] = useState(null); // { type: 'success' | 'error', message: '' }
     const [sponsors, setSponsors] = useState([]);
@@ -111,6 +111,14 @@ const Landing = () => {
         };
     }, []);
 
+    const maskPhone = (value) => {
+        return value
+            .replace(/\D/g, '')
+            .replace(/^(\d{2})(\d)/g, '($1) $2')
+            .replace(/(\d)(\d{4})$/, '$1-$2')
+            .slice(0, 15);
+    };
+
     const handleContactSubmit = async (e) => {
         e.preventDefault();
         setSendingContact(true);
@@ -123,6 +131,7 @@ const Landing = () => {
                 body: JSON.stringify({
                     name: contactForm.name,
                     email: contactForm.email,
+                    phone: contactForm.phone,
                     message: contactForm.message
                 })
             });
@@ -143,7 +152,7 @@ const Landing = () => {
                     colors: ['#10b981', '#3b82f6', '#f43f5e', '#f59e0b']
                 });
 
-                setContactForm({ name: '', email: '', message: '' });
+                setContactForm({ name: '', email: '', phone: '', message: '' });
                 // Limpar mensagem de sucesso após 5 segundos
                 setTimeout(() => setContactStatus(null), 5000);
             } else {
@@ -269,8 +278,8 @@ const Landing = () => {
                 <div className="max-w-7xl mx-auto relative z-10">
                     <div className="text-center max-w-3xl mx-auto mb-12 animate-fade-in-up">
                         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 text-indigo-600 text-sm font-bold border border-indigo-100 mb-4 shadow-sm">
-                            <Rocket className="w-4 h-4 animate-pulse" />
-                            <span>Tecnologia de Ponta</span>
+                            <Heart className="w-4 h-4 animate-pulse fill-current" />
+                            <span>Cuidar de sua saúde é nossa maior missão.</span>
                         </div>
                         <h2 className="text-4xl md:text-5xl font-extrabold text-slate-900 mb-4 tracking-tight">
                             Sua Saúde e Segurança <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">Levadas a Sério</span>
@@ -492,6 +501,10 @@ const Landing = () => {
 
                 <div className="max-w-3xl mx-auto px-6 relative z-10">
                     <div className="text-center mb-16 transition-all duration-700">
+                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 text-emerald-600 text-sm font-bold border border-emerald-100 mb-4 shadow-sm animate-fade-in-up">
+                            <MessageCircle className="w-4 h-4 animate-pulse" />
+                            <span>Suporte Rápido e Atencioso</span>
+                        </div>
                         <h2 className="text-3xl font-bold text-slate-900 mb-4">Fale Conosco</h2>
                         <p className="text-lg text-slate-600">Tem alguma dúvida ou sugestão? Envie uma mensagem.</p>
                     </div>
@@ -519,6 +532,17 @@ const Landing = () => {
                                         placeholder="seu@email.com"
                                         value={contactForm.email}
                                         onChange={(e) => setContactForm({ ...contactForm, email: e.target.value })}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium text-slate-700">Telefone / WhatsApp</label>
+                                    <input
+                                        type="tel"
+                                        required
+                                        className="w-full px-4 py-3 rounded-lg border border-slate-200 focus:border-[#10b981] focus:ring-4 focus:ring-[#10b981]/10 outline-none transition-all"
+                                        placeholder="(11) 99999-9999"
+                                        value={contactForm.phone}
+                                        onChange={(e) => setContactForm({ ...contactForm, phone: maskPhone(e.target.value) })}
                                     />
                                 </div>
                             </div>
@@ -565,7 +589,7 @@ const Landing = () => {
                     <div className="mt-8 text-center animate-fade-in-up delay-200">
                         <p className="text-slate-600 mb-4">Prefere falar pelo WhatsApp?</p>
                         <a
-                            href="https://wa.me/5517991426306"
+                            href={`https://wa.me/5517991426306?text=${encodeURIComponent('Olá, vim pelo site SiG Remédios e gostaria de falar com vocês.')}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="inline-flex items-center gap-2 px-6 py-3 bg-[#25D366] hover:bg-[#128C7E] text-white font-bold rounded-full transition-all hover:scale-105 shadow-lg shadow-[#25D366]/20"

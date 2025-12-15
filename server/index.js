@@ -13,8 +13,8 @@ const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
 
 // Rate limiter: max 10 emails per 15 minutes per IP
 const emailLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 10, // limit each IP to 10 requests per windowMs
+    windowMs: 1 * 60 * 1000, // 1 minute (Reduced for testing)
+    max: 100, // limit each IP to 100 requests per windowMs (Increased for testing)
     message: {
         success: false,
         error: 'Muitas requisições. Tente novamente em 15 minutos.'
@@ -107,7 +107,7 @@ app.post('/api/contact', async (req, res) => {
     try {
         console.log(`[Contact] Recebendo mensagem de ${req.body.name}`);
 
-        const { name, email, message } = req.body;
+        const { name, email, phone, message } = req.body;
 
         if (!name || (!email && !req.body.senderEmail) || !message) {
             return res.status(400).json({ success: false, error: 'Campos obrigatórios: nome, email, mensagem' });
@@ -125,6 +125,7 @@ app.post('/api/contact', async (req, res) => {
             type: 'contact',
             senderName: name,
             senderEmail: email || req.body.senderEmail,
+            phone,
             observations: `Contato via Web de: ${email}`
         });
 
@@ -203,21 +204,21 @@ app.use((req, res) => {
 // Iniciar servidor (apenas em desenvolvimento local)
 const startServer = async () => {
     try {
-        // Verificar configuração SMTP
-        console.log('\n🔍 Verificando configuração SMTP...');
-        const isConfigured = await verifyConnection();
-
-        if (!isConfigured) {
-            console.warn('\n⚠️  ATENÇÃO: Configure o arquivo .env com suas credenciais SMTP');
-            console.warn('   Veja o arquivo .env.example para referência\n');
-        }
-
-        // Iniciar servidor
+        // Iniciar servidor IMEDIATAMENTE (sem esperar SMTP)
         app.listen(PORT, () => {
             console.log(`\n✅ Servidor rodando em http://localhost:${PORT}`);
             console.log(`📧 API de email: http://localhost:${PORT}/api/send-email`);
             console.log(`🔗 Frontend permitido: ${FRONTEND_URL}`);
-            console.log(`🛡️  Rate limiting ativado: 10 emails/15min por IP\n`);
+            console.log(`🛡️  Rate limiting ativado: 100 emails/1min por IP\n`);
+
+            // Verificar SMTP em background
+            verifyConnection().then(isConfigured => {
+                if (!isConfigured) {
+                    console.warn('\n⚠️  ATENÇÃO: Configure o arquivo .env com suas credenciais SMTP');
+                } else {
+                    console.log('✅ SMTP configurado e pronto em background.');
+                }
+            }).catch(err => console.error('Erro na verificação SMTP:', err));
         });
 
     } catch (error) {

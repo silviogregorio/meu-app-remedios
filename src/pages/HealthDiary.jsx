@@ -373,7 +373,7 @@ const HealthDiary = () => {
 
     const handleWhatsApp = () => {
         const text = encodeURIComponent(generateHealthReportText());
-        window.open(`https://wa.me/?text=${text}`, '_blank');
+        window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
     };
 
     const handlePrint = async (e) => {

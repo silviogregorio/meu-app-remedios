@@ -629,9 +629,21 @@ const Reports = () => {
     };
 
     const handleWhatsApp = () => {
-        const text = activeTab === 'stock' ? generateStockReportText() : generateReportText();
-        const encodedText = encodeURIComponent(text);
-        window.open(`https://wa.me/?text=${encodedText}`, '_blank');
+        if (activeTab === 'stock') {
+            const text = generateStockReportText();
+            window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+            return;
+        }
+
+        // Safe extraction for standard report
+        const patientName = filters.patientId !== 'all'
+            ? patients.find(p => p.id === filters.patientId)?.name || 'Todos'
+            : 'Todos os Pacientes';
+
+        const stats = reportData?.summary || { adherenceRate: 0, taken: 0, pending: 0 };
+        const text = `*RELATÓRIO DE SAÚDE - SIMPLIFICADO*\n\n*Paciente:* ${patientName}\n*Período:* ${formatDate(filters.startDate)} a ${formatDate(filters.endDate)}\n\n*Adesão:* ${stats.adherenceRate}%\n*Tomados:* ${stats.taken}\n*Pendentes:* ${stats.pending}\n\n_Gerado via SiG Remédios_`;
+
+        window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
     };
 
     const handleEmail = (type) => { // Updated to accept type override

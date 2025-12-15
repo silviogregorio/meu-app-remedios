@@ -12,12 +12,18 @@ const createTransporter = () => {
     auth: {
       user: process.env.SMTP_USER,
       pass: process.env.SMTP_PASS
-    }
+    },
+    tls: {
+      rejectUnauthorized: false
+    },
+    family: 4 // Force IPv4 to prevent 60s timeout issues
   });
 };
 
+
+
 // Função para enviar email
-export const sendEmail = async ({ to, subject, text, observations, type = 'invite', senderName, senderEmail, sosData, reportData, healthLogsData, healthLogsByPatient, attachments }) => {
+export const sendEmail = async ({ to, subject, text, observations, type = 'invite', senderName, senderEmail, sosData, reportData, healthLogsData, healthLogsByPatient, attachments, phone }) => {
   try {
     // Validar dados obrigatórios
     if (!to || !subject || !text) {
@@ -60,6 +66,7 @@ export const sendEmail = async ({ to, subject, text, observations, type = 'invit
         <html>
         <head>
           <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
           <style>${styles}</style>
         </head>
         <body>
@@ -203,10 +210,13 @@ export const sendEmail = async ({ to, subject, text, observations, type = 'invit
       }
 
       if (type === 'contact') {
-        const { senderName, senderEmail, message } = data;
+        const { senderName, senderEmail, message: rawMessage } = data;
+        // Sanitizar mensagem: remove emojis e caracteres especiais complexos
+        const message = String(rawMessage || '').replace(/([\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF])/g, '');
+
         return baseHtml(`
           <div class="header" style="background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);">
-            <h1>SiG Remédios - Nova Mensagem 📬</h1>
+            <h1>SiG Remédios - Nova Mensagem</h1>
           </div>
           <div class="content">
             <div class="welcome-text">Olá, Admin!</div>
@@ -214,7 +224,16 @@ export const sendEmail = async ({ to, subject, text, observations, type = 'invit
             
             <div class="message-box">
               <span class="label">Remetente</span>
-              <div class="value" style="margin-bottom: 12px;">${senderName} (${senderEmail})</div>
+              <div class="value" style="margin-bottom: 12px;">
+                <strong>${senderName}</strong> <span style="font-size: 14px; color: #64748b;">(${senderEmail})</span>
+                ${data.phone ? `
+                <div style="margin-top: 8px;">
+                    <a href="https://wa.me/55${data.phone.replace(/\D/g, '')}?text=${encodeURIComponent(`Olá! Recebemos seu contato pelo *SiG Remédios*.\n\nVocê escreveu:\n_"${message}"_\n\n*Ficamos felizes com seu contato!* Estou por aqui para ajudar. Podemos conversar?\n\n*Acesse:* https://sigremedios.vercel.app`)}" target="_blank" style="display: inline-flex; align-items: center; gap: 5px; color: #166534; background: #dcfce7; padding: 5px 10px; border-radius: 20px; text-decoration: none; font-weight: 600; font-size: 14px; border: 1px solid #bbf7d0;">
+                        WhatsApp: ${data.phone}
+                    </a>
+                </div>
+                ` : ''}
+              </div>
               
               <span class="label">Mensagem</span>
               <div class="value">${message ? String(message).replace(/\n/g, '<br>') : ''}</div>
@@ -350,7 +369,8 @@ export const sendEmail = async ({ to, subject, text, observations, type = 'invit
       message: text,
       sosData,
       healthLogsData,
-      healthLogsByPatient
+      healthLogsByPatient,
+      phone // <--- Added phone here
     });
 
     // Configurar email
@@ -365,7 +385,9 @@ export const sendEmail = async ({ to, subject, text, observations, type = 'invit
     };
 
     // Enviar email
+    console.log('Tentando enviar email para:', to);
     const info = await transporter.sendMail(mailOptions);
+    console.log('Transporter response:', info);
 
 
     console.log('Email enviado com sucesso:', info.messageId);

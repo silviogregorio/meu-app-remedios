@@ -144,7 +144,7 @@ const SOSCard = ({ onClose }) => {
             `*Responsável:* ${user?.user_metadata?.full_name || 'Ver Contato'}%0A` +
             `*Contato:* ${user?.phone || 'N/A'}`;
 
-        window.open(`https://wa.me/?text=${text}`, '_blank');
+        window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
     };
 
     const handleDownloadPDF = async () => {
