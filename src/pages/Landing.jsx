@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, Bell, ArrowRight, Activity, Heart, Send, CheckCircle2, AlertCircle, Smartphone, Rocket, Zap, Globe, Layers, Instagram, Facebook, Youtube, MessageCircle, Video, BookOpen, LifeBuoy, FileText, Pill, Shield, Calendar, Download, Printer, Share2, Lock } from 'lucide-react';
+import { Users, Bell, ArrowRight, Activity, Heart, Send, CheckCircle2, AlertCircle, Smartphone, Rocket, Zap, Globe, Layers, Instagram, Facebook, Youtube, MessageCircle, Video, BookOpen, LifeBuoy, FileText, Pill, Shield, Calendar, Download, Printer, Share2, Lock, Gift, Headset } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import confetti from 'canvas-confetti';
 import { getApiEndpoint } from '../config/api';
@@ -214,7 +214,7 @@ const Landing = () => {
             <header className="px-6 pt-32 pb-24 md:pt-40 md:pb-32 max-w-7xl mx-auto flex flex-col md:flex-row items-center gap-12">
                 <div className="flex-1 space-y-8 animate-fade-in-up">
                     <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-sm font-medium border border-blue-100">
-                        <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></span>
+                        <Gift className="w-4 h-4 text-blue-600 fill-current animate-pulse" />
                         Saúde: o bem mais precioso que temos, além da família.
                     </div>
                     <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight leading-tight text-slate-900">
@@ -502,8 +502,8 @@ const Landing = () => {
                 <div className="max-w-3xl mx-auto px-6 relative z-10">
                     <div className="text-center mb-16 transition-all duration-700">
                         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 text-emerald-600 text-sm font-bold border border-emerald-100 mb-4 shadow-sm animate-fade-in-up">
-                            <MessageCircle className="w-4 h-4 animate-pulse" />
-                            <span>Suporte Rápido e Atencioso</span>
+                            <Headset className="w-4 h-4 animate-pulse" />
+                            <span>Agilidade e Individualidade no Suporte</span>
                         </div>
                         <h2 className="text-3xl font-bold text-slate-900 mb-4">Fale Conosco</h2>
                         <p className="text-lg text-slate-600">Tem alguma dúvida ou sugestão? Envie uma mensagem.</p>
