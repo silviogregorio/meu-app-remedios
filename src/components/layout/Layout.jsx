@@ -39,7 +39,7 @@ const Layout = () => {
                     isPinned={isPinned}
                 />
 
-                <main className="pt-[80px] px-4 pb-8 max-w-5xl mx-auto relative z-10">
+                <main className="pt-[80px] px-4 pb-5 max-w-5xl mx-auto relative z-10">
                     <Outlet />
                 </main>
             </div>

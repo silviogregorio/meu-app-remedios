@@ -14,6 +14,10 @@ import VoiceCommand from '../components/features/VoiceCommand';
 import OnboardingTour from '../components/OnboardingTour';
 import MotivationCard from '../components/features/MotivationCard';
 import PillIcon from '../components/ui/PillIcon';
+import SponsorDisplay from '../components/features/SponsorDisplay';
+import LocalOffersCarousel from '../components/features/LocalOffersCarousel';
+import { fetchActiveWeightedOffers } from '../services/offerService';
+import { OfferCard } from '../components/features/OfferCard';
 
 const ITEMS_PER_PAGE = 6;
 
@@ -21,128 +25,21 @@ const Home = () => {
     const { user, prescriptions, medications, patients, consumptionLog, logConsumption, removeConsumption, pendingShares, calculateStockDays } = useApp();
     const { permission, requestPermission } = useNotifications();
     const [todaysSchedule, setTodaysSchedule] = useState([]);
-    const [currentPage, setCurrentPage] = useState(1);
-    const [startTour, setStartTour] = useState(false);
+    const [offersError, setOffersError] = useState(null);
+    const [offers, setOffers] = useState([]);
+    const [offersLoading, setOffersLoading] = useState(true);
 
-    // Filters
-    const [selectedDate, setSelectedDate] = useState(() => {
-        const date = new Date();
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
-    });
+    const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
     const [selectedPatient, setSelectedPatient] = useState('all');
     const [selectedMedication, setSelectedMedication] = useState('all');
     const [selectedStatus, setSelectedStatus] = useState('all');
+    const [currentPage, setCurrentPage] = useState(1);
+    const [startTour, setStartTour] = useState(false);
 
-    useEffect(() => {
-        console.log('Home: Generating schedule', { prescriptions, medications, patients, selectedDate });
-        // Generate schedule based on prescriptions and filters
-        const schedule = [];
+    // Derived state
+    const hasActiveFilters = selectedPatient !== 'all' || selectedMedication !== 'all' || selectedStatus !== 'all' || selectedDate !== new Date().toISOString().split('T')[0];
 
-        prescriptions.forEach(presc => {
-            const med = medications.find(m => m.id === presc.medicationId);
-            const patient = patients.find(p => p.id === presc.patientId);
-
-            // Apply patient filter
-            if (selectedPatient !== 'all' && presc.patientId !== selectedPatient) return;
-
-            // Apply medication filter
-            if (selectedMedication !== 'all' && presc.medicationId !== selectedMedication) return;
-
-            // Check date range
-            const start = new Date(presc.startDate);
-            const end = new Date(presc.endDate);
-            const current = new Date(selectedDate);
-
-            // Normalize dates to compare only YYYY-MM-DD
-            start.setHours(0, 0, 0, 0);
-            end.setHours(0, 0, 0, 0);
-            current.setHours(0, 0, 0, 0);
-
-            // If current date is before start or after end, skip
-            if (current < start || current > end) return;
-
-            if (!presc.times || !Array.isArray(presc.times)) return;
-
-            presc.times.forEach(time => {
-                // Check if already taken on selected date
-                const takenLog = consumptionLog.find(log =>
-                    log.prescriptionId === presc.id &&
-                    log.scheduledTime?.substring(0, 5) === time &&
-                    log.date === selectedDate
-                );
-
-                const isTaken = !!takenLog;
-
-                const item = {
-                    id: `${presc.id}-${time}`,
-                    prescriptionId: presc.id,
-                    medicationName: med?.name,
-                    dosage: med?.dosage,
-                    patientName: patient?.name,
-                    patientId: patient?.id,
-                    time: time,
-                    isTaken: isTaken,
-                    status: isTaken ? 'taken' : 'pending',
-                    takenByName: takenLog?.takenByName,
-                    doseAmount: presc.doseAmount || 1
-                };
-
-                // Apply status filter
-                if (selectedStatus === 'all' || item.status === selectedStatus) {
-                    schedule.push(item);
-                }
-            });
-        });
-
-        // Sort schedule by time
-        schedule.sort((a, b) => a.time.localeCompare(b.time));
-
-        setTodaysSchedule(schedule);
-
-    }, [prescriptions, medications, patients, consumptionLog, selectedDate, selectedPatient, selectedMedication, selectedStatus]);
-
-
-    const handleToggleStatus = (item) => {
-        // Guard clause for Read Only
-        const patient = patients.find(p => p.id === item.patientId);
-
-        const isOwner = patient?.userId === user?.id;
-        const canEdit = isOwner || patient?.sharedWith?.some(s =>
-            s.email?.toLowerCase() === user?.email?.toLowerCase() && s.permission === 'edit'
-        );
-
-        if (!canEdit) {
-            alert('Modo Leitura: Você não tem permissão para alterar este status.');
-            return;
-        }
-
-        if (item.isTaken) {
-            // Remove consumption log
-            removeConsumption(item.prescriptionId, item.time, selectedDate);
-        } else {
-            // Add consumption log
-            logConsumption({
-                prescriptionId: item.prescriptionId,
-                scheduledTime: item.time,
-                date: selectedDate,
-                status: 'taken'
-            });
-
-            // Trigger confetti
-            confetti({
-                particleCount: 100,
-                spread: 70,
-                origin: { y: 0.6 },
-                colors: ['#3b82f6', '#10b981', '#f59e0b']
-            });
-        }
-    };
-
-    const todayDate = formatDateFull(new Date());
-
+    // Handlers
     const clearFilters = () => {
         setSelectedDate(new Date().toISOString().split('T')[0]);
         setSelectedPatient('all');
@@ -150,44 +47,201 @@ const Home = () => {
         setSelectedStatus('all');
     };
 
-    const hasActiveFilters = selectedPatient !== 'all' || selectedMedication !== 'all' || selectedStatus !== 'all' || selectedDate !== new Date().toISOString().split('T')[0];
-
-    const getDisplayName = () => {
-        if (!user) return 'Visitante';
-        const nameOrEmail = user.user_metadata?.full_name || user.email || 'Usuário';
-        return nameOrEmail.includes('@') ? nameOrEmail.split('@')[0] : nameOrEmail.split(' ')[0];
+    const handleToggleStatus = async (item) => {
+        try {
+            if (item.isTaken) {
+                // If it's taken, we remove the log (undo)
+                // We need the log ID. item.consumptionId should be populated.
+                if (item.consumptionId) {
+                    await removeConsumption(item.consumptionId);
+                    // refresh is handled by AppContext subscription
+                }
+            } else {
+                // Mark as taken
+                await logConsumption({
+                    medicationId: item.medicationId,
+                    patientId: item.patientId,
+                    doseAmount: item.doseAmount,
+                    unit: item.medicationType,
+                    scheduledTime: item.time, // 'HH:mm'
+                    date: selectedDate, // 'YYYY-MM-DD'
+                    status: 'taken'
+                });
+            }
+        } catch (error) {
+            console.error('Error toggling status:', error);
+            alert('Erro ao atualizar status do medicamento.');
+        }
     };
 
+
+    // Side effects
+    useEffect(() => {
+        // Check for tour
+        const hasSeenTour = localStorage.getItem('hasSeenTour_v1');
+        if (!hasSeenTour) {
+            // Delay slightly to ensure load
+            setTimeout(() => setStartTour(true), 1500);
+        }
+    }, []);
+
+    useEffect(() => {
+        // Filter logic to populate todaysSchedule
+        const filterSchedule = () => {
+            // 1. Generate base schedule for the selected date
+            // We need a helper for this or assume existing logic.
+            // Since generateFutureSchedule exists, maybe there is generateDailySchedule?
+            // Or we construct it manually from prescriptions.
+
+            // Let's use the same logic as generateFutureSchedule but for single date or reuse it.
+            // Actually, for Home view we usually want granular control.
+
+            // Re-implementing basic schedule generation for the view:
+            let dailyItems = [];
+            const dayOfWeek = new Date(selectedDate + 'T00:00:00').getDay(); // 0=Sun, 6=Sat
+            // Fix timezone issue by using getUTCDay if needed, but local string split is safer for "YYYY-MM-DD".
+            // Actually new Date('2023-01-01') in JS defaults to UTC if ISO, but '2023-01-01T00:00:00' is local.
+            // Let's rely on string parsing for robustness or date-fns if available.
+            // But for now, simple logic:
+
+            const targetDate = new Date(selectedDate); // Local time midnight
+
+            prescriptions.forEach(presc => {
+                // Check active range
+                const start = new Date(presc.startDate);
+                const end = presc.endDate ? new Date(presc.endDate) : null;
+                const target = new Date(selectedDate);
+                target.setHours(0, 0, 0, 0);
+                start.setHours(0, 0, 0, 0);
+                if (end) end.setHours(0, 0, 0, 0);
+
+                if (target < start) return;
+                if (end && target > end) return;
+
+                // Check frequency
+                // 1. "daily" -> everyday
+                // 2. "specific_days" -> check weekDays
+                // 3. "interval" -> check days interval
+
+                let isDue = false;
+                if (presc.frequency === 'daily') isDue = true;
+                else if (presc.frequency === 'specific_days') {
+                    const weekMap = { 0: 'dom', 1: 'seg', 2: 'ter', 3: 'qua', 4: 'qui', 5: 'sex', 6: 'sab' };
+                    const dayStr = weekMap[target.getDay()];
+                    if (presc.weekDays && presc.weekDays.includes(dayStr)) isDue = true;
+                } else if (presc.frequency === 'interval') {
+                    const diffDays = Math.floor((target - start) / (1000 * 60 * 60 * 24));
+                    if (diffDays % presc.intervalDays === 0) isDue = true;
+                }
+
+                if (isDue) {
+                    // Add times
+                    presc.times.forEach(time => {
+                        // Check consumption
+                        const log = consumptionLog.find(l =>
+                            l.prescription_id === presc.id &&
+                            l.scheduled_time === time &&
+                            l.taken_at.startsWith(selectedDate)
+                        );
+
+                        const med = medications.find(m => m.id === presc.medicationId);
+                        const patient = patients.find(p => p.id === presc.patientId);
+
+                        if (med && patient) {
+                            dailyItems.push({
+                                id: `${presc.id}-${time}`,
+                                prescriptionId: presc.id,
+                                medicationId: med.id,
+                                patientId: patient.id,
+                                time: time,
+                                medicationName: med.name,
+                                medicationType: med.unit || 'unidade',
+                                doseAmount: presc.dosageAmount || 1, // Fallback
+                                dosage: med.dosage, // String like "500mg"
+                                patientName: patient.name,
+                                isTaken: !!log,
+                                consumptionId: log?.id,
+                                takenByName: log?.taken_by_name,
+                                shape: med.shape,
+                                color: med.color
+                            });
+                        }
+                    });
+                }
+            });
+
+            // Apply Filters
+            if (selectedPatient !== 'all') {
+                dailyItems = dailyItems.filter(i => i.patientId === selectedPatient);
+            }
+            if (selectedMedication !== 'all') {
+                dailyItems = dailyItems.filter(i => i.medicationId === selectedMedication);
+            }
+            if (selectedStatus !== 'all') {
+                if (selectedStatus === 'taken') dailyItems = dailyItems.filter(i => i.isTaken);
+                if (selectedStatus === 'pending') dailyItems = dailyItems.filter(i => !i.isTaken);
+            }
+
+            // Sort by time
+            dailyItems.sort((a, b) => a.time.localeCompare(b.time));
+
+            setTodaysSchedule(dailyItems);
+        };
+
+        filterSchedule();
+    }, [selectedDate, selectedPatient, selectedMedication, selectedStatus, prescriptions, consumptionLog, medications, patients]);
+    // useEffect(() => { // Removed
+    //     const loadOffers = async () => {
+    //         try {
+    //             setOffersLoading(true);
+    //             setOffersError(null);
+    //             const ibgeCode = user?.user_metadata?.ibge_code || null;
+    //             const data = await fetchActiveWeightedOffers(ibgeCode);
+    //             setOffers(data);
+    //         } catch (err) {
+    //             console.error('Erro ao buscar ofertas', err);
+    //             setOffersError(err);
+    //         } finally {
+    //             setOffersLoading(false);
+    //         }
+    //     };
+    //     loadOffers();
+    // }, [user]); // Removed
+
     return (
-        <div className="flex flex-col gap-6 pb-20">
+        <div className="flex flex-col gap-4 pb-12">
+            {/* ... Header ... */}
             <div className="flex items-center justify-between w-full">
-                <div className="flex flex-col gap-1 overflow-hidden mt-6">
-                    <h1 id="tour-welcome" className="text-2xl font-bold text-slate-900 dark:text-white break-words line-clamp-2">
-                        Olá, {getDisplayName()}
-                        {(() => {
-                            const streak = calculateStreak(prescriptions, consumptionLog);
-                            if (streak > 0) {
-                                return (
-                                    <span className="inline-flex items-center gap-1 ml-3 px-2 py-0.5 bg-orange-100 text-orange-600 rounded-full text-xs font-bold align-middle border border-orange-200 animate-in zoom-in spin-in-3 cursor-help" title="Sua ofensiva de dias seguidos!">
-                                        <Flame size={12} className="fill-current animate-pulse" />
-                                        {streak} Dia{streak > 1 ? 's' : ''}
-                                    </span>
-                                );
-                            }
-                            return null;
-                        })()}
+                <div>
+                    <h1 className="text-2xl font-bold text-slate-800 dark:text-white">
+                        Olá, {user?.user_metadata?.full_name?.split(' ')[0] || 'Visitante'}
                     </h1>
-                    <p className="text-slate-500 dark:text-slate-400 capitalize">{todayDate}</p>
+                    <p className="text-slate-500 dark:text-slate-400 text-sm">
+                        Vamos cuidar da sua saúde hoje?
+                    </p>
                 </div>
                 <button
                     onClick={() => setStartTour(true)}
-                    className="flex items-center gap-2 px-3 py-1.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-full transition-colors text-sm font-bold border border-indigo-200"
-                    title="Iniciar Treinamento"
+                    className="flex items-center gap-2 px-3 py-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition-colors text-sm font-medium"
                 >
                     <CircleHelp size={18} />
-                    <span>Aprenda a Usar</span>
+                    <span className="font-semibold block sm:hidden">Manual</span>
+                    <span className="font-semibold hidden sm:block">Como usar</span>
                 </button>
             </div>
+            {/* {!offersLoading && offers.length > 0 && ( // Removed
+                <section className="offers-section my-8">
+                    <h2 className="text-2xl font-bold text-slate-800 mb-4">Ofertas Patrocinadas</h2>
+                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                        {offers.map((offer) => (
+                            <OfferCard key={offer.id} offer={offer} />
+                        ))}
+                    </div>
+                </section>
+            )} */}
+
+            {/* Local Offers Carousel (NEW) */}
+            <LocalOffersCarousel userIbge={user?.user_metadata?.ibge_code} />
 
             {/* Motivation Card */}
             <MotivationCard />
@@ -274,10 +328,10 @@ const Home = () => {
                 </div>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <Card className="md:col-span-2 bg-gradient-to-br from-blue-600 to-blue-700 text-white border-none shadow-xl shadow-blue-900/20 overflow-hidden relative">
                     <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-10 -mt-10 blur-2xl"></div>
-                    <CardContent className="p-6 relative z-10">
+                    <CardContent className="p-4 relative z-10">
                         {(() => {
                             const now = new Date();
                             const currentTime = formatTime(now);
@@ -323,7 +377,7 @@ const Home = () => {
                                                     <div>
                                                         <h3 className="text-3xl font-bold">{nextDose.medicationName}</h3>
                                                         <p className="text-blue-100 text-xl font-medium">
-                                                            {Number(nextDose.doseAmount)}x {nextDose.dosage}
+                                                            {Number(nextDose.doseAmount)} {nextDose.medicationType} {nextDose.dosage}
                                                         </p>
                                                     </div>
                                                 </div>
@@ -342,18 +396,20 @@ const Home = () => {
                             } else {
                                 const allTaken = todaysSchedule.length > 0 && todaysSchedule.every(i => i.isTaken);
                                 return (
-                                    <div className="flex flex-col items-center justify-center h-full py-2 text-center">
-                                        <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mb-3">
-                                            {allTaken ? <Check size={24} /> : <Calendar size={24} />}
+                                    <div className="flex flex-col items-center justify-center py-2 text-center h-full">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center shrink-0">
+                                                {allTaken ? <Check size={20} /> : <Calendar size={20} />}
+                                            </div>
+                                            <div className="text-left">
+                                                <h3 className="text-lg font-bold leading-tight">
+                                                    {allTaken ? 'Tudo pronto por hoje!' : 'Sem mais doses hoje'}
+                                                </h3>
+                                                <p className="text-blue-50 text-xs leading-tight opacity-90">
+                                                    {allTaken ? 'Você tomou todos os medicamentos.' : 'Nenhum medicamento pendente para o resto do dia.'}
+                                                </p>
+                                            </div>
                                         </div>
-                                        <h3 className="text-xl font-bold">
-                                            {allTaken ? 'Tudo pronto por hoje!' : 'Sem mais doses hoje'}
-                                        </h3>
-                                        <p className="text-blue-100">
-                                            {allTaken
-                                                ? 'Você tomou todos os medicamentos agendados.'
-                                                : 'Nenhum medicamento pendente para o resto do dia.'}
-                                        </p>
                                     </div>
                                 );
                             }
@@ -362,27 +418,19 @@ const Home = () => {
                 </Card>
 
                 <Card id="tour-summary-card" className="bg-white border-slate-200 shadow-sm relative overflow-hidden">
-                    <CardContent className="p-6 h-full flex flex-col justify-between relative z-10">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <h3 className="font-bold text-slate-900 dark:text-slate-100 mb-1 flex items-center gap-2">
-                                    <Zap className="text-amber-500 fill-amber-500 animate-pulse" size={18} />
-                                    Energia Diária
-                                </h3>
-                                <p className="text-sm text-slate-500 capitalize">
-                                    {formatDate(new Date())}
-                                </p>
-                            </div>
+                    <CardContent className="p-3 flex flex-col gap-2 relative z-10">
+                        <div className="flex items-center justify-between mb-1">
+                            <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm flex items-center gap-2">
+                                <Zap className="text-amber-500 fill-amber-500" size={16} />
+                                Energia
+                            </h3>
                             {(() => {
                                 const total = todaysSchedule.length;
                                 const taken = todaysSchedule.filter(i => i.isTaken).length;
                                 const percentage = total > 0 ? Math.round((taken / total) * 100) : 100;
 
                                 return (
-                                    <div className="flex flex-col items-end">
-                                        <span className="text-2xl font-black text-slate-900">{percentage}%</span>
-                                        <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Concluído</span>
-                                    </div>
+                                    <span className="text-lg font-black text-slate-900">{percentage}%</span>
                                 );
                             })()}
                         </div>
@@ -405,31 +453,31 @@ const Home = () => {
                             }, [percentage]);
 
                             return (
-                                <div className="flex flex-col gap-4 mt-6">
-                                    {/* Gamified Bar */}
-                                    <div className="relative h-4 bg-slate-100 rounded-full overflow-hidden shadow-inner">
+                                <div className="flex flex-col gap-2 mt-2">
+                                    {/* Gamified Bar - Restored Animation */}
+                                    <div className="relative h-2 bg-slate-100 rounded-full overflow-hidden shadow-inner">
                                         <div
                                             className="absolute top-0 left-0 h-full bg-gradient-to-r from-emerald-400 to-emerald-600 rounded-full shadow-[0_0_10px_rgba(16,185,129,0.5)] transition-all duration-[3000ms] ease-out"
                                             style={{ width: `${animatedPercentage}%` }}
                                         />
                                     </div>
 
-                                    {/* Dynamic Message */}
-                                    <div className="bg-slate-50 rounded-xl p-4 border border-slate-100 flex items-start gap-4">
-                                        <div className={`p-3 rounded-full flex-shrink-0 ${isComplete ? 'bg-amber-100 border-2 border-amber-200' : 'bg-blue-100 text-blue-600'
+                                    {/* Restored Message Box with Compact Padding */}
+                                    <div className="bg-slate-50 rounded-lg p-2 border border-slate-100 flex items-center gap-2.5">
+                                        <div className={`p-1.5 rounded-full flex-shrink-0 ${isComplete ? 'bg-amber-100 border border-amber-200' : 'bg-blue-100 text-blue-600'
                                             }`}>
-                                            {isComplete ? <Star size={24} color="#d97706" fill="#fbbf24" className="animate-bounce drop-shadow-sm" /> : <Activity size={24} />}
+                                            {isComplete ? <Star size={18} color="#d97706" fill="#fbbf24" className="animate-bounce drop-shadow-sm" /> : <Activity size={18} />}
                                         </div>
                                         <div>
-                                            <p className="font-bold text-slate-700 mb-1">
+                                            <p className="font-bold text-slate-700 text-xs mb-0.5">
                                                 {isComplete ? (
                                                     total === 0 ? "Dia Livre! Aproveite." : "Objetivo Concluído!"
                                                 ) : "Continue assim!"}
                                             </p>
-                                            <p className="text-sm text-slate-500 leading-relaxed">
+                                            <p className="text-[10px] text-slate-500 leading-tight">
                                                 {isComplete
-                                                    ? (total === 0 ? "Sua saúde está em dia." : "Você completou todas as atividades de hoje.")
-                                                    : `Você já completou ${percentage}% da sua meta diária.`}
+                                                    ? (total === 0 ? "Sua saúde está em dia." : "Você completou tudo.")
+                                                    : `${percentage}% da meta diária.`}
                                             </p>
                                         </div>
                                     </div>
@@ -442,6 +490,9 @@ const Home = () => {
                     <div className="absolute -bottom-10 -right-10 w-32 h-32 bg-gradient-to-br from-indigo-50 to-blue-50 rounded-full blur-2xl opacity-50 pointer-events-none"></div>
                 </Card>
             </div>
+
+            {/* Sponsor Display (Banner) */}
+            <SponsorDisplay user={user} variant="banner" />
 
             {/* Late Doses Alert */}
             {
@@ -492,7 +543,7 @@ const Home = () => {
             {/* Filters Section */}
             <Card className="border-l-4 border-l-primary">
                 <CardContent className="p-4">
-                    <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
                         <h3 className="font-bold text-slate-900 flex items-center gap-2">
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
@@ -509,9 +560,9 @@ const Home = () => {
                                     }
                                     generateICS(future);
                                 }}
-                                className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg font-medium flex items-center gap-1 transition-colors"
+                                className="text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-700 px-2 py-1 rounded-md font-medium flex items-center gap-1 transition-colors border border-slate-200"
                             >
-                                <DownloadCloud size={14} />
+                                <DownloadCloud size={12} />
                                 Exportar Agenda
                             </button>
                             {hasActiveFilters && (
@@ -631,17 +682,22 @@ const Home = () => {
                                         <Card key={item.id} className={clsx("transition-all", item.isTaken && "opacity-60 bg-[#f8fafc]")}>
                                             <CardContent className="flex items-center justify-between p-4">
                                                 <div className="flex items-center gap-4 flex-1">
-                                                    <div className={clsx(
-                                                        "w-12 h-12 rounded-xl flex flex-col items-center justify-center font-bold border",
-                                                        item.isTaken
-                                                            ? "bg-[#d1fae5] text-[#059669] border-[#d1fae5]"
-                                                            : "bg-white text-[#0f172a] border-[#e2e8f0]"
-                                                    )}>
-                                                        <span className="text-sm">{item.time}</span>
+                                                    <div className="flex flex-col items-center gap-1 mr-2 px-2">
+                                                        <span className={clsx("font-bold text-lg", item.isTaken ? "text-slate-400" : "text-slate-900")}>
+                                                            {item.time}
+                                                        </span>
+                                                        <div className={clsx(
+                                                            "w-12 h-12 rounded-2xl flex items-center justify-center border shadow-sm transition-all",
+                                                            item.isTaken
+                                                                ? "bg-slate-50 border-slate-200 opacity-60 grayscale"
+                                                                : "bg-white border-slate-100"
+                                                        )}>
+                                                            <PillIcon shape={item.shape} color={item.color} size={28} />
+                                                        </div>
                                                     </div>
                                                     <div className="flex-1 min-w-0">
                                                         <h3 className={clsx("font-bold", item.isTaken ? "text-[#64748b] line-through" : "text-[#0f172a]")}>
-                                                            {Number(item.doseAmount)}x {item.medicationName} {item.dosage}
+                                                            {Number(item.doseAmount)} {item.medicationType} {item.medicationName} {item.dosage}
                                                         </h3>
                                                         <p className="text-sm text-[#64748b]">{item.patientName}</p>
                                                         {item.isTaken && item.takenByName && (

@@ -38,14 +38,14 @@ const PillIcon = ({ shape = 'round', color = '#e2e8f0', size = 32, className = '
             return (
                 <svg {...commonProps}>
                     <path d="M12 2a7 7 0 0 1 7 7v6a7 7 0 0 1-14 0V9a7 7 0 0 1 7-7z" transform="rotate(45, 12, 12)" />
-                    <line x1="8.5" y1="8.5" x2="15.5" y2="15.5" stroke="currentColor" strokeOpacity="0.3" transform="rotate(45, 12, 12)" />
+                    <line x1="8.5" y1="8.5" x2="15.5" y2="15.5" stroke="currentColor" strokeOpacity="0.05" transform="rotate(45, 12, 12)" />
                 </svg>
             );
         case 'oval': // Oblong
             return (
                 <svg {...commonProps}>
                     <rect x="2" y="6" width="20" height="12" rx="6" />
-                    <line x1="12" y1="6" x2="12" y2="18" stroke="currentColor" strokeOpacity="0.2" />
+                    <line x1="12" y1="6" x2="12" y2="18" stroke="currentColor" strokeOpacity="0.05" />
                 </svg>
             );
         case 'liquid': // Drop / Bottle
@@ -73,7 +73,7 @@ const PillIcon = ({ shape = 'round', color = '#e2e8f0', size = 32, className = '
             return (
                 <svg {...commonProps}>
                     <circle cx="12" cy="12" r="9" />
-                    <line x1="12" y1="3" x2="12" y2="21" stroke="currentColor" strokeOpacity="0.2" />
+                    <line x1="12" y1="3" x2="12" y2="21" stroke="currentColor" strokeOpacity="0.05" />
                 </svg>
             );
     }

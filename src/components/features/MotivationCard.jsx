@@ -128,7 +128,7 @@ const MotivationCard = () => {
     const theme = themes[period] || themes.morning;
 
     return (
-        <div className={`rounded-xl p-6 ${theme.bg} border ${theme.border} relative overflow-hidden transition-all animate-in fade-in slide-in-from-top-4 shadow-sm mb-6`}>
+        <div className={`rounded-xl p-4 ${theme.bg} border ${theme.border} relative overflow-hidden transition-all animate-in fade-in slide-in-from-top-4 shadow-sm mb-4`}>
             {/* Background Icon Watermark */}
             <Quote className={`absolute -right-2 -top-2 w-24 h-24 ${theme.icon} opacity-5 rotate-12`} />
 

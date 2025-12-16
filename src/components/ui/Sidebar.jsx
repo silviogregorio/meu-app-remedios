@@ -3,6 +3,7 @@ import { NavLink } from 'react-router-dom';
 import { Home, Users, Pill, FileText, User, X, LogOut, ClipboardList, Share2, Briefcase, Pin, PinOff, Heart, BookOpen, LifeBuoy, MessageSquare } from 'lucide-react';
 import clsx from 'clsx';
 import { useApp } from '../../context/AppContext';
+import { supabase } from '../../lib/supabase';
 
 const Sidebar = ({ isOpen, onClose, isPinned, onTogglePin }) => {
     const { logout, user } = useApp();
@@ -119,18 +120,20 @@ const Sidebar = ({ isOpen, onClose, isPinned, onTogglePin }) => {
                     ))}
                 </nav>
 
-                <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-100 dark:border-slate-800">
-                    <button
-                        onClick={async () => {
-                            await logout();
-                            onClose();
-                            window.location.href = '/'; // Forçando refresh e navegação limpa para a Landing
-                        }}
-                        className="flex items-center gap-3 px-4 py-3 w-full text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-colors"
-                    >
-                        <LogOut size={20} />
-                        <span>Sair</span>
-                    </button>
+                <div className="absolute bottom-0 left-0 right-0 border-t border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-900">
+                    <div className="p-4">
+                        <button
+                            onClick={async () => {
+                                await logout();
+                                onClose();
+                                window.location.href = '/';
+                            }}
+                            className="flex items-center gap-3 px-4 py-3 w-full text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-colors"
+                        >
+                            <LogOut size={20} />
+                            <span>Sair</span>
+                        </button>
+                    </div>
                 </div>
             </aside>
         </>

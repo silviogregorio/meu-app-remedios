@@ -7,14 +7,15 @@ import Card, { CardContent } from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Modal from '../components/ui/Modal';
-import { User, Settings, LogOut, Bell, LogIn, Database, Trash2, Mail, Phone, MapPin, Camera, Shield, Share2, Activity, Download } from 'lucide-react';
+import { User, Settings, LogOut, Bell, LogIn, Database, Trash2, Mail, Phone, MapPin, Camera, Shield, Share2, Activity, Download, Users } from 'lucide-react';
 import { downloadJSON, prepareBackupData } from '../utils/dataExporter';
 
 const Profile = () => {
     const { user } = useAuth(); // AuthContext for user
     const {
         patients, medications, prescriptions, consumptionLog, healthLogs, // Data for backup
-        showToast, runCaregiverCheck, logout
+        showToast, runCaregiverCheck, logout,
+        accountShares, shareAccount, unshareAccount // Account Sharing
     } = useApp(); // AppContext for app features
     const navigate = useNavigate();
 
@@ -23,10 +24,16 @@ const Profile = () => {
     const [isSaving, setIsSaving] = useState(false); // Loading state for save operations
     const [showEmailConfirmModal, setShowEmailConfirmModal] = useState(false); // Confirmation modal for email change
     const [pendingEmailChange, setPendingEmailChange] = useState(null); // Store pending email change data
+    const [showShareModal, setShowShareModal] = useState(false); // Account Sharing Modal
+    const [shareEmail, setShareEmail] = useState(''); // Email to share with
     const [editForm, setEditForm] = useState({
         name: user?.user_metadata?.full_name || '',
         email: user?.email || '',
         phone: user?.user_metadata?.phone || '',
+        cep: user?.user_metadata?.cep || '',
+        city: user?.user_metadata?.city || '',
+        state: user?.user_metadata?.state || '',
+        ibge_code: user?.user_metadata?.ibge_code || '',
         currentPassword: '' // Para validar alteração de email
     });
     const [passwordForm, setPasswordForm] = useState({
@@ -34,6 +41,57 @@ const Profile = () => {
         newPassword: '',
         confirmPassword: ''
     });
+
+    // Helper para formatar telefone
+    const formatPhone = (value) => {
+        if (!value) return '';
+        const numbers = value.replace(/\D/g, '');
+        if (numbers.length > 11) return numbers.slice(0, 11); // Limit
+
+        let formatted = numbers;
+        if (numbers.length > 0) {
+            formatted = '(' + numbers.substring(0, 2);
+        }
+        if (numbers.length > 2) {
+            formatted += ') ' + numbers.substring(2, 7);
+        }
+        if (numbers.length > 7) {
+            formatted = '(' + numbers.substring(0, 2) + ') ' + numbers.substring(2, 7) + '-' + numbers.substring(7);
+        }
+        return formatted;
+    };
+
+    // Validar dados do DB sempre ao carregar para garantir persistência real
+    React.useEffect(() => {
+        if (!user?.id) return;
+
+        const fetchProfile = async () => {
+            try {
+                const { data, error } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', user.id)
+                    .single();
+
+                if (data || user) {
+                    setEditForm(prev => ({
+                        ...prev,
+                        email: user.email || '',
+                        cep: data?.cep || user.user_metadata?.cep || '',
+                        city: data?.city || user.user_metadata?.city || '',
+                        state: data?.state || user.user_metadata?.state || '',
+                        ibge_code: data?.ibge_code || user.user_metadata?.ibge_code || '',
+                        phone: formatPhone(data?.phone || user.user_metadata?.phone || ''),
+                        name: data?.full_name || user.user_metadata?.full_name || ''
+                    }));
+                }
+            } catch (err) {
+                console.error('Error fetching profile:', err);
+            }
+        };
+
+        fetchProfile();
+    }, [user?.id]); // Only re-run if ID changes, not reference
 
     const handleUpdateProfile = async () => {
         if (isSaving) return; // Prevent multiple clicks
@@ -52,8 +110,6 @@ const Profile = () => {
                     showToast('Digite sua senha para alterar o email', 'error');
                     return;
                 }
-
-                // Armazena dados e mostra modal de confirmação
                 setPendingEmailChange({
                     newEmail: editForm.email,
                     password: editForm.currentPassword,
@@ -67,18 +123,43 @@ const Profile = () => {
             // Se não mudou email, atualiza nome e telefone (metadata)
             setIsSaving(true);
             try {
+                // Limpar formatação antes de salvar
+                const rawPhone = editForm.phone.replace(/\D/g, '');
+
                 const { error } = await supabase.auth.updateUser({
                     data: {
                         full_name: editForm.name,
-                        phone: editForm.phone
+                        phone: rawPhone,
+                        cep: editForm.cep,
+                        city: editForm.city,
+                        state: editForm.state,
+                        ibge_code: editForm.ibge_code
                     }
                 });
+
+                // Also update public.profiles directly to ensure business logic consistency
+                const updateData = {
+                    cep: editForm.cep,
+                    city: editForm.city,
+                    state: editForm.state,
+                    ibge_code: editForm.ibge_code,
+                    full_name: editForm.name
+                };
+
+                const { data: profileData, error: profileError } = await supabase
+                    .from('profiles')
+                    .update(updateData)
+                    .eq('id', user.id)
+                    .select(); // Add SELECT to see returned data
+
+                if (profileError) console.error('Error updating profiles table:', profileError);
 
                 if (error) {
                     showToast('Erro ao atualizar perfil: ' + error.message, 'error');
                     return;
                 }
             } catch (error) {
+                console.error('Exception in update:', error);
                 showToast('Erro: ' + error.message, 'error');
                 return;
             }
@@ -90,6 +171,8 @@ const Profile = () => {
             setIsSaving(false); // Re-enable button
         }
     };
+
+
 
     // Função que executa após confirmação no modal
     const handleConfirmEmailChange = async () => {
@@ -183,6 +266,23 @@ const Profile = () => {
         }
     };
 
+    const handleShareAccount = async () => {
+        if (!shareEmail) return;
+        if (!shareEmail.includes('@')) {
+            showToast('Digite um email válido', 'error');
+            return;
+        }
+        setIsSaving(true);
+        try {
+            await shareAccount(shareEmail);
+            setShareEmail('');
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
     if (!user) {
         return (
             <div className="flex flex-col items-center justify-center h-[60vh] gap-4 text-center px-4">
@@ -270,11 +370,13 @@ const Profile = () => {
                     <CardContent className="p-0">
                         <button
                             onClick={() => {
-                                setEditForm({
-                                    name: user?.user_metadata?.full_name || '',
-                                    email: user?.email || '',
+                                // Don't overwrite state with basic user metadata! 
+                                // State is already populated by useEffect with DB data.
+                                // Just clear sensitive fields.
+                                setEditForm(prev => ({
+                                    ...prev,
                                     currentPassword: ''
-                                });
+                                }));
                                 setIsEditing(true);
                             }}
                             className="w-full flex items-center gap-4 p-4 border-b border-[#e2e8f0] dark:border-slate-800 hover:bg-[#f8fafc] dark:hover:bg-slate-800/50 text-left transition-colors"
@@ -302,6 +404,26 @@ const Profile = () => {
                             <div className="flex-1">
                                 <h3 className="font-medium text-[#0f172a] dark:text-white">Alterar Senha</h3>
                                 <p className="text-sm text-[#64748b] dark:text-slate-400">Atualize sua senha para garantir a segurança da sua conta.</p>
+                            </div>
+                        </button>
+                    </CardContent>
+                </Card>
+
+
+
+                {/* Account Sharing */}
+                <Card>
+                    <CardContent className="p-0">
+                        <button
+                            onClick={() => setShowShareModal(true)}
+                            className="w-full flex items-center gap-4 p-4 border-b border-[#e2e8f0] dark:border-slate-800 hover:bg-[#f8fafc] dark:hover:bg-slate-800/50 text-left transition-colors"
+                        >
+                            <div className="w-10 h-10 rounded-full bg-[#f1f5f9] dark:bg-slate-800 flex items-center justify-center text-[#64748b] dark:text-slate-400">
+                                <Users size={20} />
+                            </div>
+                            <div className="flex-1">
+                                <h3 className="font-medium text-[#0f172a] dark:text-white">Compartilhar Conta</h3>
+                                <p className="text-sm text-[#64748b] dark:text-slate-400">Dê acesso aos seus dados para familiares ou cuidadores.</p>
                             </div>
                         </button>
                     </CardContent>
@@ -360,11 +482,49 @@ const Profile = () => {
                     />
 
                     <Input
-                        label="Telefone / Celular (Opcional)"
-                        type="tel"
+                        label="Telefone"
                         value={editForm.phone}
-                        onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                        onChange={(e) => setEditForm({ ...editForm, phone: formatPhone(e.target.value) })}
                         placeholder="(11) 99999-9999"
+                        maxLength={15}
+                    />
+
+                    <Input
+                        label="CEP"
+                        value={editForm.cep}
+                        onChange={async (e) => {
+                            let value = e.target.value.replace(/\D/g, '');
+                            if (value.length > 8) value = value.slice(0, 8);
+                            const formatted = value.replace(/^(\d{5})(\d)/, '$1-$2');
+
+                            setEditForm(prev => ({ ...prev, cep: formatted }));
+
+                            if (value.length === 8) {
+                                try {
+                                    const { fetchAddressByCEP } = await import('../services/cepService');
+                                    const address = await fetchAddressByCEP(value);
+                                    setEditForm(prev => ({
+                                        ...prev,
+                                        cep: formatted,
+                                        city: address.city,
+                                        state: address.state,
+                                        ibge_code: address.ibge
+                                    }));
+                                } catch (err) {
+                                    showToast('CEP não encontrado', 'error');
+                                }
+                            }
+                        }}
+                        placeholder="00000-000"
+                        maxLength={9}
+                    />
+
+                    <Input
+                        label="Cidade"
+                        value={editForm.city ? `${editForm.city} - ${editForm.state}` : ''}
+                        disabled
+                        className="bg-slate-50"
+                        placeholder="..."
                     />
 
 
@@ -479,14 +639,7 @@ const Profile = () => {
                     />
 
                     <div className="flex gap-3 mt-2">
-                        <Button
-                            variant="ghost"
-                            onClick={() => {
-                                setIsChangingPassword(false);
-                                setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
-                            }}
-                            className="flex-1"
-                        >
+                        <Button variant="ghost" onClick={() => setIsChangingPassword(false)} className="flex-1">
                             Cancelar
                         </Button>
                         <Button onClick={handleChangePassword} className="flex-1">
@@ -495,7 +648,76 @@ const Profile = () => {
                     </div>
                 </div>
             </Modal>
-        </div>
+            {/* Share Account Modal */}
+            <Modal
+                isOpen={showShareModal}
+                onClose={() => setShowShareModal(false)}
+                title="Compartilhar Conta"
+            >
+                <div className="flex flex-col gap-6">
+                    <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl border border-blue-100 dark:border-blue-800">
+                        <p className="text-sm text-blue-800 dark:text-blue-200">
+                            Compartilhe o acesso total da sua conta (pacientes, remédios e receitas) com familiares ou cuidadores.
+                            Eles poderão visualizar e gerenciar seus dados.
+                        </p>
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                        <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Convidar nova pessoa</label>
+                        <div className="flex gap-2">
+                            <Input
+                                placeholder="Email da pessoa"
+                                value={shareEmail}
+                                onChange={(e) => setShareEmail(e.target.value)}
+                                className="flex-1"
+                            />
+                            <Button
+                                onClick={handleShareAccount}
+                                disabled={isSaving || !shareEmail}
+                                className="whitespace-nowrap"
+                            >
+                                {isSaving ? 'Enviando...' : 'Convidar'}
+                            </Button>
+                        </div>
+                    </div>
+
+                    <div className="border-t border-slate-100 dark:border-slate-700 pt-4">
+                        <h4 className="font-bold text-slate-800 dark:text-white mb-3 flex items-center gap-2">
+                            <Users size={16} /> Acessos Compartilhados
+                        </h4>
+
+                        {accountShares && accountShares.length > 0 ? (
+                            <div className="space-y-3">
+                                {accountShares.map((share) => (
+                                    <div key={share.id} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-500">
+                                                <User size={14} />
+                                            </div>
+                                            <span className="text-sm font-medium text-slate-700 dark:text-slate-200">{share.shared_with_email}</span>
+                                        </div>
+                                        <button
+                                            onClick={() => {
+                                                if (confirm('Tem certeza que deseja remover o acesso desta pessoa?')) {
+                                                    unshareAccount(share.id);
+                                                }
+                                            }}
+                                            className="text-xs text-red-500 hover:text-red-700 hover:bg-red-50 p-2 rounded-md transition-colors"
+                                        >
+                                            Revogar
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <p className="text-sm text-slate-400 text-center py-4">
+                                Você ainda não compartilhou sua conta com ninguém.
+                            </p>
+                        )}
+                    </div>
+                </div>
+            </Modal>
+        </div >
     );
 };
 

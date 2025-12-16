@@ -1,0 +1,62 @@
+
+> remedios@1.3.94 test
+> vitest run src/pages/__tests__/Smoke.test.jsx --run
+
+
+[1m[46m RUN [49m[22m [36mv4.0.15 [39m[90mC:/BKP NVMe/DEVIAs/remedios[39m
+
+01:09:34 [vite] (client) warning: Duplicate key "doseAmount" in object literal
+90 |                      doseAmount: presc.doseAmount || 1,
+91 |                      shape: med?.shape,  // Add shape
+92 |                      doseAmount: presc.doseAmount || 1,
+   |                      ^
+93 |                      shape: med?.shape,  // Add shape
+94 |                      color: med?.color,   // Add color
+
+  Plugin: vite:esbuild
+  File: C:/BKP NVMe/DEVIAs/remedios/src/pages/Home.jsx
+01:09:34 [vite] (client) warning: Duplicate key "shape" in object literal
+91 |                      shape: med?.shape,  // Add shape
+92 |                      doseAmount: presc.doseAmount || 1,
+93 |                      shape: med?.shape,  // Add shape
+   |                      ^
+94 |                      color: med?.color,   // Add color
+95 |                      medicationType: med?.type || '' // Add type
+
+  Plugin: vite:esbuild
+  File: C:/BKP NVMe/DEVIAs/remedios/src/pages/Home.jsx
+(node:63972) Warning: `--localstorage-file` was provided without a valid path
+(Use `node --trace-warnings ...` to show where the warning was created)
+ [31mÔØ»[39m src/pages/__tests__/Smoke.test.jsx [2m([22m[2m2 tests[22m[2m | [22m[31m1 failed[39m[2m)[22m[32m 288[2mms[22m[39m
+[31m     [31m├ù[31m renders Home page without crashing[39m[32m 44[2mms[22m[39m
+     [32mÔ£ô[39m renders Login page without crashing[32m 239[2mms[22m[39m
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ» Failed Tests 1 ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»
+
+ FAIL  src/pages/__tests__/Smoke.test.jsx > Smoke Tests - Main Pages > renders Home page without crashing
+TypeError: Cannot destructure property 'user' of '(0 , __vite_ssr_import_2__.useApp)(...)' as it is undefined.
+ ÔØ» Home src/pages/Home.jsx:22:13
+     20| 
+     21| const Home = () => {
+     22|     const { user, prescriptions, medications, patients, consumptionLogÔÇª
+       |             ^
+     23|     const { permission, requestPermission } = useNotifications();
+     24|     const [todaysSchedule, setTodaysSchedule] = useState([]);
+ ÔØ» Object.react_stack_bottom_frame node_modules/react-dom/cjs/react-dom-client.development.js:25904:20
+ ÔØ» renderWithHooks node_modules/react-dom/cjs/react-dom-client.development.js:7662:22
+ ÔØ» updateFunctionComponent node_modules/react-dom/cjs/react-dom-client.development.js:10166:19
+ ÔØ» beginWork node_modules/react-dom/cjs/react-dom-client.development.js:11778:18
+ ÔØ» runWithFiberInDEV node_modules/react-dom/cjs/react-dom-client.development.js:874:13
+ ÔØ» performUnitOfWork node_modules/react-dom/cjs/react-dom-client.development.js:17641:22
+ ÔØ» workLoopSync node_modules/react-dom/cjs/react-dom-client.development.js:17469:41
+ ÔØ» renderRootSync node_modules/react-dom/cjs/react-dom-client.development.js:17450:11
+ ÔØ» performWorkOnRoot node_modules/react-dom/cjs/react-dom-client.development.js:16583:35
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[1/1]ÔÄ»
+
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[31m1 failed[39m[22m[2m | [22m[1m[32m1 passed[39m[22m[90m (2)[39m
+[2m   Start at [22m 01:09:21
+[2m   Duration [22m 22.26s[2m (transform 1.27s, setup 1.24s, import 10.50s, tests 288ms, environment 9.06s)[22m
+

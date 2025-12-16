@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import { UserPlus } from 'lucide-react';
+import { fetchAddressByCEP } from '../services/cepService';
 
 const Register = () => {
     const navigate = useNavigate();
@@ -12,16 +13,49 @@ const Register = () => {
         fullName: '',
         email: '',
         password: '',
-        confirmPassword: ''
+        confirmPassword: '',
+        cep: '',
+        city: '',
+        state: '',
+        ibge_code: ''
     });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
-    useEffect(() => {
-        if (user) {
-            navigate('/app');
+    // ... useEffect
+
+    const handleCepChange = async (e) => {
+        let value = e.target.value.replace(/\D/g, '');
+        if (value.length > 8) value = value.slice(0, 8);
+
+        // Mask: 00000-000
+        const formatted = value.replace(/^(\d{5})(\d)/, '$1-$2');
+
+        setFormData(prev => ({
+            ...prev,
+            cep: formatted,
+            // Reset location if CEP changes significantly? Maybe not to avoid flicker
+        }));
+
+        if (value.length === 8) {
+            try {
+                const address = await fetchAddressByCEP(value);
+                setFormData(prev => ({
+                    ...prev,
+                    cep: formatted,
+                    city: address.city,
+                    state: address.state,
+                    ibge_code: address.ibge
+                }));
+                setError('');
+            } catch (err) {
+                setError('CEP não encontrado. Digite manualmente ou verifique.');
+                // Optional: Let them type city manually if API fails? 
+                // For "Exclusivity" logic, we really need the IBGE. 
+                // Let's enforce it for now or assume reliability.
+            }
         }
-    }, [user, navigate]);
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -37,12 +71,32 @@ const Register = () => {
             return;
         }
 
+        if (!formData.ibge_code) {
+            // Should we block? "Precisamos pegar o IBGE". 
+            // If API fails, user is stuck.
+            // Ideally, we allow signup but warn. Or we force it.
+            // Given the business constraint ("Exclusivity per City"), we should try hard to get it.
+            // If unavailable, maybe let it pass but flag it?
+            // I'll block lightly:
+            if (formData.cep.length === 9 && !formData.city) {
+                setError('Aguarde a busca do CEP completar.');
+                return;
+            }
+        }
+
         setLoading(true);
 
         const { error: signUpError } = await signUp(
             formData.email.trim(),
             formData.password.trim(),
-            formData.fullName.trim()
+            formData.fullName.trim(),
+            // Pass extra metadata here effectively
+            {
+                cep: formData.cep,
+                city: formData.city,
+                state: formData.state,
+                ibge_code: formData.ibge_code
+            }
         );
 
         if (signUpError) {
@@ -87,7 +141,32 @@ const Register = () => {
                         onChange={e => setFormData({ ...formData, email: e.target.value })}
                         required
                     />
-                    <Input
+                    <div className="flex gap-4">
+                        <div className="w-1/3">
+                            <Input
+                                label="CEP"
+                                type="text"
+                                placeholder="00000-000"
+                                value={formData.cep || ''}
+                                onChange={handleCepChange}
+                                maxLength={9}
+                                required
+                            />
+                        </div>
+                        <div className="w-2/3">
+                            <Input
+                                label="Cidade/Estado"
+                                type="text"
+                                placeholder="Preenchido automaticamente"
+                                value={formData.city ? `${formData.city}/${formData.state}` : ''}
+                                disabled
+                                className="bg-slate-50"
+                            />
+                        </div >
+                    </div >
+                    {/* Hidden IBGE field debug: {formData.ibge_code} */}
+
+                    < Input
                         label="Senha"
                         type="password"
                         placeholder="••••••••"
@@ -107,13 +186,13 @@ const Register = () => {
                     <Button type="submit" fullWidth disabled={loading} className="mt-2">
                         {loading ? 'Criando conta...' : 'Criar Conta'}
                     </Button>
-                </form>
+                </form >
 
                 <div className="mt-6 text-center text-sm text-[#64748b]">
                     <p>Já tem conta? <Link to="/login" className="text-[#10b981] font-bold hover:underline">Entrar</Link></p>
                 </div>
-            </div>
-        </div>
+            </div >
+        </div >
     );
 };
 

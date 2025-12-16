@@ -182,7 +182,7 @@ const CalendarView = ({ prescriptions, consumptionLog, healthLogs = [], onDateSe
             <div className="flex items-center justify-center gap-4 py-3 border-t border-slate-100 bg-slate-50/50 text-xs text-slate-500">
                 <div className="flex items-center gap-1.5">
                     <div className="w-2 h-2 rounded-full bg-emerald-500" />
-                    <span>Completo</span>
+                    <span>Tomado</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                     <div className="w-2 h-2 rounded-full bg-blue-500" />
@@ -194,7 +194,7 @@ const CalendarView = ({ prescriptions, consumptionLog, healthLogs = [], onDateSe
                 </div>
                 <div className="flex items-center gap-1.5">
                     <div className="w-2 h-2 rounded-full bg-rose-500" />
-                    <span>Perdido</span>
+                    <span>Não Tomado</span>
                 </div>
             </div>
         </div>

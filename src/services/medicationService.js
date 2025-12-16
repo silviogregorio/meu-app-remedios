@@ -12,7 +12,9 @@ export const MedicationService = {
             name: medicationData.name,
             dosage: medicationData.dosage,
             type: medicationData.type,
-            quantity: parseFloat(medicationData.quantity) || 0
+            quantity: parseFloat(medicationData.quantity) || 0,
+            shape: medicationData.shape,
+            color: medicationData.color
         };
 
         const { data, error } = await supabase
@@ -45,6 +47,8 @@ export const MedicationService = {
         if (updatedData.dosage) dbData.dosage = updatedData.dosage;
         if (updatedData.type) dbData.type = updatedData.type;
         if (updatedData.quantity !== undefined) dbData.quantity = parseFloat(updatedData.quantity);
+        if (updatedData.shape) dbData.shape = updatedData.shape;
+        if (updatedData.color) dbData.color = updatedData.color;
 
         const { data, error } = await supabase
             .from('medications')

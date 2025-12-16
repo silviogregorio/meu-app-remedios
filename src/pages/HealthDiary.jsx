@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import PillIcon from '../components/ui/PillIcon';
 import { useApp } from '../context/AppContext';
 import Card, { CardHeader, CardContent } from '../components/ui/Card';
 import Button from '../components/ui/Button';
@@ -947,7 +948,7 @@ const HealthDiary = () => {
 
                                                                         if (takenCount >= expectedCount && expectedCount > 0) {
                                                                             statusColor = 'bg-emerald-100 text-emerald-700';
-                                                                            statusText = 'Completo';
+                                                                            statusText = 'Tomado';
                                                                         } else if (takenCount > 0) {
                                                                             statusColor = 'bg-amber-100 text-amber-700';
                                                                             statusText = 'Parcial';
@@ -960,7 +961,7 @@ const HealthDiary = () => {
                                                                             <div
                                                                                 key={prescription.id}
                                                                                 onClick={() => handleDoseClick(prescription)}
-                                                                                className="bg-white p-3 rounded-lg border border-slate-100 shadow-sm flex flex-col gap-2 cursor-pointer hover:bg-slate-50 hover:border-blue-200 transition-all active:scale-[0.98]"
+                                                                                className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex flex-col gap-3 cursor-pointer hover:bg-slate-50 hover:border-blue-200 transition-all active:scale-[0.98]"
                                                                                 title="Clique para gerenciar doses"
                                                                             >
                                                                                 {/* Patient Name Header - Centered */}
@@ -970,18 +971,33 @@ const HealthDiary = () => {
                                                                                     </span>
                                                                                 </div>
 
-                                                                                <div className="flex items-center justify-between">
-                                                                                    <div className="flex flex-col">
-                                                                                        <span className="font-bold text-slate-700 text-sm">{med?.name || 'Medicamento'}</span>
-                                                                                        <span className="text-xs text-slate-500">
-                                                                                            {prescription.doseAmount} {med?.unit} • {prescription.times?.length}x dia
-                                                                                        </span>
-                                                                                        <span className="text-[10px] text-slate-400 mt-1">
-                                                                                            {prescription.times?.join(' - ')}
-                                                                                        </span>
+                                                                                <div className="flex flex-col gap-1.5">
+                                                                                    {/* Row 1: Icon (Small) + Name */}
+                                                                                    <div className="flex items-start gap-2">
+                                                                                        <div className="w-7 h-7 rounded-md bg-white border border-slate-100 flex items-center justify-center shadow-sm shrink-0 mt-1">
+                                                                                            <PillIcon shape={med?.shape} color={med?.color} size={14} />
+                                                                                        </div>
+                                                                                        <h3 className="font-bold text-slate-900 leading-tight text-base break-words flex-1 pt-1.5">
+                                                                                            {med?.name}
+                                                                                        </h3>
                                                                                     </div>
-                                                                                    <div className={`px-2 py-1 rounded text-xs font-bold ${statusColor}`}>
-                                                                                        {statusText}
+
+                                                                                    <div className="flex flex-col gap-2">
+                                                                                        {/* Row 2: Dosage Details (Full Width for clarity) */}
+                                                                                        <p className="text-sm font-medium text-slate-700">
+                                                                                            {Number(prescription.doseAmount)} {med?.type || ''} • {med?.dosage}
+                                                                                        </p>
+
+                                                                                        {/* Row 3: Frequency & Status */}
+                                                                                        <div className="flex items-center justify-between gap-2 border-t border-slate-50 pt-2 mt-0.5">
+                                                                                            <p className="text-xs text-slate-400 font-medium whitespace-nowrap">
+                                                                                                {prescription.times?.length}x ao dia • {prescription.times?.join(' - ')}
+                                                                                            </p>
+
+                                                                                            <div className={`px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider whitespace-nowrap ${statusColor}`}>
+                                                                                                {statusText}
+                                                                                            </div>
+                                                                                        </div>
                                                                                     </div>
                                                                                 </div>
                                                                             </div>

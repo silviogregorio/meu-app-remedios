@@ -45,7 +45,7 @@ const Landing = () => {
 
     useEffect(() => {
         const fetchSponsors = async () => {
-            const { data } = await supabase.from('sponsors').select('*').eq('active', true);
+            const { data } = await supabase.from('sponsors').select('*').eq('active', true).eq('show_on_landing_page', true);
             if (data && data.length > 0) {
                 // Fisher-Yates Shuffle
                 const shuffled = [...data];
@@ -65,35 +65,9 @@ const Landing = () => {
         const channel = supabase
             .channel('public:sponsors')
             .on('postgres_changes', { event: '*', schema: 'public', table: 'sponsors' }, (payload) => {
-                console.log('Realtime change received!', payload);
-
-                if (payload.eventType === 'DELETE') {
-                    setSponsors(currentSponsors => currentSponsors.filter(sponsor => sponsor.id !== payload.old.id));
-                } else if (payload.eventType === 'INSERT') {
-                    // Optimistic: Trust RLS. If we got the event, it IS active.
-                    if (payload.new && payload.new.id) {
-                        console.log('Optimistic INSERT applied');
-                        setSponsors(currentSponsors => [...currentSponsors, payload.new]);
-                    } else {
-                        // Fallback if payload is partial
-                        fetchSponsors();
-                    }
-                } else if (payload.eventType === 'UPDATE') {
-                    // Optimized: Trust the payload. If active=false, remove it. If true, update/add.
-                    if (payload.new.active === true) {
-                        setSponsors(currentSponsors => {
-                            const exists = currentSponsors.some(s => s.id === payload.new.id);
-                            if (exists) {
-                                return currentSponsors.map(s => s.id === payload.new.id ? payload.new : s);
-                            } else {
-                                return [...currentSponsors, payload.new];
-                            }
-                        });
-                    } else {
-                        // Active is false (or undefined, treated as not true), so remove it.
-                        setSponsors(currentSponsors => currentSponsors.filter(sponsor => sponsor.id !== payload.new.id));
-                    }
-                }
+                console.log('🔄 Realtime detected change:', payload);
+                // Brute force: Any change triggers a full reload to ensure consistency.
+                fetchSponsors();
             })
             .subscribe((status) => {
                 console.log('Realtime Subscription Status:', status);
@@ -211,7 +185,7 @@ const Landing = () => {
             </nav>
 
             {/* Hero Section - Added Padding Details */}
-            <header className="px-6 pt-32 pb-24 md:pt-40 md:pb-32 max-w-7xl mx-auto flex flex-col md:flex-row items-center gap-12">
+            <header className="px-6 pt-20 pb-12 md:pt-24 md:pb-16 max-w-7xl mx-auto flex flex-col md:flex-row items-center gap-12">
                 <div className="flex-1 space-y-8 animate-fade-in-up">
                     <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-sm font-medium border border-blue-100">
                         <Gift className="w-4 h-4 text-blue-600 fill-current animate-pulse" />
@@ -268,7 +242,7 @@ const Landing = () => {
             </header>
 
             {/* Features Section - Premium Futurisc */}
-            <section id="features" className="bg-slate-50 py-16 px-6 relative overflow-hidden">
+            <section id="features" className="bg-slate-50 py-8 px-6 relative overflow-hidden">
                 <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent"></div>
 
                 {/* Decorative background elements */}
@@ -306,7 +280,7 @@ const Landing = () => {
             </section>
 
             {/* Services / Development Section */}
-            <section className="py-24 bg-slate-900 relative overflow-hidden text-white">
+            <section className="py-12 bg-slate-900 relative overflow-hidden text-white">
                 {/* Background Details */}
                 <div className="absolute top-0 left-0 w-full h-full overflow-hidden opacity-20 pointer-events-none">
                     <div className="absolute -top-24 -right-24 w-96 h-96 bg-blue-500 rounded-full mix-blend-screen filter blur-3xl animate-blob"></div>
@@ -394,7 +368,7 @@ const Landing = () => {
             {/* Sponsors Section (V4 - Large Living Cards) */}
             {
                 sponsors.length > 0 && (
-                    <section className="py-24 relative overflow-hidden bg-slate-50/50">
+                    <section className="py-12 relative overflow-hidden bg-slate-50/50">
                         {/* Subtle Animated Background */}
                         <div className="absolute inset-0 bg-gradient-to-b from-white via-blue-50/30 to-white z-0"></div>
 
@@ -410,7 +384,7 @@ const Landing = () => {
                             </div>
 
                             {/* Horizontal Premium Scroll Container */}
-                            <div className="relative w-full overflow-x-auto pb-16 pt-4 px-4 flex justify-center lg:justify-start hide-scrollbar snap-x snap-mandatory">
+                            <div className="relative w-full overflow-x-auto pb-8 pt-4 px-4 flex justify-center lg:justify-start hide-scrollbar snap-x snap-mandatory">
                                 <div className={`flex gap-8 ${sponsors.length < 3 ? 'mx-auto' : ''}`}>
                                     {sponsors.map((sponsor, index) => (
                                         <div
@@ -490,7 +464,7 @@ const Landing = () => {
             }
 
             {/* Contact Section */}
-            <div id="contact" className="py-24 relative overflow-hidden">
+            <div id="contact" className="py-12 relative overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-tl from-emerald-50 via-teal-50/50 to-white z-0"></div>
 
                 {/* Decorative Blobs */}
