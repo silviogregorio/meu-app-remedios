@@ -60,11 +60,12 @@ const Sidebar = ({ isOpen, onClose, isPinned, onTogglePin }) => {
             {/* Sidebar */}
             <aside
                 className={clsx(
-                    "fixed top-0 left-0 h-full w-64 bg-slate-50 dark:bg-slate-900 shadow-2xl z-50 transform transition-transform duration-300 ease-in-out border-r border-transparent dark:border-slate-800 overflow-y-auto",
+                    "fixed top-0 left-0 h-full w-64 bg-slate-50 dark:bg-slate-900 shadow-2xl z-50 transform transition-transform duration-300 ease-in-out border-r border-transparent dark:border-slate-800 flex flex-col",
                     isOpen ? "translate-x-0" : (isPinned ? "md:translate-x-0 -translate-x-full" : "-translate-x-full")
                 )}
             >
-                <div className="flex items-center justify-between p-4 bg-white dark:bg-slate-900 sticky top-0 z-10 border-b border-gray-100 dark:border-slate-800">
+                {/* Header - Static */}
+                <div className="flex items-center justify-between p-4 bg-white dark:bg-slate-900 border-b border-gray-100 dark:border-slate-800 shrink-0">
                     <h2 className="text-xl font-bold text-[#10b981]">SiG Remédios</h2>
                     <div className="flex items-center gap-1">
                         {/* Pin Button (Desktop Only) */}
@@ -87,40 +88,44 @@ const Sidebar = ({ isOpen, onClose, isPinned, onTogglePin }) => {
                     </div>
                 </div>
 
-                <nav className="flex flex-col p-4 pb-20">
-                    {navGroups.map((group, groupIndex) => (
-                        <div key={group.title} className="mb-6">
-                            <h3 className="px-4 text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
-                                {group.title}
-                            </h3>
-                            <div className="space-y-1">
-                                {group.items.map(({ path, icon: Icon, label }) => (
-                                    <NavLink
-                                        key={path}
-                                        to={path}
-                                        onClick={onClose}
-                                        id={`tour-nav-${path.replace('/', '').replace(/\//g, '-')}`}
-                                        className={({ isActive }) => clsx(
-                                            "flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-200",
-                                            isActive
-                                                ? "bg-white dark:bg-slate-800 text-[#10b981] font-bold shadow-sm"
-                                                : "text-slate-600 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-200"
-                                        )}
-                                    >
-                                        {({ isActive }) => (
-                                            <>
-                                                <Icon size={20} className={clsx(isActive ? "text-[#10b981]" : "text-slate-400")} />
-                                                <span>{label}</span>
-                                            </>
-                                        )}
-                                    </NavLink>
-                                ))}
+                {/* Nav - Scrollable */}
+                <div className="flex-1 overflow-y-auto min-h-0">
+                    <nav className="flex flex-col p-4">
+                        {navGroups.map((group, groupIndex) => (
+                            <div key={group.title} className="mb-6">
+                                <h3 className="px-4 text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
+                                    {group.title}
+                                </h3>
+                                <div className="space-y-1">
+                                    {group.items.map(({ path, icon: Icon, label }) => (
+                                        <NavLink
+                                            key={path}
+                                            to={path}
+                                            onClick={onClose}
+                                            id={`tour-nav-${path.replace('/', '').replace(/\//g, '-')}`}
+                                            className={({ isActive }) => clsx(
+                                                "flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-200",
+                                                isActive
+                                                    ? "bg-white dark:bg-slate-800 text-[#10b981] font-bold shadow-sm"
+                                                    : "text-slate-600 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-200"
+                                            )}
+                                        >
+                                            {({ isActive }) => (
+                                                <>
+                                                    <Icon size={20} className={clsx(isActive ? "text-[#10b981]" : "text-slate-400")} />
+                                                    <span>{label}</span>
+                                                </>
+                                            )}
+                                        </NavLink>
+                                    ))}
+                                </div>
                             </div>
-                        </div>
-                    ))}
-                </nav>
+                        ))}
+                    </nav>
+                </div>
 
-                <div className="absolute bottom-0 left-0 right-0 border-t border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-900">
+                {/* Footer - Static */}
+                <div className="border-t border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-900 shrink-0">
                     <div className="p-4">
                         <button
                             onClick={async () => {

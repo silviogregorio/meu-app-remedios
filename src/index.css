@@ -219,3 +219,63 @@ textarea {
     display: block !important;
   }
 }
+
+/* --- Senior Mode Accessibility --- */
+
+/* 1. Large Text Mode */
+.senior-text {
+  font-size: 125% !important;
+  /* Scale up everything 25% */
+}
+
+/* 2. High Contrast Mode */
+.senior-contrast {
+  /* Override Tailwind Colors with High Contrast Palette */
+  --color-primary: #000000 !important;
+  --color-primary-dark: #000000 !important;
+  --color-primary-light: #ffff00 !important;
+  /* Yellow highlight */
+
+  --color-background: #ffffff !important;
+  --color-surface: #ffffff !important;
+
+  --color-text: #000000 !important;
+  --color-text-muted: #1a1a1a !important;
+
+  /* Force dark borders for visibility */
+  --border-color: #000000 !important;
+}
+
+/* Force elements in high contrast mode */
+.senior-contrast * {
+  border-color: #000000 !important;
+}
+
+.senior-contrast input,
+.senior-contrast button,
+.senior-contrast .card {
+  border: 2px solid #000000 !important;
+  background-color: #fff !important;
+  color: #000 !important;
+  box-shadow: none !important;
+}
+
+.senior-contrast .bg-primary,
+.senior-contrast .bg-blue-600,
+.senior-contrast .bg-indigo-600,
+.senior-contrast button.bg-primary {
+  background-color: #000000 !important;
+  color: #ffff00 !important;
+  /* Black bg, Yellow text */
+}
+
+.senior-contrast .text-white {
+  color: #ffff00 !important;
+  font-weight: 900 !important;
+}
+
+.senior-contrast svg {
+  stroke: #000000 !important;
+  color: #000000 !important;
+}
+@keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } } .animate-shake { animation: shake 0.3s ease-in-out; }

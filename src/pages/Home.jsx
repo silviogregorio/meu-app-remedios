@@ -241,7 +241,9 @@ const Home = () => {
             )} */}
 
             {/* Local Offers Carousel (NEW) */}
-            <LocalOffersCarousel userIbge={user?.user_metadata?.ibge_code} />
+            <div className="mt-4 sm:mt-0">
+                <LocalOffersCarousel userIbge={user?.user_metadata?.ibge_code} />
+            </div>
 
             {/* Motivation Card */}
             <MotivationCard />
@@ -397,17 +399,34 @@ const Home = () => {
                                 const allTaken = todaysSchedule.length > 0 && todaysSchedule.every(i => i.isTaken);
                                 return (
                                     <div className="flex flex-col items-center justify-center py-2 text-center h-full">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center shrink-0">
-                                                {allTaken ? <Check size={20} /> : <Calendar size={20} />}
-                                            </div>
-                                            <div className="text-left">
-                                                <h3 className="text-lg font-bold leading-tight">
-                                                    {allTaken ? 'Tudo pronto por hoje!' : 'Sem mais doses hoje'}
-                                                </h3>
-                                                <p className="text-blue-50 text-xs leading-tight opacity-90">
-                                                    {allTaken ? 'Você tomou todos os medicamentos.' : 'Nenhum medicamento pendente para o resto do dia.'}
-                                                </p>
+                                        <div className="w-full animate-in fade-in slide-in-from-bottom duration-700">
+                                            <div
+                                                className="bg-gradient-to-br from-blue-500 to-indigo-600 rounded-3xl overflow-hidden shadow-xl transform transition-transform duration-300"
+                                                onClick={(e) => {
+                                                    const target = e.currentTarget;
+                                                    target.classList.add('animate-shake');
+                                                    setTimeout(() => target.classList.remove('animate-shake'), 500);
+                                                }}
+                                            >
+                                                {/* Image Section - Expansive with Overlay */}
+                                                <div className="relative w-full h-64 sm:h-72 active:scale-95 transition-transform duration-200 cursor-pointer">
+                                                    <img
+                                                        src="/assets/images/peace_illustration.png"
+                                                        alt="Tranquilidade"
+                                                        className="w-full h-full object-cover hover:scale-105 transition-transform duration-700"
+                                                    />
+                                                    <div className="absolute inset-0 bg-gradient-to-t from-blue-600/90 via-transparent to-transparent"></div>
+
+                                                    {/* Text Overlay */}
+                                                    <div className="absolute bottom-0 left-0 right-0 p-6 text-center">
+                                                        <h3 className="text-2xl font-bold text-white mb-2 drop-shadow-md">
+                                                            {allTaken ? 'Parabéns, tudo tomado!' : 'Sem mais doses hoje'}
+                                                        </h3>
+                                                        <p className="text-blue-100 font-medium text-lg leading-relaxed drop-shadow-sm max-w-xs mx-auto">
+                                                            {allTaken ? 'Você completou seu dia.' : 'Curta seu dia com paz, tranquilidade e saúde.'}
+                                                        </p>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -489,10 +508,10 @@ const Home = () => {
                     {/* Decorative Background Elements */}
                     <div className="absolute -bottom-10 -right-10 w-32 h-32 bg-gradient-to-br from-indigo-50 to-blue-50 rounded-full blur-2xl opacity-50 pointer-events-none"></div>
                 </Card>
-            </div>
+            </div >
 
             {/* Sponsor Display (Banner) */}
-            <SponsorDisplay user={user} variant="banner" />
+            < SponsorDisplay user={user} variant="banner" />
 
             {/* Late Doses Alert */}
             {
@@ -746,22 +765,29 @@ const Home = () => {
                     })()}
                 </div>
             </div>
-            {/* Voice Command FAB */}
-            <VoiceCommand schedule={todaysSchedule} onToggle={handleToggleStatus} />
+            {/* Voice Command Integration */}
+            <VoiceCommand
+                schedule={todaysSchedule}
+                onToggle={handleToggleStatus}
+                patients={patients}
+                selectedPatientId={selectedPatient}
+            />
 
             <div className="text-center pb-20 pt-4 text-[10px] text-slate-300">
                 v{__APP_VERSION__}
             </div>
-            {startTour && (
-                <OnboardingTour
-                    onTourEnd={() => {
-                        console.log('Home: Tour finished. Updating state.');
-                        setStartTour(false);
-                        localStorage.setItem('hasSeenTour_v1', 'true');
-                    }}
-                />
-            )}
-        </div>
+            {
+                startTour && (
+                    <OnboardingTour
+                        onTourEnd={() => {
+                            console.log('Home: Tour finished. Updating state.');
+                            setStartTour(false);
+                            localStorage.setItem('hasSeenTour_v1', 'true');
+                        }}
+                    />
+                )
+            }
+        </div >
     );
 };
 

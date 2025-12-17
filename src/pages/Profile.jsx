@@ -15,7 +15,8 @@ const Profile = () => {
     const {
         patients, medications, prescriptions, consumptionLog, healthLogs, // Data for backup
         showToast, runCaregiverCheck, logout,
-        accountShares, shareAccount, unshareAccount // Account Sharing
+        accountShares, shareAccount, unshareAccount, // Account Sharing
+        accessibility, updateAccessibility
     } = useApp(); // AppContext for app features
     const navigate = useNavigate();
 
@@ -359,6 +360,84 @@ const Profile = () => {
                                     Executar Verificação Agora
                                 </Button>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Accessibility Settings Section */}
+            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden">
+                <div className="p-6 border-b border-slate-100 dark:border-slate-700 bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/10 dark:to-cyan-900/10">
+                    <div className="flex items-center gap-3 mb-2">
+                        <div className="bg-blue-100 dark:bg-blue-900/30 p-2 rounded-lg">
+                            <Activity className="text-blue-600 dark:text-blue-400" size={24} />
+                        </div>
+                        <h2 className="text-xl font-bold text-blue-900 dark:text-blue-100">Super Sênior</h2>
+                    </div>
+                    <p className="text-blue-700/80 dark:text-blue-300/70 text-sm">
+                        Modo de acessibilidade para facilitar a leitura e uso.
+                    </p>
+                </div>
+                <div className="p-6">
+                    <div className="flex flex-col gap-4">
+                        {/* High Contrast Toggle */}
+                        <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-700">
+                            <div className="flex items-center gap-3">
+                                <Shield className="text-slate-400" size={20} />
+                                <div>
+                                    <h4 className="font-semibold text-slate-900 dark:text-white">Alto Contraste</h4>
+                                    <p className="text-sm text-slate-500">Cores fortes e bordas definidas.</p>
+                                </div>
+                            </div>
+                            <label className="relative inline-flex items-center cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={accessibility?.highContrast || false}
+                                    onChange={(e) => updateAccessibility({ highContrast: e.target.checked })}
+                                    className="sr-only peer"
+                                />
+                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                            </label>
+                        </div>
+
+                        {/* Large Text Toggle */}
+                        <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-700">
+                            <div className="flex items-center gap-3">
+                                <Settings className="text-slate-400" size={20} />
+                                <div>
+                                    <h4 className="font-semibold text-slate-900 dark:text-white">Texto Grande</h4>
+                                    <p className="text-sm text-slate-500">Aumenta o tamanho da letra em 25%.</p>
+                                </div>
+                            </div>
+                            <label className="relative inline-flex items-center cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={accessibility?.largeText || false}
+                                    onChange={(e) => updateAccessibility({ largeText: e.target.checked })}
+                                    className="sr-only peer"
+                                />
+                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                            </label>
+                        </div>
+
+                        {/* Voice Enabled Toggle */}
+                        <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-700">
+                            <div className="flex items-center gap-3">
+                                <Bell className="text-slate-400" size={20} />
+                                <div>
+                                    <h4 className="font-semibold text-slate-900 dark:text-white">Assistente de Voz</h4>
+                                    <p className="text-sm text-slate-500">Ouvir comandos e alertas por voz.</p>
+                                </div>
+                            </div>
+                            <label className="relative inline-flex items-center cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={accessibility?.voiceEnabled || false}
+                                    onChange={(e) => updateAccessibility({ voiceEnabled: e.target.checked })}
+                                    className="sr-only peer"
+                                />
+                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                            </label>
                         </div>
                     </div>
                 </div>

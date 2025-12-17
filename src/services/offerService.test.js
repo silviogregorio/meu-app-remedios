@@ -4,29 +4,23 @@ import { OfferService } from './offerService';
 
 // Define mocks using vi.hoisted to survive hoisting
 const mocks = vi.hoisted(() => {
-    const select = vi.fn();
-    const eq = vi.fn();
-    const or = vi.fn();
-    const order = vi.fn();
-    const from = vi.fn();
+    // Create a chain object
+    const chain = {};
 
-    // Create a chain object that returns itself for all methods
-    const chain = {
-        select: (...args) => { console.log('Mock: select', args); return chain; },
-        eq: (...args) => { console.log('Mock: eq', args); return chain; },
-        or: (...args) => { console.log('Mock: or', args); return chain; },
-        order: (...args) => { console.log('Mock: order', args); return chain; },
-        then: (onFulfilled) => {
-            console.log('Mock: then called');
-            return Promise.resolve({ data: [], error: null }).then(onFulfilled);
-        }
-    };
+    // Create spies that return the chain
+    const select = vi.fn(() => chain);
+    const eq = vi.fn(() => chain);
+    const or = vi.fn(() => chain);
+    const order = vi.fn(() => chain);
 
-    // Configure mocks (spies) to match for expectations, but implementation is fixed above
-    select.mockImplementation((...args) => chain.select(...args));
-    eq.mockImplementation((...args) => chain.eq(...args));
-    or.mockImplementation((...args) => chain.or(...args));
-    order.mockImplementation((...args) => chain.order(...args));
+    // 'from' returns the chain
+    const from = vi.fn(() => chain);
+
+    // Populate chain with spies
+    Object.assign(chain, {
+        select, eq, or, order,
+        then: (onFulfilled) => Promise.resolve({ data: [], error: null }).then(onFulfilled)
+    });
 
     return {
         select, eq, or, order, from, chain
@@ -53,7 +47,7 @@ describe('OfferService Security & Logic', () => {
         it('should filter by active status', async () => {
             console.log('Test: Calling fetchActiveWeightedOffers');
             try {
-                await OfferService.fetchActiveWeightedOffers('12345');
+                await OfferService.fetchByLocation('12345');
             } catch (error) {
                 console.error('Test Error:', error);
             }
@@ -63,14 +57,14 @@ describe('OfferService Security & Logic', () => {
         });
 
         it('should enforce date constraints (starts_at, expires_at)', async () => {
-            await OfferService.fetchActiveWeightedOffers('12345');
+            await OfferService.fetchByLocation('12345');
             // Check start and end date constraints
             expect(mocks.or).toHaveBeenCalledWith(expect.stringContaining('starts_at.lte.now()'));
             expect(mocks.or).toHaveBeenCalledWith(expect.stringContaining('expires_at.gt.now()'));
         });
 
         it('should filter by user location (ibge_code)', async () => {
-            await OfferService.fetchActiveWeightedOffers('12345');
+            await OfferService.fetchByLocation('12345');
             expect(mocks.eq).toHaveBeenCalledWith('sponsor.ibge_code', '12345');
         });
     });

@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Mic, MicOff, Loader2, CircleHelp } from 'lucide-react';
 
-const VoiceCommand = ({ schedule, onToggle }) => {
+import { useApp } from '../../context/AppContext';
+
+const VoiceCommand = ({ schedule, onToggle, patients = [], selectedPatientId = 'all' }) => {
+    const { accessibility } = useApp();
     const [isListening, setIsListening] = useState(false);
     const [isSupported, setIsSupported] = useState(false);
     const [processing, setProcessing] = useState(false);
@@ -89,18 +92,53 @@ const VoiceCommand = ({ schedule, onToggle }) => {
     const processCommand = (text) => {
         setProcessing(true);
 
+        // 1. Identify Patient Context
+        let targetPatientId = null;
+        let targetPatientName = null;
+        let cleanText = text;
+
+        // Check if user spoke a patient name
+        if (patients && patients.length > 0) {
+            const lowerText = text.toLowerCase();
+            for (const p of patients) {
+                const firstName = p.name ? p.name.split(' ')[0].toLowerCase() : '';
+                // Check if the FIRST name matches a word in the text (fuzzy matching whole word)
+                // We use regex to ensure we match "maria" but not "mariana" if name is Maria
+                const nameRegex = new RegExp(`\\b${firstName}\\b`, 'i');
+                if (firstName && nameRegex.test(lowerText)) {
+                    targetPatientId = p.id;
+                    targetPatientName = p.name;
+                    break;
+                }
+            }
+        }
+
+        // Fallback to selected context in UI
+        if (!targetPatientId && selectedPatientId && selectedPatientId !== 'all') {
+            targetPatientId = selectedPatientId;
+            const p = patients.find(px => px.id === targetPatientId);
+            if (p) targetPatientName = p.name;
+        }
+
         // Remove keywords (whole words only) to isolate medication name
         const stopWords = [
             'marcar', 'desmarcar', 'desmarque', 'como', 'tomado', 'tomei', 'tomar',
             'registrar', 'o', 'a', 'os', 'as', 'um', 'uma', 'que', 'de', 'do', 'da',
-            'remedio', 'remédio', 'medicamento', 'pilula', 'pílula', 'comprimido', 'ja', 'já'
+            'remedio', 'remédio', 'medicamento', 'pilula', 'pílula', 'comprimido', 'ja', 'já',
+            'para', 'pelo', 'pela', 'do', 'da', 'de'
         ];
 
-        let cleanText = text;
         stopWords.forEach(word => {
             const regex = new RegExp(`\\b${word}\\b`, 'gi');
             cleanText = cleanText.replace(regex, '');
         });
+
+        // Remove identified patient name from text to clean up medication search
+        if (targetPatientName) {
+            const firstName = targetPatientName.split(' ')[0].toLowerCase();
+            const regex = new RegExp(`\\b${firstName}\\b`, 'gi');
+            cleanText = cleanText.replace(regex, '');
+        }
 
         cleanText = cleanText.trim();
 
@@ -110,26 +148,79 @@ const VoiceCommand = ({ schedule, onToggle }) => {
             return;
         }
 
-        // Search in ALL items (taken or pending)
-        // 1. Exact/Substring Match (Priority)
-        let match = schedule.find(item =>
+        // Search Pool: Filter by patient if known
+        let searchPool = schedule;
+        if (targetPatientId) {
+            searchPool = schedule.filter(item => item.patientId === targetPatientId);
+        }
+
+        // Find Candidates
+        // 1. Exact/Substring Match
+        let candidates = searchPool.filter(item =>
             item.medicationName.toLowerCase().includes(cleanText)
         );
 
         // 2. Fuzzy Match (Fallback)
-        if (!match) {
-            match = schedule.find(item => {
+        if (candidates.length === 0) {
+            candidates = searchPool.filter(item => {
                 const medName = item.medicationName.toLowerCase();
                 const dist = levenshtein(medName, cleanText);
                 return dist <= 3 || dist < medName.length * 0.4;
             });
         }
 
+        let match = null;
+
+        if (candidates.length === 0) {
+            // No match
+        } else if (candidates.length === 1) {
+            match = candidates[0];
+        } else {
+            // Multiple matches found
+            if (targetPatientId) {
+                // Context is set, so just pick the first one (most likely intended time)
+                match = candidates[0];
+            } else {
+                // AMBIGUITY CHECK: Do they belong to different patients?
+                const uniquePatients = [...new Set(candidates.map(c => c.patientId))];
+                if (uniquePatients.length > 1) {
+                    const msg = "Para qual paciente? Fale o nome.";
+                    setFeedback({ type: 'info', message: msg });
+                    if (accessibility?.voiceEnabled) {
+                        const utterance = new SpeechSynthesisUtterance(msg);
+                        utterance.lang = 'pt-BR';
+                        window.speechSynthesis.speak(utterance);
+                    }
+                    setProcessing(false);
+                    return;
+                } else {
+                    // Same patient, multiple times? Pick first.
+                    match = candidates[0];
+                }
+            }
+        }
+
         if (match) {
             setConfirmMatch(match);
+            if (accessibility?.voiceEnabled) {
+                // Get patient name for feedback
+                const pName = patients.find(p => p.id === match.patientId)?.name || 'Paciente';
+                // Speak first name only for brevity
+                const spokenName = pName.split(' ')[0];
+                const msg = `Marcar ${match.medicationName} para ${spokenName}?`;
+                const utterance = new SpeechSynthesisUtterance(msg);
+                utterance.lang = 'pt-BR';
+                window.speechSynthesis.speak(utterance);
+            }
         } else {
             console.log('Falha ao encontrar:', cleanText);
-            setFeedback({ type: 'error', message: `Não achei "${cleanText}" na lista de hoje.` });
+            const msg = `Não achei ${cleanText}${targetPatientName ? ` para ${targetPatientName}` : ''}.`;
+            setFeedback({ type: 'error', message: msg });
+            if (accessibility?.voiceEnabled) {
+                const utterance = new SpeechSynthesisUtterance(msg);
+                utterance.lang = 'pt-BR';
+                window.speechSynthesis.speak(utterance);
+            }
         }
 
         setProcessing(false);
@@ -139,7 +230,18 @@ const VoiceCommand = ({ schedule, onToggle }) => {
         if (confirmMatch) {
             onToggle(confirmMatch);
             const action = confirmMatch.isTaken ? 'Desmarcado' : 'Marcado';
-            setFeedback({ type: 'success', message: `${action}: ${confirmMatch.medicationName}` });
+            const pName = patients.find(p => p.id === confirmMatch.patientId)?.name || '';
+            const firstName = pName.split(' ')[0];
+
+            setFeedback({ type: 'success', message: `${action}: ${confirmMatch.medicationName} (${firstName})` });
+
+            if (accessibility?.voiceEnabled) {
+                const speech = `${action} para ${firstName} com sucesso.`;
+                const utterance = new SpeechSynthesisUtterance(speech);
+                utterance.lang = 'pt-BR';
+                window.speechSynthesis.speak(utterance);
+            }
+
             setConfirmMatch(null);
         }
     };
@@ -160,22 +262,34 @@ const VoiceCommand = ({ schedule, onToggle }) => {
                                 </h3>
                                 <button onClick={() => setShowHelp(false)} className="text-slate-400 hover:text-slate-600">×</button>
                             </div>
-                            <ul className="text-sm text-slate-600 dark:text-slate-300 space-y-1 mt-1">
-                                <li>👉 <strong>"Tomar [Nome]"</strong></li>
-                                <li>👉 <strong>"Marcar [Nome]"</strong></li>
-                                <li>👉 <strong>"Desmarcar [Nome]"</strong></li>
-                                <li>👉 <strong>"Tomei a [Nome]"</strong></li>
+                            <ul className="text-sm text-slate-600 dark:text-slate-300 space-y-2 mt-2">
+                                <li className="flex gap-2">
+                                    <span>👉</span>
+                                    <span><strong>"Tomar [Medicamento]"</strong><br />Ex: "Tomar Dipirona"</span>
+                                </li>
+                                <li className="flex gap-2">
+                                    <span>👉</span>
+                                    <span><strong>"Tomar [Medicamento] da Maria"</strong><br />Ex: "Tomar Dipirona da Maria"</span>
+                                </li>
+                                <li className="flex gap-2">
+                                    <span>💡</span>
+                                    <span><strong>Dica:</strong> Fale o nome do paciente se houver mais de uma pessoa usando o remédio.</span>
+                                </li>
                             </ul>
-                            <p className="text-xs text-slate-400 mt-2 italic">Dica: Fale apenas o nome se preferir.</p>
                         </div>
                     ) : confirmMatch ? (
                         <div className="flex flex-col gap-3">
                             <p className="text-sm text-slate-500 dark:text-slate-400">Entendi:</p>
-                            <p className="font-bold text-lg text-slate-800 dark:text-white">
-                                {confirmMatch.medicationName} ({confirmMatch.dosage})
-                            </p>
-                            <p className="text-xs text-slate-500">
-                                {confirmMatch.isTaken ? 'Já tomado. Deseja desmarcar?' : 'Marcar como tomado?'}
+                            <div className="bg-slate-50 dark:bg-slate-900/50 p-3 rounded-lg border border-slate-100 dark:border-slate-700">
+                                <p className="font-bold text-lg text-slate-800 dark:text-white leading-tight">
+                                    {confirmMatch.medicationName}
+                                </p>
+                                <p className="text-xs text-slate-500 mt-1">
+                                    {confirmMatch.dosage} • {patients.find(p => p.id === confirmMatch.patientId)?.name}
+                                </p>
+                            </div>
+                            <p className="text-xs text-slate-500 text-center">
+                                {confirmMatch.isTaken ? 'Deseja desmarcar?' : 'Marcar como tomado?'}
                             </p>
                             <div className="flex gap-2 mt-1">
                                 <button
@@ -193,7 +307,7 @@ const VoiceCommand = ({ schedule, onToggle }) => {
                             </div>
                         </div>
                     ) : feedback && (
-                        <div className={`text-sm font-medium ${feedback.type === 'error' ? 'text-red-500' : 'text-green-500'}`}>
+                        <div className={`text-sm font-medium ${feedback.type === 'error' ? 'text-red-500' : 'text-blue-600 dark:text-blue-400'}`}>
                             {feedback.message}
                         </div>
                     )}

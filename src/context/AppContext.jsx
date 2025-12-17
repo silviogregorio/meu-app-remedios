@@ -25,6 +25,11 @@ export const AppProvider = ({ children }) => {
     const [healthLogs, setHealthLogs] = useState([]);
     const [toast, setToast] = useState(null);
     const [loadingData, setLoadingData] = useState(false);
+    const [accessibility, setAccessibility] = useState({
+        highContrast: false,
+        largeText: false,
+        voiceEnabled: false
+    });
 
 
     // Helper de Toast
@@ -128,6 +133,25 @@ export const AppProvider = ({ children }) => {
                 console.warn('Tabela health_logs pode não existir ainda:', healthError.message);
             } else {
                 setHealthLogs(healthData);
+            }
+
+            // 8. Buscar Configurações de Acessibilidade (Safe Fetch)
+            if (user?.id) {
+                try {
+                    console.log('Fetching accessibility settings for user:', user.id);
+                    const { data: profileData } = await supabase
+                        .from('profiles')
+                        .select('*')
+                        .eq('id', user.id)
+                        .single();
+
+                    if (profileData && profileData.accessibility_settings) {
+                        setAccessibility(prev => ({ ...prev, ...profileData.accessibility_settings }));
+                    }
+                } catch (accError) {
+                    console.warn('Aviso: Coluna de acessibilidade pode não existir ainda.', accError);
+                    // Silently fail to defaults
+                }
             }
 
 
@@ -891,14 +915,31 @@ export const AppProvider = ({ children }) => {
             if (profileError) throw profileError;
 
             showToast('Perfil atualizado com sucesso!');
-
-            // Forçar atualização local se necessário (embora auth listener deva pegar)
-            // window.location.reload(); // Opcional, mas o AuthContext deve atualizar o user object
         } catch (error) {
             console.error('Erro ao atualizar perfil:', error);
             showToast('Erro ao atualizar perfil', 'error');
         }
     };
+
+    // Acessibilidade
+    const updateAccessibility = async (newSettings) => {
+        if (!user) return;
+        try {
+            const updated = { ...accessibility, ...newSettings };
+            setAccessibility(updated); // Optimistic
+
+            await supabase
+                .from('profiles')
+                .update({ accessibility_settings: updated })
+                .eq('id', user.id);
+
+            showToast('Configurações salvas.', 'success');
+        } catch (error) {
+            console.error('Erro ao salvar acessibilidade:', error);
+            showToast('Erro ao salvar configurações', 'error');
+        }
+    };
+
 
     // Estado Derivado para compatibilidade de UI
     const userPatients = patients.filter(p => p.userId === user?.id);
@@ -921,6 +962,9 @@ export const AppProvider = ({ children }) => {
             showToast,
             calculateStockDays,
             updateProfile,
+
+            // Acessibilidade
+            accessibility, updateAccessibility,
 
             accountShares, shareAccount, unshareAccount,
             healthLogs, addHealthLog, updateHealthLog, deleteHealthLog,
