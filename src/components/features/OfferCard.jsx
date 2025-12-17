@@ -123,7 +123,7 @@ export const OfferCard = ({ offer, variant = 'standard' }) => {
                     >
                         <div className="relative h-48 bg-slate-100 dark:bg-slate-900 shrink-0">
                             {image_url ? (
-                                <img src={image_url} alt={title} className="w-full h-full object-cover" />
+                                <img src={image_url} alt={title} className="w-full h-full object-contain p-2" />
                             ) : (
                                 <img src={sponsor.logo_url} alt={sponsor.name} className="w-full h-full object-contain p-4" />
                             )}
