@@ -46,14 +46,9 @@ export const sendPushNotification = async (tokens, title, body, data = {}) => {
 
     const mapUrl = data.mapUrl || 'https://sigremedios.vercel.app';
 
-    //HYBRID: notification for sound + data for SW actions
+    // DATA-ONLY: Let SW control display with Zap button
+    // Sound depends on browser/OS settings (user must enable in Chrome settings)
     const message = {
-        // Top-level notification - triggers native sound
-        notification: {
-            title: String(title),
-            body: String(body)
-        },
-
         // DATA for Service Worker customization
         data: {
             title: String(title),
