@@ -504,13 +504,17 @@ const handleSOSInsert = async (payload) => {
 
             try {
                 console.log(`📱 [BACKEND] Tentando push para ${fcmTokens.length} token(s)`);
+                // Whatsapp message pre-filled
+                const whatsappText = `Olá, sou ${patient?.name || 'Alguém'}.\nEstou precisando de ajuda URGENTE!\n${medInfo}\nMinha localização: ${locationUrl || 'https://sigremedios.vercel.app'}`;
+
                 const pushData = {
                     type: 'sos',
                     alertId: String(alert.id),
                     mapUrl: locationUrl || 'https://sigremedios.vercel.app',
                     phone: String(digits), // RAW digits for WhatsApp link
                     formattedPhone: String(formattedPhone), // FOR TOAST DISPLAY
-                    patientName: String(patient?.name || 'Alguém')
+                    patientName: String(patient?.name || 'Alguém'),
+                    whatsappMessage: String(whatsappText)
                 };
 
                 // Usar o pushBody customizado que inclui o telefone

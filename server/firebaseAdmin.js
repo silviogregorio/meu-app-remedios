@@ -60,6 +60,7 @@ export const sendPushNotification = async (tokens, title, body, data = {}) => {
             phone: String(data.phone || ''),
             patientName: String(data.patientName || ''),
             formattedPhone: String(data.formattedPhone || ''),
+            whatsappMessage: String(data.whatsappMessage || ''),
             icon: 'https://sigremedios.vercel.app/logo192.png',
             timestamp: Date.now().toString()
         },
@@ -69,9 +70,6 @@ export const sendPushNotification = async (tokens, title, body, data = {}) => {
             headers: {
                 Urgency: 'high',
                 TTL: '86400'
-            },
-            fcmOptions: {
-                link: mapUrl // Click action for web
             }
         },
 

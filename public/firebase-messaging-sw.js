@@ -13,7 +13,7 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const messaging = firebase.messaging();
 
-console.log('[SW] 🚀 Service Worker v17 - Restored with Zap');
+console.log('[SW] 🚀 Service Worker v18 - Zap with Message');
 
 const broadcastChannel = new BroadcastChannel('fcm-push-channel');
 
@@ -26,7 +26,6 @@ self.addEventListener('push', (event) => {
         payload = event.data.json();
     } catch (e) { return; }
 
-    // FCM pode enviar em notification ou data
     const notification = payload.notification || {};
     const data = payload.data || {};
 
@@ -58,7 +57,8 @@ self.addEventListener('push', (event) => {
         silent: false, // Try to enable sound
         data: {
             mapUrl: mapUrl,
-            phone: phone
+            phone: phone,
+            whatsappMessage: data.whatsappMessage || ''
         },
         actions: actions
     };
@@ -82,13 +82,22 @@ self.addEventListener('notificationclick', (event) => {
         if (!phone.startsWith('55')) {
             phone = '55' + phone;
         }
-        urlToOpen = `https://wa.me/${phone}`;
+
+        let zapUrl = `https://wa.me/${phone}`;
+
+        // Add pre-filled message if available
+        if (data.whatsappMessage) {
+            const encodedMsg = encodeURIComponent(data.whatsappMessage);
+            zapUrl += `?text=${encodedMsg}`;
+        }
+
+        urlToOpen = zapUrl;
     } else {
         // Body click or any other action -> Map
         urlToOpen = data.mapUrl || 'https://sigremedios.vercel.app';
     }
 
-    console.log('[SW v17] Action:', action, '-> Opening:', urlToOpen);
+    console.log('[SW v18] Action:', action, '-> Opening:', urlToOpen);
 
     event.waitUntil(
         clients.openWindow(urlToOpen)

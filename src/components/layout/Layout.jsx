@@ -20,92 +20,93 @@ const Layout = () => {
         showToastRef.current = showToast;
     }, [showToast]);
 
-    // Listen for foreground FCM push notifications (continuously)
-    // Empty dependency array - set up ONCE and never cleanup until unmount
+    // Unified handler for FCM messages (from foreground or broadcast)
+    const handleFCMMessage = (payload) => {
+        // Normalize payload structure
+        // Broadcast payload comes as flat data, onMessage payload has notification/data keys
+        const data = payload.data || payload;
+        const notification = payload.notification || {};
+
+        const title = notification.title || data.title || 'SiG Remédios';
+        const body = notification.body || data.body || data.message || 'Nova notificação';
+        const mapUrl = data.mapUrl;
+
+        // PLAY ALERT SOUND for SOS notifications
+        if (data.type === 'sos') {
+            try {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+                // Check if context is suspended (browser policy) and try to resume
+                if (audioContext.state === 'suspended') {
+                    audioContext.resume();
+                }
+
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+
+                oscillator.frequency.value = 800; // Hz - Alert tone
+                oscillator.type = 'sine';
+                gainNode.gain.value = 1.0; // Max volume
+
+                oscillator.start();
+
+                // Play SOS pattern
+                setTimeout(() => { oscillator.frequency.value = 0; }, 200);
+                setTimeout(() => { oscillator.frequency.value = 800; }, 300);
+                setTimeout(() => { oscillator.frequency.value = 0; }, 500);
+                setTimeout(() => { oscillator.frequency.value = 800; }, 600);
+                setTimeout(() => { oscillator.frequency.value = 0; }, 800);
+                setTimeout(() => { oscillator.stop(); audioContext.close(); }, 1200);
+
+                console.log('🔊 SOS Alert sound played');
+            } catch (e) {
+                console.warn('Audio creation failed:', e);
+            }
+        }
+
+        // Show in-app toast
+        if (data.type === 'sos') {
+            const pName = data.patientName || 'Alguém';
+            const pPhone = data.formattedPhone || '(sem telefone)';
+
+            showToastRef.current(
+                `O paciente ${pName}, telefone ${pPhone} está precisando de ajuda URGENTE! Veja detalhes na notificação do celular ou pelo aplicativo.`,
+                'error',
+                0 // Persistent - user must close manually
+            );
+        } else {
+            showToastRef.current(`🔔 ${title}: ${body}`, 'info');
+        }
+    };
+
+    // Listen for foreground FCM push notifications
     useEffect(() => {
         console.log('🔔 Setting up foreground FCM listener (once)...');
 
         const unsubscribe = setupOnMessageListener((payload) => {
             console.log('🔔 Layout received FCM message:', payload);
-
-            // Extract title and body from notification or data
-            const title = payload?.notification?.title || payload?.data?.title || 'SiG Remédios';
-            const body = payload?.notification?.body || payload?.data?.body || payload?.data?.message || 'Nova notificação';
-            const mapUrl = payload?.data?.mapUrl;
-
-            // PLAY ALERT SOUND for SOS notifications using Web Audio API
-            if (payload?.data?.type === 'sos') {
-                try {
-                    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                    const oscillator = audioContext.createOscillator();
-                    const gainNode = audioContext.createGain();
-
-                    oscillator.connect(gainNode);
-                    gainNode.connect(audioContext.destination);
-
-                    oscillator.frequency.value = 800; // Hz - Alert tone
-                    oscillator.type = 'sine';
-                    gainNode.gain.value = 0.5;
-
-                    oscillator.start();
-
-                    // Play SOS pattern
-                    setTimeout(() => { oscillator.frequency.value = 0; }, 200);
-                    setTimeout(() => { oscillator.frequency.value = 800; }, 300);
-                    setTimeout(() => { oscillator.frequency.value = 0; }, 500);
-                    setTimeout(() => { oscillator.frequency.value = 800; }, 600);
-                    setTimeout(() => { oscillator.frequency.value = 0; }, 800);
-                    setTimeout(() => { oscillator.stop(); audioContext.close(); }, 1000);
-
-                    console.log('🔊 SOS Alert sound played');
-                } catch (e) {
-                    console.warn('Audio creation failed:', e);
-                }
-            }
-
-            // Show in-app toast
-            if (payload?.data?.type === 'sos') {
-                const pName = payload.data.patientName || 'Alguém';
-                // formattedPhone comes pre-formatted from backend
-                const pPhone = payload.data.formattedPhone || '(sem telefone)';
-
-                showToastRef.current(
-                    `O paciente ${pName}, telefone ${pPhone} está precisando de ajuda URGENTE! Veja detalhes na notificação do celular ou pelo aplicativo.`,
-                    'error',
-                    0 // Persistent - user must close manually
-                );
-            } else {
-                showToastRef.current(`🔔 ${title}: ${body}`, 'info');
-            }
-
-            // AUTO-OPEN MAP REMOVED by user request
-            // User wants to see WHO called before opening map
-            if (payload?.data?.type === 'sos' && mapUrl && mapUrl !== '/') {
-                console.log('🗺️ Map URL available (click execution required):', mapUrl);
-            }
+            handleFCMMessage(payload);
         });
 
         return () => {
-            console.log('🔔 Cleaning up foreground FCM listener');
-            if (unsubscribe) {
-                unsubscribe();
-            }
+            if (unsubscribe) unsubscribe();
         };
-    }, []); // Empty deps - setup once on mount
+    }, []);
 
-    // Listen for BroadcastChannel messages from Service Worker (backup for data-only messages)
+    // Listen for BroadcastChannel messages from Service Worker
     useEffect(() => {
         const channel = new BroadcastChannel('fcm-push-channel');
 
         channel.onmessage = (event) => {
             console.log('📢 BroadcastChannel message from SW:', event.data);
             if (event.data?.type === 'FCM_PUSH') {
-                const { title, body } = event.data;
-                showToastRef.current(`🔔 ${title}: ${body}`, 'info');
+                // Broadcast sends the raw data object
+                handleFCMMessage({ data: event.data });
             }
         };
-
-        console.log('📢 BroadcastChannel listener set up');
 
         return () => {
             channel.close();
