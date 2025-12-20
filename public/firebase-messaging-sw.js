@@ -13,11 +13,10 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const messaging = firebase.messaging();
 
-console.log('[SW] 🚀 Service Worker v8.1 - WhatsApp Action');
+console.log('[SW] 🚀 Service Worker v9 - Phone Display & Fixes');
 
 const broadcastChannel = new BroadcastChannel('fcm-push-channel');
 
-// NATIVE PUSH EVENT - Handles DATA-ONLY messages
 self.addEventListener('push', (event) => {
     if (!event.data) return;
 
@@ -28,9 +27,17 @@ self.addEventListener('push', (event) => {
 
     const data = payload.data || payload;
     const title = data.title || '🚨 EMERGÊNCIA SOS';
-    const body = data.body || 'Clique para ver localização';
+
+    // FORMAT BODY WITH PHONE
+    let body = data.body || 'Clique para ver localização';
+    const rawPhone = data.phone || '';
+    const phone = rawPhone.replace(/\D/g, ''); // Digits only
+
+    if (rawPhone) {
+        body = `${body}\n📞 Contato: ${rawPhone}`;
+    }
+
     const mapUrl = data.mapUrl || 'https://sigremedios.vercel.app';
-    const phone = data.phone ? data.phone.replace(/\D/g, '') : '';
     const icon = 'https://sigremedios.vercel.app/logo192.png';
 
     // Broadcast to foreground
@@ -44,8 +51,7 @@ self.addEventListener('push', (event) => {
         actions.push({ action: 'whatsapp', title: '💬 WHATSAPP' });
     }
 
-    // Always options to close
-    actions.push({ action: 'dismiss', title: 'Fechar' });
+    // REMOVED 'Dismiss' button as requested
 
     const notificationOptions = {
         body: body,
@@ -67,19 +73,14 @@ self.addEventListener('push', (event) => {
     );
 });
 
-// NOTIFICATION CLICK - Robust handler
 self.addEventListener('notificationclick', (event) => {
     console.log('[SW] 🖱️ Clicked:', event.action);
     event.notification.close();
 
-    if (event.action === 'dismiss') return;
-
     const data = event.notification.data || {};
     let urlToOpen = data.mapUrl || 'https://sigremedios.vercel.app';
 
-    // WhatsApp Action
     if (event.action === 'whatsapp' && data.phone) {
-        // Ensure 55 for Brazil if missing
         let phone = data.phone;
         if (phone.length <= 11 && !phone.startsWith('55')) {
             phone = '55' + phone;
@@ -87,34 +88,36 @@ self.addEventListener('notificationclick', (event) => {
         urlToOpen = `https://wa.me/${phone}`;
     }
 
-    console.log('[SW] Opening:', urlToOpen);
-
+    // FORCE OPEN WINDOW - Most reliable method for background clicks
     event.waitUntil(
         clients.matchAll({ type: 'window', includeUncontrolled: true })
             .then((windowClients) => {
-                // 1. Try to find existing window and focus/navigate
+                // Check if app is open
                 for (let client of windowClients) {
                     if (client.url.includes('sigremedios.vercel.app') && 'focus' in client) {
-                        if (event.action === 'whatsapp') {
-                            // For WhatsApp, better to use openWindow so we don't navigate the app away
-                            return clients.openWindow(urlToOpen);
-                        } else {
-                            // For Map, we can navigate the app or open new window
-                            // Let's open new window to keep app state safe
-                            return clients.openWindow(urlToOpen);
-                        }
+                        return client.focus().then(c => {
+                            // If WhatsApp, always open new window to not lose app state
+                            if (event.action === 'whatsapp') {
+                                return clients.openWindow(urlToOpen);
+                            }
+                            // If Map, navigate the focused window
+                            return c.navigate(urlToOpen);
+                        });
                     }
                 }
-                // 2. Open new window if no match
+                // If no app window found, open new one
                 if (clients.openWindow) {
                     return clients.openWindow(urlToOpen);
                 }
             })
-            .catch(err => console.error('[SW] Click failed:', err))
+            .catch(err => {
+                console.error('[SW] Click failed:', err);
+                // Last resort fallback
+                if (clients.openWindow) clients.openWindow(urlToOpen);
+            })
     );
 });
 
-// Background message handler (fallback)
 messaging.onBackgroundMessage((payload) => {
     broadcastChannel.postMessage({ type: 'FCM_PUSH', ...payload.data });
 });
