@@ -213,48 +213,19 @@ export const AppProvider = ({ children }) => {
                 const token = await requestForToken();
                 if (token) {
                     try {
-                        // STRATEGY: Delete old tokens for this user first, then insert fresh token
-                        // This ensures we always have the current, valid token
-
-                        // 1. Delete all existing tokens for this user (they might be stale)
-                        const { error: deleteError } = await supabase
+                        // STRATEGY: Upsert token - preserves other device tokens for this user
+                        // Each device has its own unique token, so we upsert by token
+                        // This allows the same user to receive push on multiple devices
+                        const { error: upsertError } = await supabase
                             .from('fcm_tokens')
-                            .delete()
-                            .eq('user_id', user.id);
-
-                        if (deleteError) {
-                            console.warn('Aviso ao limpar tokens antigos:', deleteError.message);
-                        }
-
-                        // 2. Insert the fresh token
-                        const { error: insertError } = await supabase
-                            .from('fcm_tokens')
-                            .insert({
+                            .upsert({
                                 user_id: user.id,
                                 token: token,
                                 last_seen: new Date().toISOString()
-                            });
+                            }, { onConflict: 'token' });
 
-                        if (insertError) {
-                            // Handle unique constraint (token already exists for another user - rare edge case)
-                            if (insertError.code === '23505') {
-                                // Token exists, try upsert as fallback
-                                const { error: upsertError } = await supabase
-                                    .from('fcm_tokens')
-                                    .upsert({
-                                        user_id: user.id,
-                                        token: token,
-                                        last_seen: new Date().toISOString()
-                                    }, { onConflict: 'token' });
-
-                                if (upsertError) {
-                                    console.warn('Erro no fallback do token FCM:', upsertError.message);
-                                } else {
-                                    console.log('✅ Token FCM atualizado (fallback)');
-                                }
-                            } else {
-                                console.warn('Erro ao salvar token FCM:', insertError.message);
-                            }
+                        if (upsertError) {
+                            console.warn('Erro ao salvar token FCM:', upsertError.message);
                         } else {
                             console.log('✅ Token FCM registrado com sucesso');
                         }
