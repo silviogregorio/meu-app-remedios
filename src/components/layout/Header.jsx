@@ -268,18 +268,18 @@ const Header = ({ onMenuClick, isPinned }) => {
 
             {user && (
                 <div className="flex items-center gap-3 sm:gap-4 md:gap-6 ml-auto">
-                    {/* Ações Mobile - Aumentando gap */}
-                    <div className="flex items-center gap-5 md:hidden">
+                    {/* Ações Mobile - Gap aumentado e Tamanho Uniforme */}
+                    <div className="flex items-center gap-6 md:hidden">
                         <button
                             onClick={() => setShowSearch(true)}
-                            className="p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-full transition-colors"
+                            className="w-10 h-10 flex items-center justify-center text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-full transition-colors"
                             title="Buscar Medicamento"
                         >
                             <Search size={22} />
                         </button>
 
                         <button
-                            className="relative p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-full transition-colors"
+                            className="relative w-10 h-10 flex items-center justify-center text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-full transition-colors"
                             onClick={() => setShowNotifications(true)}
                             title="Notificações"
                         >
@@ -294,13 +294,13 @@ const Header = ({ onMenuClick, isPinned }) => {
                         <button
                             onClick={handlePanicClick}
                             disabled={isTriggeringPanic}
-                            className={`p-2 rounded-full transition-all flex items-center justify-center ${isTriggeringPanic
-                                ? 'bg-red-100 text-red-400 cursor-not-allowed'
-                                : 'bg-red-50 text-red-600 hover:bg-red-100 hover:scale-110 active:scale-95 shadow-md border border-red-200'
+                            className={`w-10 h-10 flex items-center justify-center rounded-full transition-all shadow-md border ${isTriggeringPanic
+                                ? 'bg-red-100 text-red-400 border-red-200 cursor-not-allowed'
+                                : 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100 hover:scale-110 active:scale-95'
                                 }`}
                             title="BOTÃO DE PÂNICO"
                         >
-                            <Siren size={24} className={`text-red-600 ${isTriggeringPanic ? 'animate-spin' : 'animate-pulse'}`} />
+                            <Siren size={24} className={isTriggeringPanic ? 'animate-spin' : 'animate-pulse'} />
                         </button>
                     </div>
 

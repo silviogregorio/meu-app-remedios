@@ -463,19 +463,31 @@ const handleSOSInsert = async (payload) => {
             if (patient?.birth_date) {
                 const birth = new Date(patient.birth_date);
                 const today = new Date();
+
                 let years = today.getFullYear() - birth.getFullYear();
                 let months = today.getMonth() - birth.getMonth();
                 let days = today.getDate() - birth.getDate();
 
+                // Adjust for negative days (borrow from previous month)
                 if (days < 0) {
                     months--;
-                    const lastMonth = new Date(today.getFullYear(), today.getMonth(), 0);
-                    days += lastMonth.getDate();
+                    // Get days in previous month
+                    const prevMonth = new Date(today.getFullYear(), today.getMonth(), 0);
+                    days += prevMonth.getDate();
                 }
+
+                // Adjust for negative months (borrow from year)
                 if (months < 0) {
                     years--;
                     months += 12;
                 }
+
+                // Edge case: if months hits 12 due to weird math (unlikely but safe to check)
+                if (months === 12) {
+                    years++;
+                    months = 0;
+                }
+
                 ageText = `${years}a ${months}m ${days}d`;
             }
 

@@ -30,12 +30,9 @@ self.addEventListener('push', (event) => {
 
     // FORMAT BODY WITH PHONE
     let body = data.body || 'Clique para ver localização';
+    // Phone is already in body from backend
     const rawPhone = data.phone || '';
-    const phone = rawPhone.replace(/\D/g, ''); // Digits only
-
-    if (rawPhone) {
-        body = `${body}\n📞 Contato: ${rawPhone}`;
-    }
+    const phone = rawPhone.replace(/\D/g, ''); // Digits only for actions
 
     const mapUrl = data.mapUrl || 'https://sigremedios.vercel.app';
     const icon = 'https://sigremedios.vercel.app/logo192.png';
@@ -86,7 +83,10 @@ self.addEventListener('notificationclick', (event) => {
             phone = '55' + phone;
         }
         urlToOpen = `https://wa.me/${phone}`;
+    } else if (event.action === 'open_map') {
+        urlToOpen = data.mapUrl; // Explicitly Map
     }
+    // Else (generic body click) -> defaults to mapUrl
 
     // FORCE OPEN NEW WINDOW - To prevent overwriting the app tab
     // User feedback: "opens map on top of app, is this good?" -> No, keep app open.
