@@ -41,11 +41,11 @@ self.addEventListener('push', (event) => {
     broadcastChannel.postMessage({ type: 'FCM_PUSH', ...data });
 
     const actions = [
-        { action: 'open_map', title: '🗺️ ABRIR MAPA' }
+        { action: 'action_map_v2', title: '🗺️ ABRIR MAPA' }
     ];
 
     if (phone) {
-        actions.push({ action: 'whatsapp', title: '💬 WHATSAPP' });
+        actions.push({ action: 'action_whatsapp_v2', title: '💬 WHATSAPP' });
     }
 
     // REMOVED 'Dismiss' button as requested
@@ -77,13 +77,13 @@ self.addEventListener('notificationclick', (event) => {
     const data = event.notification.data || {};
     let urlToOpen = data.mapUrl || 'https://sigremedios.vercel.app';
 
-    if (event.action === 'whatsapp' && data.phone) {
+    if (event.action === 'action_whatsapp_v2' && data.phone) {
         let phone = data.phone;
         if (phone.length <= 11 && !phone.startsWith('55')) {
             phone = '55' + phone;
         }
         urlToOpen = `https://wa.me/${phone}`;
-    } else if (event.action === 'open_map') {
+    } else if (event.action === 'action_map_v2') {
         urlToOpen = data.mapUrl; // Explicitly Map
     }
     // Else (generic body click) -> defaults to mapUrl

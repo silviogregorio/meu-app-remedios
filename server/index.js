@@ -488,15 +488,16 @@ const handleSOSInsert = async (payload) => {
                     months = 0;
                 }
 
-                ageText = `${years}a ${months}m ${days}d`;
+                ageText = `${years} anos e ${months} meses`;
             }
 
             const bloodType = patient?.blood_type || '?';
             const medInfo = `[${ageText || 'Idade N/A'} | Sangue: ${bloodType}]`;
 
             // Formatar texto para o Push Body
+            // REMOVED Name from start to avoid duplication
             const pushPhoneText = phoneForWhatsapp ? `\n📞 Tel: ${formattedPhone}` : '';
-            const pushBody = `${patient?.name || 'Alguém'}\n${medInfo}\nPRECISA DE AJUDA!${pushPhoneText}\n📍 ${displayAddress || 'Ver localização'}`;
+            const pushBody = `${medInfo}\nPRECISA DE AJUDA!${pushPhoneText}\n📍 ${displayAddress || 'Ver localização'}`;
 
             try {
                 console.log(`📱 [BACKEND] Tentando push para ${fcmTokens.length} token(s)`);
@@ -504,7 +505,8 @@ const handleSOSInsert = async (payload) => {
                     type: 'sos',
                     alertId: String(alert.id),
                     mapUrl: locationUrl || 'https://sigremedios.vercel.app',
-                    phone: String(digits), // ENVIAR APENAS DIGITOS PARA O WHATSAPP LINK
+                    phone: String(digits), // RAW digits for WhatsApp link
+                    formattedPhone: String(formattedPhone), // FOR TOAST DISPLAY
                     patientName: String(patient?.name || 'Alguém')
                 };
 

@@ -66,7 +66,12 @@ const Layout = () => {
             // Show in-app toast
             if (payload?.data?.type === 'sos') {
                 const pName = payload.data.patientName || 'Alguém';
-                showToastRef.current(`🔔 SOS de ${pName}`, 'info');
+                const pPhone = payload.data.formattedPhone || payload.data.phone || '(sem telefone)';
+
+                showToastRef.current(
+                    `O paciente ${pName}, telefone ${pPhone} está precisando de ajuda URGENTE! Veja detalhes na notificação do celular ou pelo aplicativo.`,
+                    'error' // Using 'error' usually gives red color/more attention, or sticky
+                );
             } else {
                 showToastRef.current(`🔔 ${title}: ${body}`, 'info');
             }
