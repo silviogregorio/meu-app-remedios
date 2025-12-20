@@ -86,8 +86,7 @@ export const requestForToken = async () => {
 
             const token = await getToken(messaging, tokenOptions);
             if (token) {
-                console.log('✅ FCM Token obtido (primeiros 30 chars):', token.substring(0, 30) + '...');
-                console.log('📋 Token completo para debug:', token);
+                console.log('✅ FCM Token obtido');
                 return token;
             } else {
                 console.warn('⚠️ Nenhum token FCM retornado');

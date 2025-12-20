@@ -13,14 +13,95 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const messaging = firebase.messaging();
 
-console.log('[SW] 🚀 Service Worker v6 - FCM Auto-Display');
+console.log('[SW] 🚀 Service Worker v7 - Full SW Control');
 
-// BroadcastChannel for foreground communication
 const broadcastChannel = new BroadcastChannel('fcm-push-channel');
 
-// This handler is called ONLY for data-only messages
-// When notification field is present, FCM auto-displays and this is NOT called
-// We keep it as a fallback
+// NATIVE PUSH EVENT - Handles DATA-ONLY messages
+// This gives us full control over notification display AND click action
+self.addEventListener('push', (event) => {
+    console.log('[SW] 📨 Push event received');
+
+    if (!event.data) {
+        console.log('[SW] No data in push event');
+        return;
+    }
+
+    let payload;
+    try {
+        payload = event.data.json();
+        console.log('[SW] 📦 Payload:', JSON.stringify(payload));
+    } catch (e) {
+        console.error('[SW] Failed to parse push data:', e);
+        return;
+    }
+
+    // Extract data
+    const data = payload.data || payload;
+    const title = data.title || '🚨 EMERGÊNCIA SOS';
+    const body = data.body || 'Clique para ver localização';
+    const mapUrl = data.mapUrl || '/';
+    const icon = data.icon || '/logo192.png';
+
+    console.log('[SW] 🗺️ Map URL for click:', mapUrl);
+
+    // Broadcast to foreground app (if open)
+    broadcastChannel.postMessage({
+        type: 'FCM_PUSH',
+        title,
+        body,
+        mapUrl,
+        data
+    });
+
+    // Show notification with click data embedded
+    const notificationOptions = {
+        body: body,
+        icon: icon,
+        badge: '/logo192.png',
+        tag: 'sos-' + Date.now(),
+        renotify: true,
+        requireInteraction: true,
+        vibrate: [300, 100, 300, 100, 300],
+        data: {
+            mapUrl: mapUrl,
+            type: data.type || 'sos'
+        }
+    };
+
+    event.waitUntil(
+        self.registration.showNotification(title, notificationOptions)
+            .then(() => console.log('[SW] ✅ Notification shown'))
+            .catch(err => console.error('[SW] ❌ Failed to show notification:', err))
+    );
+});
+
+// NOTIFICATION CLICK - Opens the map URL
+self.addEventListener('notificationclick', (event) => {
+    console.log('[SW] 🖱️ Notification clicked!');
+
+    event.notification.close();
+
+    const notificationData = event.notification.data || {};
+    const mapUrl = notificationData.mapUrl;
+
+    console.log('[SW] 🗺️ Map URL from notification data:', mapUrl);
+
+    if (mapUrl && mapUrl !== '/') {
+        event.waitUntil(
+            clients.openWindow(mapUrl)
+                .then(() => console.log('[SW] ✅ Opened:', mapUrl))
+                .catch(err => console.error('[SW] ❌ Failed to open window:', err))
+        );
+    } else {
+        // Fallback - open the app
+        event.waitUntil(
+            clients.openWindow('https://sigremedios.vercel.app')
+        );
+    }
+});
+
+// Firebase background message handler (fallback for hybrid messages)
 messaging.onBackgroundMessage((payload) => {
     console.log('[SW] 📨 onBackgroundMessage (fallback):', payload);
 
@@ -30,34 +111,19 @@ messaging.onBackgroundMessage((payload) => {
         ...payload.data
     });
 
-    // FCM should have already displayed the notification
-    // Only show if it's a data-only message (no notification field)
-    if (!payload.notification) {
-        const title = payload.data?.title || '🚨 SOS';
-        const body = payload.data?.body || 'Emergência';
-
-        return self.registration.showNotification(title, {
-            body: body,
+    // Only show if not already handled
+    const data = payload.data || {};
+    return self.registration.showNotification(
+        data.title || 'SiG Remédios',
+        {
+            body: data.body || 'Nova notificação',
             icon: '/logo192.png',
-            data: { mapUrl: payload.data?.mapUrl }
-        });
-    }
-});
-
-// NOTIFICATION CLICK - Fallback handler
-// When FCM auto-displays with fcm_options.link, the click is handled by FCM
-// This handler is for notifications we create ourselves
-self.addEventListener('notificationclick', (event) => {
-    console.log('[SW] 🖱️ Notification click (fallback)');
-    event.notification.close();
-
-    const mapUrl = event.notification.data?.mapUrl || '/';
-    console.log('[SW] 🗺️ Opening:', mapUrl);
-
-    event.waitUntil(clients.openWindow(mapUrl));
+            data: { mapUrl: data.mapUrl }
+        }
+    );
 });
 
 self.addEventListener('activate', (event) => {
-    console.log('[SW] ✅ Service Worker v6 activated');
+    console.log('[SW] ✅ Service Worker v7 activated');
     event.waitUntil(clients.claim());
 });
