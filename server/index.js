@@ -451,9 +451,33 @@ const handleSOSInsert = async (payload) => {
                 formattedPhone = `(${digits.substring(0, 2)}) ${digits.substring(2, 6)}-${digits.substring(6)}`;
             }
 
-            // Formatar texto para o Push Body para garantir que o telefone apareça
+            // CALCULAR IDADE DETALHADA
+            let ageText = '';
+            if (patient?.birth_date) {
+                const birth = new Date(patient.birth_date);
+                const today = new Date();
+                let years = today.getFullYear() - birth.getFullYear();
+                let months = today.getMonth() - birth.getMonth();
+                let days = today.getDate() - birth.getDate();
+
+                if (days < 0) {
+                    months--;
+                    const lastMonth = new Date(today.getFullYear(), today.getMonth(), 0);
+                    days += lastMonth.getDate();
+                }
+                if (months < 0) {
+                    years--;
+                    months += 12;
+                }
+                ageText = `${years}a ${months}m ${days}d`;
+            }
+
+            const bloodType = patient?.blood_type || '?';
+            const medInfo = `[${ageText || 'Idade N/A'} | Sangue: ${bloodType}]`;
+
+            // Formatar texto para o Push Body
             const pushPhoneText = phoneForWhatsapp ? `\n📞 Tel: ${formattedPhone}` : '';
-            const pushBody = `${patient?.name || 'Alguém'} precisa de ajuda!${pushPhoneText}\n📍 ${displayAddress || 'Ver localização'}`;
+            const pushBody = `${patient?.name || 'Alguém'}\n${medInfo}\nPRECISA DE AJUDA!${pushPhoneText}\n📍 ${displayAddress || 'Ver localização'}`;
 
             try {
                 console.log(`📱 [BACKEND] Tentando push para ${fcmTokens.length} token(s)`);
