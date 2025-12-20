@@ -60,18 +60,12 @@ export const sendPushNotification = async (tokens, title, body, data = {}) => {
             timestamp: Date.now().toString()
         },
 
-        // Webpush with notification to try to enable sound
+        // Webpush headers only - NO notification field (SW handles display)
+        // This prevents duplicate notifications
         webpush: {
             headers: {
                 Urgency: 'high',
                 TTL: '86400'
-            },
-            notification: {
-                title: String(title),
-                body: String(body),
-                icon: 'https://sigremedios.vercel.app/logo192.png',
-                requireInteraction: true,
-                silent: false
             }
         },
 
