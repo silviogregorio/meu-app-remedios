@@ -54,6 +54,8 @@ export const sendPushNotification = async (tokens, title, body, data = {}) => {
             type: String(data.type || 'sos'),
             alertId: String(data.alertId || ''),
             mapUrl: String(mapUrl),
+            phone: String(data.phone || ''),
+            patientName: String(data.patientName || ''),
             icon: 'https://sigremedios.vercel.app/logo192.png',
             timestamp: Date.now().toString()
         },

@@ -66,14 +66,10 @@ const Layout = () => {
             // Show in-app toast
             showToastRef.current(`🔔 ${title}: ${body}`, 'info');
 
-            // AUTO-OPEN MAP for SOS notifications when in foreground
-            // Since fcm_options.link only works in background, we handle foreground here
+            // AUTO-OPEN MAP REMOVED by user request
+            // User wants to see WHO called before opening map
             if (payload?.data?.type === 'sos' && mapUrl && mapUrl !== '/') {
-                console.log('🗺️ Opening map URL:', mapUrl);
-                // Small delay to ensure toast shows first
-                setTimeout(() => {
-                    window.open(mapUrl, '_blank');
-                }, 500);
+                console.log('🗺️ Map URL available (click execution required):', mapUrl);
             }
         });
 

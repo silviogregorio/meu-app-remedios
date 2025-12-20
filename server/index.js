@@ -421,27 +421,28 @@ const handleSOSInsert = async (payload) => {
 
         if (tokens && tokens.length > 0) {
             const pushTokens = tokens.map(t => t.token);
-            console.log(`📱 [BACKEND] Tentando push para ${pushTokens.length} token(s)`);
+            const fcmTokens = tokens.map(t => t.token);
+            // Obter telefone para ação do WhatsApp (do perfil do usuário ou contato de emergência)
+            const phoneForWhatsapp = userProfile?.phone || patient?.emergency_contact_phone || '';
+
             try {
-                const pushTitle = `🚨 SOS: ${patient?.name || 'Emergência'}`;
-                const pushBody = `${displayAddress || 'Verificar localização no email'}`;
-                const pushResult = await sendPushNotification(
-                    pushTokens,
-                    pushTitle,
-                    pushBody,
-                    {
-                        type: 'sos',
-                        alertId: alert.id,
-                        mapUrl: locationUrl || '/'
-                    }
-                );
-                console.log('✅ [BACKEND] Push enviado!');
+                console.log(`📱 [BACKEND] Tentando push para ${fcmTokens.length} token(s)`);
+                const pushData = {
+                    type: 'sos',
+                    alertId: String(alert.id),
+                    mapUrl: locationUrl || 'https://sigremedios.vercel.app',
+                    phone: String(phoneForWhatsapp), // Novo campo para WhatsApp
+                    patientName: String(patient?.name || 'Alguém')
+                };
+
+                const pushResult = await sendPushNotification(fcmTokens, subject, text, pushData);
+                console.log(`✅ [BACKEND] Push enviado!`);
 
                 // CLEANUP: Remove tokens inválidos do banco
                 if (pushResult && pushResult.failureCount > 0) {
                     pushResult.responses.forEach(async (resp, idx) => {
                         if (!resp.success && resp.error?.code === 'messaging/registration-token-not-registered') {
-                            const badToken = pushTokens[idx];
+                            const badToken = fcmTokens[idx];
                             console.log(`🗑️ [BACKEND] Removendo token inválido do banco...`);
                             await supabaseAdmin.from('fcm_tokens').delete().eq('token', badToken);
                         }
