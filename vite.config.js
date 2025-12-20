@@ -60,7 +60,6 @@ export default defineConfig({
         manualChunks: {
           vendor: ['react', 'react-dom', 'react-router-dom'],
           supabase: ['@supabase/supabase-js'],
-          firebase: ['firebase/app', 'firebase/messaging'],
           ui: ['lucide-react', 'clsx', 'date-fns'],
           utils: ['canvas-confetti', 'html2canvas', 'jspdf']
         }
