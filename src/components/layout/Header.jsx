@@ -268,23 +268,59 @@ const Header = ({ onMenuClick, isPinned }) => {
 
             {user && (
                 <div className="flex items-center gap-3 sm:gap-4 md:gap-6 ml-auto">
-                    {/* 3. Busca */}
+                    {/* Ações Mobile - Aumentando gap */}
+                    <div className="flex items-center gap-5 md:hidden">
+                        <button
+                            onClick={() => setShowSearch(true)}
+                            className="p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-full transition-colors"
+                            title="Buscar Medicamento"
+                        >
+                            <Search size={22} />
+                        </button>
+
+                        <button
+                            className="relative p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-full transition-colors"
+                            onClick={() => setShowNotifications(true)}
+                            title="Notificações"
+                        >
+                            <Bell size={22} />
+                            {pendingShares.length > 0 && (
+                                <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-[10px] font-bold flex items-center justify-center rounded-full border-2 border-white">
+                                    {pendingShares.length}
+                                </span>
+                            )}
+                        </button>
+
+                        <button
+                            onClick={handlePanicClick}
+                            disabled={isTriggeringPanic}
+                            className={`p-2 rounded-full transition-all flex items-center justify-center ${isTriggeringPanic
+                                ? 'bg-red-100 text-red-400 cursor-not-allowed'
+                                : 'bg-red-50 text-red-600 hover:bg-red-100 hover:scale-110 active:scale-95 shadow-md border border-red-200'
+                                }`}
+                            title="BOTÃO DE PÂNICO"
+                        >
+                            <Siren size={24} className={`text-red-600 ${isTriggeringPanic ? 'animate-spin' : 'animate-pulse'}`} />
+                        </button>
+                    </div>
+
+                    {/* 3. Busca (Desktop) */}
                     <button
                         id="tour-search-btn"
                         onClick={() => setShowSearch(true)}
-                        className="flex items-center gap-2 p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-full transition-colors"
+                        className="hidden md:flex items-center gap-2 p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-full transition-colors"
                         title="Buscar Medicamento"
                     >
                         <Search size={22} />
                         <span className="hidden xl:inline text-sm font-medium">Buscar</span>
                     </button>
 
-                    {/* 4. Sirene (Pânico) */}
+                    {/* 4. Sirene (Pânico) (Desktop) */}
                     <button
                         id="emergency-alert-btn"
                         onClick={handlePanicClick}
                         disabled={isTriggeringPanic}
-                        className={`p-2 rounded-full transition-all flex items-center justify-center ${isTriggeringPanic
+                        className={`hidden md:flex p-2 rounded-full transition-all items-center justify-center ${isTriggeringPanic
                             ? 'bg-red-100 text-red-400 cursor-not-allowed'
                             : 'bg-red-50 text-red-600 hover:bg-red-100 hover:scale-110 active:scale-95 shadow-md border border-red-200'
                             }`}
@@ -303,9 +339,9 @@ const Header = ({ onMenuClick, isPinned }) => {
                         <span className="hidden md:inline">SOS</span>
                     </button>
 
-                    {/* 6. Notificações */}
+                    {/* 6. Notificações (Desktop) */}
                     <button
-                        className="relative p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-full transition-colors"
+                        className="hidden md:block relative p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-full transition-colors"
                         onClick={() => setShowNotifications(true)}
                         title="Notificações"
                     >

@@ -444,11 +444,18 @@ const handleSOSInsert = async (payload) => {
 
             // Formatar telefone para exibição: (11) 99999-9999
             let formattedPhone = phoneForWhatsapp;
-            const digits = phoneForWhatsapp.replace(/\D/g, '');
-            if (digits.length === 11) {
-                formattedPhone = `(${digits.substring(0, 2)}) ${digits.substring(2, 7)}-${digits.substring(7)}`;
-            } else if (digits.length === 10) {
-                formattedPhone = `(${digits.substring(0, 2)}) ${digits.substring(2, 6)}-${digits.substring(6)}`;
+            let digits = phoneForWhatsapp.replace(/\D/g, '');
+
+            // Remover 55 se tiver (para formatar bonito)
+            let displayDigits = digits;
+            if (displayDigits.startsWith('55') && displayDigits.length >= 12) {
+                displayDigits = displayDigits.substring(2);
+            }
+
+            if (displayDigits.length === 11) {
+                formattedPhone = `(${displayDigits.substring(0, 2)}) ${displayDigits.substring(2, 7)}-${displayDigits.substring(7)}`;
+            } else if (displayDigits.length === 10) {
+                formattedPhone = `(${displayDigits.substring(0, 2)}) ${displayDigits.substring(2, 6)}-${displayDigits.substring(6)}`;
             }
 
             // CALCULAR IDADE DETALHADA

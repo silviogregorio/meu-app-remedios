@@ -64,7 +64,12 @@ const Layout = () => {
             }
 
             // Show in-app toast
-            showToastRef.current(`🔔 ${title}: ${body}`, 'info');
+            if (payload?.data?.type === 'sos') {
+                const pName = payload.data.patientName || 'Alguém';
+                showToastRef.current(`🔔 SOS de ${pName}`, 'info');
+            } else {
+                showToastRef.current(`🔔 ${title}: ${body}`, 'info');
+            }
 
             // AUTO-OPEN MAP REMOVED by user request
             // User wants to see WHO called before opening map
