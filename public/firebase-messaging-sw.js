@@ -13,51 +13,91 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const messaging = firebase.messaging();
 
-console.log('[SW] 🚀 Service Worker v16 - FCM Native Sound');
+console.log('[SW] 🚀 Service Worker v17 - Restored with Zap');
 
 const broadcastChannel = new BroadcastChannel('fcm-push-channel');
 
-// Handle background messages - FCM with notification payload handles display
-// We just need to handle the click action
-messaging.onBackgroundMessage((payload) => {
-    console.log('[SW] Background message received:', payload);
-    broadcastChannel.postMessage({ type: 'FCM_PUSH', ...payload.data });
+// Intercept push and show custom notification with actions
+self.addEventListener('push', (event) => {
+    if (!event.data) return;
 
-    // FCM with notification payload already shows the notification
-    // We don't need to show another one (would cause duplicate)
-    // The click action is handled by notificationclick event
+    let payload;
+    try {
+        payload = event.data.json();
+    } catch (e) { return; }
+
+    // FCM pode enviar em notification ou data
+    const notification = payload.notification || {};
+    const data = payload.data || {};
+
+    const title = notification.title || data.title || '🚨 EMERGÊNCIA SOS';
+    const body = notification.body || data.body || 'Clique para ver localização';
+
+    const rawPhone = data.phone || '';
+    const phone = rawPhone.replace(/\D/g, '');
+    const mapUrl = data.mapUrl || 'https://sigremedios.vercel.app';
+    const icon = 'https://sigremedios.vercel.app/logo192.png';
+
+    // Broadcast to foreground app
+    broadcastChannel.postMessage({ type: 'FCM_PUSH', ...data });
+
+    // Build actions array
+    const actions = [];
+    if (phone) {
+        actions.push({ action: 'zap', title: '💬 Zap' });
+    }
+
+    const notificationOptions = {
+        body: body,
+        icon: icon,
+        badge: icon,
+        vibrate: [300, 100, 300, 100, 300],
+        tag: 'sos-emergency',
+        renotify: true,
+        requireInteraction: true,
+        silent: false, // Try to enable sound
+        data: {
+            mapUrl: mapUrl,
+            phone: phone
+        },
+        actions: actions
+    };
+
+    event.waitUntil(
+        self.registration.showNotification(title, notificationOptions)
+    );
 });
 
-// CLICK HANDLER
+// CLICK HANDLER - Zap button or body click for map
 self.addEventListener('notificationclick', (event) => {
-    console.log('[SW] Notification clicked:', event.action);
     event.notification.close();
 
-    // Get data from notification or FCM data
     const data = event.notification.data || {};
-    const fcmData = data.FCM_MSG?.data || data;
-
-    const mapUrl = fcmData.mapUrl || data.mapUrl || 'https://sigremedios.vercel.app';
-    const phone = fcmData.phone || data.phone || '';
     const action = event.action;
 
     let urlToOpen;
 
-    if (action === 'zap' && phone) {
-        let formattedPhone = phone.replace(/\D/g, '');
-        if (!formattedPhone.startsWith('55')) {
-            formattedPhone = '55' + formattedPhone;
+    if (action === 'zap' && data.phone) {
+        let phone = data.phone;
+        if (!phone.startsWith('55')) {
+            phone = '55' + phone;
         }
-        urlToOpen = `https://wa.me/${formattedPhone}`;
+        urlToOpen = `https://wa.me/${phone}`;
     } else {
-        urlToOpen = mapUrl;
+        // Body click or any other action -> Map
+        urlToOpen = data.mapUrl || 'https://sigremedios.vercel.app';
     }
 
-    console.log('[SW] Opening URL:', urlToOpen);
+    console.log('[SW v17] Action:', action, '-> Opening:', urlToOpen);
 
     event.waitUntil(
         clients.openWindow(urlToOpen)
     );
+});
+
+messaging.onBackgroundMessage((payload) => {
+    // Already handled by push event above
+    broadcastChannel.postMessage({ type: 'FCM_PUSH', ...payload.data });
 });
 
 self.addEventListener('activate', (event) => {
