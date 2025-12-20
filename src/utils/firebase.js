@@ -2,13 +2,14 @@ import { initializeApp } from 'firebase/app';
 import { getMessaging, getToken, onMessage } from 'firebase/messaging';
 
 // PREENCHA ESTAS CHAVES COM OS DADOS DO SEU PROJETO FIREBASE (Configurações do Projeto > Geral)
+// Hardcoded for production stability (Env vars missing on Vercel)
 const firebaseConfig = {
-    apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "SUA_API_KEY",
-    authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "sig-remedios.firebaseapp.com",
-    projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "sig-remedios",
-    storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "sig-remedios.appspot.com",
-    messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "723963576474",
-    appId: import.meta.env.VITE_FIREBASE_APP_ID || "SEU_APP_ID"
+    apiKey: "AIzaSyCEcfvEqplRdSnniCdq4ZfwwbXnRiexiv0",
+    authDomain: "sig-remedios.firebaseapp.com",
+    projectId: "sig-remedios",
+    storageBucket: "sig-remedios.firebasestorage.app",
+    messagingSenderId: "723963576474",
+    appId: "1:723963576474:web:84d2d1098aebfe355a5f23"
 };
 
 const app = initializeApp(firebaseConfig);
