@@ -442,8 +442,17 @@ const handleSOSInsert = async (payload) => {
             // Se não tiver, tenta contato de emergência
             const phoneForWhatsapp = userPhone || patient?.emergency_contact_phone || '';
 
+            // Formatar telefone para exibição: (11) 99999-9999
+            let formattedPhone = phoneForWhatsapp;
+            const digits = phoneForWhatsapp.replace(/\D/g, '');
+            if (digits.length === 11) {
+                formattedPhone = `(${digits.substring(0, 2)}) ${digits.substring(2, 7)}-${digits.substring(7)}`;
+            } else if (digits.length === 10) {
+                formattedPhone = `(${digits.substring(0, 2)}) ${digits.substring(2, 6)}-${digits.substring(6)}`;
+            }
+
             // Formatar texto para o Push Body para garantir que o telefone apareça
-            const pushPhoneText = phoneForWhatsapp ? `\n📞 Tel: ${phoneForWhatsapp}` : '';
+            const pushPhoneText = phoneForWhatsapp ? `\n📞 Tel: ${formattedPhone}` : '';
             const pushBody = `${patient?.name || 'Alguém'} precisa de ajuda!${pushPhoneText}\n📍 ${displayAddress || 'Ver localização'}`;
 
             try {
@@ -452,7 +461,7 @@ const handleSOSInsert = async (payload) => {
                     type: 'sos',
                     alertId: String(alert.id),
                     mapUrl: locationUrl || 'https://sigremedios.vercel.app',
-                    phone: String(phoneForWhatsapp),
+                    phone: String(digits), // ENVIAR APENAS DIGITOS PARA O WHATSAPP LINK
                     patientName: String(patient?.name || 'Alguém')
                 };
 
