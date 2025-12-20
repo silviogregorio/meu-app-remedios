@@ -13,79 +13,51 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const messaging = firebase.messaging();
 
-console.log('[SW] 🚀 Service Worker v5 - Single Handler');
+console.log('[SW] 🚀 Service Worker v6 - FCM Auto-Display');
 
 // BroadcastChannel for foreground communication
 const broadcastChannel = new BroadcastChannel('fcm-push-channel');
 
-// SINGLE HANDLER - Firebase onBackgroundMessage handles DATA-ONLY messages
+// This handler is called ONLY for data-only messages
+// When notification field is present, FCM auto-displays and this is NOT called
+// We keep it as a fallback
 messaging.onBackgroundMessage((payload) => {
-    console.log('[SW] 📨 Message received:', JSON.stringify(payload));
+    console.log('[SW] 📨 onBackgroundMessage (fallback):', payload);
 
-    // Extract data from the data-only message
-    const data = payload.data || {};
-    const title = data.title || '🚨 EMERGÊNCIA SOS';
-    const body = data.body || 'Clique para ver localização';
-    const mapUrl = data.mapUrl || '/';
-    const imageUrl = data.image || '/logo192.png';
-
-    console.log('[SW] 🗺️ Map URL:', mapUrl);
-
-    // Broadcast to foreground app
+    // Broadcast to foreground
     broadcastChannel.postMessage({
         type: 'FCM_PUSH',
-        title,
-        body,
-        mapUrl,
-        data
+        ...payload.data
     });
 
-    // Show notification with click data
-    const options = {
-        body: body,
-        icon: '/logo192.png',
-        badge: '/logo192.png',
-        image: imageUrl,
-        tag: 'sos-alert',
-        renotify: true,
-        requireInteraction: true,
-        vibrate: [300, 100, 300, 100, 300],
-        data: {
-            mapUrl: mapUrl,
-            url: mapUrl
-        }
-    };
+    // FCM should have already displayed the notification
+    // Only show if it's a data-only message (no notification field)
+    if (!payload.notification) {
+        const title = payload.data?.title || '🚨 SOS';
+        const body = payload.data?.body || 'Emergência';
 
-    console.log('[SW] 🔔 Showing notification with options:', JSON.stringify(options));
-
-    return self.registration.showNotification(title, options);
+        return self.registration.showNotification(title, {
+            body: body,
+            icon: '/logo192.png',
+            data: { mapUrl: payload.data?.mapUrl }
+        });
+    }
 });
 
-// NOTIFICATION CLICK HANDLER
+// NOTIFICATION CLICK - Fallback handler
+// When FCM auto-displays with fcm_options.link, the click is handled by FCM
+// This handler is for notifications we create ourselves
 self.addEventListener('notificationclick', (event) => {
-    console.log('[SW] 🖱️ Notification clicked!');
-    console.log('[SW] 📦 Notification data:', JSON.stringify(event.notification.data));
-
+    console.log('[SW] 🖱️ Notification click (fallback)');
     event.notification.close();
 
-    // Get the map URL from notification data
-    const notificationData = event.notification.data || {};
-    const mapUrl = notificationData.mapUrl || notificationData.url || '/';
+    const mapUrl = event.notification.data?.mapUrl || '/';
+    console.log('[SW] 🗺️ Opening:', mapUrl);
 
-    console.log('[SW] 🗺️ Opening URL:', mapUrl);
-
-    // Open the URL
-    event.waitUntil(
-        clients.openWindow(mapUrl).then((windowClient) => {
-            console.log('[SW] ✅ Window opened:', windowClient);
-        }).catch((error) => {
-            console.error('[SW] ❌ Failed to open window:', error);
-        })
-    );
+    event.waitUntil(clients.openWindow(mapUrl));
 });
 
-// Log when SW is activated
 self.addEventListener('activate', (event) => {
-    console.log('[SW] ✅ Service Worker v5 activated');
+    console.log('[SW] ✅ Service Worker v6 activated');
     event.waitUntil(clients.claim());
 });

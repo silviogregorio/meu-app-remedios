@@ -31,9 +31,10 @@ export const initFirebaseAdmin = async () => {
 };
 
 /**
- * Send push notification - DATA-ONLY message
- * This ensures Service Worker has FULL control over notification display and click handling
- * Top-level 'notification' field is REMOVED to prevent FCM auto-display which bypasses SW click handler
+ * Send push notification with:
+ * - Top-level 'notification' for RELIABLE background delivery
+ * - webpush.fcm_options.link for click action (opens Google Maps)
+ * - data field for foreground handling
  */
 export const sendPushNotification = async (tokens, title, body, data = {}) => {
     if (!isInitialized) await initFirebaseAdmin();
@@ -46,42 +47,51 @@ export const sendPushNotification = async (tokens, title, body, data = {}) => {
 
     const mapUrl = data.mapUrl || 'https://sigremedios.vercel.app';
 
-    // DATA-ONLY message - Service Worker controls everything
-    // NO top-level 'notification' - that would cause FCM to auto-display and bypass SW click handler
     const message = {
+        // TOP-LEVEL NOTIFICATION - Required for background delivery on web
+        // FCM will display this automatically when app is in background
+        notification: {
+            title: title,
+            body: body,
+            imageUrl: 'https://sigremedios.vercel.app/logo192.png'
+        },
+
+        // DATA - For foreground handling in Layout.jsx
         data: {
             title: String(title),
             body: String(body),
             type: String(data.type || 'sos'),
             alertId: String(data.alertId || ''),
             mapUrl: String(mapUrl),
-            image: 'https://sigremedios.vercel.app/logo192.png',
             timestamp: Date.now().toString()
         },
 
-        // Web Push specific config
+        // WEB PUSH - Click action via fcm_options.link
         webpush: {
             headers: {
                 Urgency: 'high',
                 TTL: '86400'
             },
-            // fcm_options.link is the click action URL
+            // This is the URL that opens when user clicks the notification
             fcm_options: {
                 link: mapUrl
             }
         },
 
-        // Android config - data only, no notification
+        // ANDROID
         android: {
             priority: 'high',
-            ttl: 86400000
+            notification: {
+                clickAction: mapUrl,
+                sound: 'default'
+            }
         },
 
         tokens: tokens
     };
 
     try {
-        console.log('📱 [FCM] Sending DATA-ONLY message with mapUrl:', mapUrl);
+        console.log('📱 [FCM] Sending with notification + fcm_options.link:', mapUrl);
         const response = await admin.messaging().sendEachForMulticast(message);
         console.log(`✅ [FCM] Success: ${response.successCount}, Failed: ${response.failureCount}`);
 
