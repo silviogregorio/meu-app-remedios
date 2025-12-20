@@ -46,9 +46,13 @@ export const sendPushNotification = async (tokens, title, body, data = {}) => {
 
     const mapUrl = data.mapUrl || 'https://sigremedios.vercel.app';
 
-    // DATA-ONLY message - SW controls display with custom buttons
-    // Android notification config enables sound
+    //HYBRID: notification for sound + data for SW actions
     const message = {
+        // Top-level notification - triggers native sound
+        notification: {
+            title: String(title),
+            body: String(body)
+        },
 
         // DATA for Service Worker customization
         data: {
