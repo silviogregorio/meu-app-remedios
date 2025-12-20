@@ -13,89 +13,51 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const messaging = firebase.messaging();
 
-console.log('[SW] 🚀 Service Worker v15 - Simplified Actions');
+console.log('[SW] 🚀 Service Worker v16 - FCM Native Sound');
 
 const broadcastChannel = new BroadcastChannel('fcm-push-channel');
 
-self.addEventListener('push', (event) => {
-    if (!event.data) return;
+// Handle background messages - FCM with notification payload handles display
+// We just need to handle the click action
+messaging.onBackgroundMessage((payload) => {
+    console.log('[SW] Background message received:', payload);
+    broadcastChannel.postMessage({ type: 'FCM_PUSH', ...payload.data });
 
-    let payload;
-    try {
-        payload = event.data.json();
-    } catch (e) { return; }
-
-    const data = payload.data || payload;
-    const title = data.title || '🚨 EMERGÊNCIA SOS';
-    const body = data.body || 'Clique para ver localização';
-
-    const rawPhone = data.phone || '';
-    const phone = rawPhone.replace(/\D/g, '');
-    const mapUrl = data.mapUrl || 'https://sigremedios.vercel.app';
-    const icon = 'https://sigremedios.vercel.app/logo192.png';
-
-    // Broadcast to foreground
-    broadcastChannel.postMessage({ type: 'FCM_PUSH', ...data });
-
-    // SIMPLIFIED: Only one action button (Zap) if phone exists
-    // Body click ALWAYS opens Map
-    const actions = [];
-    if (phone) {
-        actions.push({ action: 'zap', title: '💬 Zap' });
-    }
-
-    const notificationOptions = {
-        body: body,
-        icon: icon,
-        badge: icon,
-        vibrate: [300, 100, 300, 100, 300],
-        tag: 'sos-emergency',
-        renotify: true,
-        requireInteraction: true,
-        silent: false, // Ensure sound
-        data: {
-            mapUrl: mapUrl,
-            phone: phone
-        },
-        actions: actions
-    };
-
-    event.waitUntil(
-        self.registration.showNotification(title, notificationOptions)
-    );
+    // FCM with notification payload already shows the notification
+    // We don't need to show another one (would cause duplicate)
+    // The click action is handled by notificationclick event
 });
 
-// CLICK HANDLER - Ultra simple
+// CLICK HANDLER
 self.addEventListener('notificationclick', (event) => {
+    console.log('[SW] Notification clicked:', event.action);
     event.notification.close();
 
+    // Get data from notification or FCM data
     const data = event.notification.data || {};
+    const fcmData = data.FCM_MSG?.data || data;
+
+    const mapUrl = fcmData.mapUrl || data.mapUrl || 'https://sigremedios.vercel.app';
+    const phone = fcmData.phone || data.phone || '';
     const action = event.action;
 
     let urlToOpen;
 
-    // If ZAP button clicked AND phone exists -> WhatsApp
-    // EVERYTHING ELSE -> Map
-    if (action === 'zap' && data.phone) {
-        let phone = data.phone;
-        if (!phone.startsWith('55')) {
-            phone = '55' + phone;
+    if (action === 'zap' && phone) {
+        let formattedPhone = phone.replace(/\D/g, '');
+        if (!formattedPhone.startsWith('55')) {
+            formattedPhone = '55' + formattedPhone;
         }
-        urlToOpen = `https://wa.me/${phone}`;
+        urlToOpen = `https://wa.me/${formattedPhone}`;
     } else {
-        // Body click, any other action, or missing phone -> Map
-        urlToOpen = data.mapUrl || 'https://sigremedios.vercel.app';
+        urlToOpen = mapUrl;
     }
 
-    console.log('[SW v15] Action:', action, '-> Opening:', urlToOpen);
+    console.log('[SW] Opening URL:', urlToOpen);
 
     event.waitUntil(
         clients.openWindow(urlToOpen)
     );
-});
-
-messaging.onBackgroundMessage((payload) => {
-    broadcastChannel.postMessage({ type: 'FCM_PUSH', ...payload.data });
 });
 
 self.addEventListener('activate', (event) => {

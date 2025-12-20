@@ -46,8 +46,18 @@ export const sendPushNotification = async (tokens, title, body, data = {}) => {
 
     const mapUrl = data.mapUrl || 'https://sigremedios.vercel.app';
 
-    // DATA-ONLY message - Service Worker will handle everything
+    // MESSAGE WITH NOTIFICATION FOR FCM NATIVE SOUND
+    // Top-level notification = FCM/Google Play Services handles it (with sound)
+    // Data = Service Worker can access for actions
     const message = {
+        // TOP-LEVEL NOTIFICATION - FCM native processing with sound
+        notification: {
+            title: String(title),
+            body: String(body),
+            imageUrl: 'https://sigremedios.vercel.app/logo192.png'
+        },
+
+        // DATA for Service Worker customization
         data: {
             title: String(title),
             body: String(body),
@@ -56,27 +66,33 @@ export const sendPushNotification = async (tokens, title, body, data = {}) => {
             mapUrl: String(mapUrl),
             phone: String(data.phone || ''),
             patientName: String(data.patientName || ''),
+            formattedPhone: String(data.formattedPhone || ''),
             icon: 'https://sigremedios.vercel.app/logo192.png',
             timestamp: Date.now().toString()
         },
 
-        // Webpush headers only - NO notification field (SW handles display)
-        // This prevents duplicate notifications
+        // Webpush for browser
         webpush: {
             headers: {
                 Urgency: 'high',
                 TTL: '86400'
+            },
+            fcmOptions: {
+                link: mapUrl // Click action for web
             }
         },
 
+        // Android specific with sound
         android: {
             priority: 'high',
             notification: {
-                priority: 'max', // Max priority for Android
-                visibility: 'public', // Show on lock screen
-                channelId: 'sos_alerts', // Channel for sound/settings
+                priority: 'max',
+                visibility: 'public',
+                channelId: 'sos_alerts',
+                sound: 'default',
                 defaultSound: true,
-                defaultVibrateTimings: true
+                defaultVibrateTimings: true,
+                clickAction: mapUrl
             }
         },
 
