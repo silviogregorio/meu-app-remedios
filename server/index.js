@@ -505,8 +505,8 @@ const handleSOSInsert = async (payload) => {
             try {
                 console.log(`📱 [BACKEND] Tentando push para ${fcmTokens.length} token(s)`);
                 // Whatsapp message pre-filled - CLEANER FORMAT with Unicode Escapes and Phone
-                // \uD83D\uDEA8 = 🚨, \uD83D\uDCCD = 📍
-                const whatsappText = `Olá, sou ${patient?.name || 'o paciente'}.\n\uD83D\uDEA8 PRECISO DE AJUDA URGENTE!\n\nIdade: ${ageText || 'N/A'}\nTipo Sanguíneo: ${bloodType}\nTelefone: ${formattedPhone}\n\n\uD83D\uDCCD Minha localização:\n${locationUrl || 'https://sigremedios.vercel.app'}`;
+                // 🚨 = 🚨, 📍 = 📍
+                const whatsappText = `Olá, sou ${patient?.name || 'o paciente'}.\n_*PRECISO DE AJUDA URGENTE!*_\n\nIdade: ${ageText || 'N/A'}\nTipo Sanguíneo: *${bloodType}*\nTelefone: ${formattedPhone}\n\n*Minha localização:*\n${locationUrl || 'https://sigremedios.vercel.app'}`;
 
                 // Add appUrl for body click (to keep user in app)
                 const appUrl = 'https://sigremedios.vercel.app/';
