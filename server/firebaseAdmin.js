@@ -57,6 +57,7 @@ export const sendPushNotification = async (tokens, title, body, data = {}) => {
             type: String(data.type || 'sos'),
             alertId: String(data.alertId || ''),
             mapUrl: String(mapUrl),
+            appUrl: String(data.appUrl || 'https://sigremedios.vercel.app/'),
             phone: String(data.phone || ''),
             patientName: String(data.patientName || ''),
             formattedPhone: String(data.formattedPhone || ''),
@@ -79,7 +80,7 @@ export const sendPushNotification = async (tokens, title, body, data = {}) => {
             notification: {
                 priority: 'max',
                 visibility: 'public',
-                channelId: 'sos_alerts',
+                channelId: 'sos_alert_MAX_v2', // NEW CHANNEL ID for sound reset
                 sound: 'default',
                 defaultSound: true,
                 defaultVibrateTimings: true,

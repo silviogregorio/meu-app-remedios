@@ -13,11 +13,10 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const messaging = firebase.messaging();
 
-console.log('[SW] 🚀 Service Worker v18 - Zap with Message');
+console.log('[SW] 🚀 Service Worker v19 - App Navigation');
 
 const broadcastChannel = new BroadcastChannel('fcm-push-channel');
 
-// Intercept push and show custom notification with actions
 self.addEventListener('push', (event) => {
     if (!event.data) return;
 
@@ -30,17 +29,19 @@ self.addEventListener('push', (event) => {
     const data = payload.data || {};
 
     const title = notification.title || data.title || '🚨 EMERGÊNCIA SOS';
-    const body = notification.body || data.body || 'Clique para ver localização';
+    const body = notification.body || data.body || 'Clique para ver detalhes';
 
+    // Configs
     const rawPhone = data.phone || '';
     const phone = rawPhone.replace(/\D/g, '');
     const mapUrl = data.mapUrl || 'https://sigremedios.vercel.app';
+    const appUrl = data.appUrl || 'https://sigremedios.vercel.app/'; // Navigation target for Body Click
     const icon = 'https://sigremedios.vercel.app/logo192.png';
 
-    // Broadcast to foreground app
+    // Broadcast to foreground
     broadcastChannel.postMessage({ type: 'FCM_PUSH', ...data });
 
-    // Build actions array
+    // Actions
     const actions = [];
     if (phone) {
         actions.push({ action: 'zap', title: '💬 Zap' });
@@ -54,8 +55,9 @@ self.addEventListener('push', (event) => {
         tag: 'sos-emergency',
         renotify: true,
         requireInteraction: true,
-        silent: false, // Try to enable sound
+        silent: false,
         data: {
+            appUrl: appUrl,
             mapUrl: mapUrl,
             phone: phone,
             whatsappMessage: data.whatsappMessage || ''
@@ -68,7 +70,7 @@ self.addEventListener('push', (event) => {
     );
 });
 
-// CLICK HANDLER - Zap button or body click for map
+// CLICK HANDLER
 self.addEventListener('notificationclick', (event) => {
     event.notification.close();
 
@@ -78,26 +80,25 @@ self.addEventListener('notificationclick', (event) => {
     let urlToOpen;
 
     if (action === 'zap' && data.phone) {
+        // ZAP ACTION -> WhatsApp (External)
         let phone = data.phone;
         if (!phone.startsWith('55')) {
             phone = '55' + phone;
         }
 
         let zapUrl = `https://wa.me/${phone}`;
-
-        // Add pre-filled message if available
         if (data.whatsappMessage) {
             const encodedMsg = encodeURIComponent(data.whatsappMessage);
             zapUrl += `?text=${encodedMsg}`;
         }
-
         urlToOpen = zapUrl;
     } else {
-        // Body click or any other action -> Map
-        urlToOpen = data.mapUrl || 'https://sigremedios.vercel.app';
+        // BODY CLICK -> App Dashboard (Internal)
+        // Solves "não tem como voltar" by keeping user in the app flow
+        urlToOpen = data.appUrl || 'https://sigremedios.vercel.app/';
     }
 
-    console.log('[SW v18] Action:', action, '-> Opening:', urlToOpen);
+    console.log('[SW v19] Action:', action, '-> Opening:', urlToOpen);
 
     event.waitUntil(
         clients.openWindow(urlToOpen)
@@ -105,7 +106,6 @@ self.addEventListener('notificationclick', (event) => {
 });
 
 messaging.onBackgroundMessage((payload) => {
-    // Already handled by push event above
     broadcastChannel.postMessage({ type: 'FCM_PUSH', ...payload.data });
 });
 
