@@ -381,57 +381,55 @@ const Header = ({ onMenuClick, isPinned }) => {
                         )}
                     </div>
                 </div>
-            </div>
-    )
-}
+            )}
 
-<NotificationsModal
-    isOpen={showNotifications}
-    onClose={() => setShowNotifications(false)}
-/>
+            <NotificationsModal
+                isOpen={showNotifications}
+                onClose={() => setShowNotifications(false)}
+            />
 
-{ showSOS && <SOSCard onClose={() => setShowSOS(false)} /> }
+            {showSOS && <SOSCard onClose={() => setShowSOS(false)} />}
 
 
 
-{/* Modal de Confirmação de Pânico Customizado */ }
-{
-    showPanicConfirm && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
-            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-sm w-full p-6 border border-red-100 dark:border-red-900/30 overflow-hidden relative">
-                <div className="absolute -top-12 -right-12 w-24 h-24 bg-red-50 dark:bg-red-900/10 rounded-full blur-3xl"></div>
-                <div className="flex flex-col items-center text-center relative z-10">
-                    <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mb-4 animate-pulse">
-                        <Siren size={32} className="text-red-600" />
+            {/* Modal de Confirmação de Pânico Customizado */}
+            {
+                showPanicConfirm && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
+                        <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-sm w-full p-6 border border-red-100 dark:border-red-900/30 overflow-hidden relative">
+                            <div className="absolute -top-12 -right-12 w-24 h-24 bg-red-50 dark:bg-red-900/10 rounded-full blur-3xl"></div>
+                            <div className="flex flex-col items-center text-center relative z-10">
+                                <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mb-4 animate-pulse">
+                                    <Siren size={32} className="text-red-600" />
+                                </div>
+                                <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Confirmar Alerta SOS?</h3>
+                                <p className="text-slate-600 dark:text-slate-400 text-sm mb-6">
+                                    Isso enviará sua localização atual para {patients[0]?.name} e para seus contatos de emergência.
+                                </p>
+                                <div className="flex gap-3 w-full">
+                                    <button
+                                        onClick={() => setShowPanicConfirm(false)}
+                                        className="flex-1 px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-medium hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                                    >
+                                        Cancelar
+                                    </button>
+                                    <button
+                                        onClick={confirmPanicAlert}
+                                        className="flex-1 px-4 py-3 rounded-xl bg-red-600 text-white font-bold hover:bg-red-700 transition-colors shadow-lg shadow-red-500/30 active:scale-95 transition-transform"
+                                    >
+                                        Enviar Agora
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Confirmar Alerta SOS?</h3>
-                    <p className="text-slate-600 dark:text-slate-400 text-sm mb-6">
-                        Isso enviará sua localização atual para {patients[0]?.name} e para seus contatos de emergência.
-                    </p>
-                    <div className="flex gap-3 w-full">
-                        <button
-                            onClick={() => setShowPanicConfirm(false)}
-                            className="flex-1 px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-medium hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-                        >
-                            Cancelar
-                        </button>
-                        <button
-                            onClick={confirmPanicAlert}
-                            className="flex-1 px-4 py-3 rounded-xl bg-red-600 text-white font-bold hover:bg-red-700 transition-colors shadow-lg shadow-red-500/30 active:scale-95 transition-transform"
-                        >
-                            Enviar Agora
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    )
-}
+                )
+            }
 
-<MedicationSearchModal
-    isOpen={showSearch}
-    onClose={() => setShowSearch(false)}
-/>
+            <MedicationSearchModal
+                isOpen={showSearch}
+                onClose={() => setShowSearch(false)}
+            />
         </header >
     );
 };
