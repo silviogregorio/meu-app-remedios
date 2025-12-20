@@ -63,12 +63,18 @@ const Layout = () => {
                 }
             }
 
-            // Show in-app toast only - Service Worker handles the push notification
-            // This prevents duplicate notifications
-            const toastMessage = mapUrl && mapUrl !== '/'
-                ? `🔔 ${title}: ${body} - Clique na notificação para abrir o mapa`
-                : `🔔 ${title}: ${body}`;
-            showToastRef.current(toastMessage, 'info');
+            // Show in-app toast
+            showToastRef.current(`🔔 ${title}: ${body}`, 'info');
+
+            // AUTO-OPEN MAP for SOS notifications when in foreground
+            // Since fcm_options.link only works in background, we handle foreground here
+            if (payload?.data?.type === 'sos' && mapUrl && mapUrl !== '/') {
+                console.log('🗺️ Opening map URL:', mapUrl);
+                // Small delay to ensure toast shows first
+                setTimeout(() => {
+                    window.open(mapUrl, '_blank');
+                }, 500);
+            }
         });
 
         return () => {
