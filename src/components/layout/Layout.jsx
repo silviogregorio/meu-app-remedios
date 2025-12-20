@@ -49,7 +49,7 @@ const Layout = () => {
 
                     oscillator.start();
 
-                    // Play SOS pattern: 3 short, 3 long, 3 short
+                    // Play SOS pattern
                     setTimeout(() => { oscillator.frequency.value = 0; }, 200);
                     setTimeout(() => { oscillator.frequency.value = 800; }, 300);
                     setTimeout(() => { oscillator.frequency.value = 0; }, 500);
@@ -63,35 +63,12 @@ const Layout = () => {
                 }
             }
 
-            // ALWAYS try to show browser notification with click handler
-            if (Notification.permission === 'granted') {
-                try {
-                    const notification = new Notification(title, {
-                        body: body,
-                        icon: '/logo192.png',
-                        badge: '/logo192.png',
-                        requireInteraction: true,
-                        vibrate: [300, 100, 300, 100, 300]
-                    });
-                    console.log('✅ Browser notification criada:', title);
-
-                    // Handle click - open map if available
-                    notification.onclick = () => {
-                        notification.close();
-                        if (mapUrl && mapUrl !== '/') {
-                            window.open(mapUrl, '_blank');
-                        }
-                    };
-
-                    // Auto-close after 15 seconds
-                    setTimeout(() => notification.close(), 15000);
-                } catch (err) {
-                    console.warn('⚠️ Browser notification failed:', err);
-                }
-            }
-
-            // ALWAYS show in-app toast as backup (use ref to get current function)
-            showToastRef.current(`🔔 ${title}: ${body}`, 'info');
+            // Show in-app toast only - Service Worker handles the push notification
+            // This prevents duplicate notifications
+            const toastMessage = mapUrl && mapUrl !== '/'
+                ? `🔔 ${title}: ${body} - Clique na notificação para abrir o mapa`
+                : `🔔 ${title}: ${body}`;
+            showToastRef.current(toastMessage, 'info');
         });
 
         return () => {
