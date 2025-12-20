@@ -308,6 +308,9 @@ const handleSOSInsert = async (payload) => {
         const { data: userProfile, error: profileError } = await supabaseAdmin.from('profiles').select('*').eq('id', alert.triggered_by).single();
         if (profileError) console.error('❌ [BACKEND] Erro ao buscar profile:', profileError);
 
+        console.log('👤 [BACKEND] User Profile fetched:', userProfile ? `Found (ID: ${userProfile.id})` : 'Not Found');
+        console.log('📞 [BACKEND] User Phone:', userProfile?.phone || 'N/A');
+
         // 3. Buscar Prescrições e Medicamentos do Paciente
         const { data: prescriptions } = await supabaseAdmin
             .from('prescriptions')

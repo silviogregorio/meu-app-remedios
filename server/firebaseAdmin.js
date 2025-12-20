@@ -69,7 +69,14 @@ export const sendPushNotification = async (tokens, title, body, data = {}) => {
         },
 
         android: {
-            priority: 'high'
+            priority: 'high',
+            notification: {
+                priority: 'max', // Max priority for Android
+                visibility: 'public', // Show on lock screen
+                channelId: 'sos_alerts', // Channel for sound/settings
+                defaultSound: true,
+                defaultVibrateTimings: true
+            }
         },
 
         tokens: tokens
