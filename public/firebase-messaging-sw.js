@@ -13,7 +13,7 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const messaging = firebase.messaging();
 
-console.log('[SW] 🚀 Service Worker v9 - Phone Display & Fixes');
+console.log('[SW] 🚀 Service Worker v14 - Map Fix');
 
 const broadcastChannel = new BroadcastChannel('fcm-push-channel');
 
@@ -27,28 +27,26 @@ self.addEventListener('push', (event) => {
 
     const data = payload.data || payload;
     const title = data.title || '🚨 EMERGÊNCIA SOS';
-
-    // FORMAT BODY WITH PHONE
     let body = data.body || 'Clique para ver localização';
-    // Phone is already in body from backend
-    const rawPhone = data.phone || '';
-    const phone = rawPhone.replace(/\D/g, ''); // Digits only for actions
 
+    const rawPhone = data.phone || '';
+    const phone = rawPhone.replace(/\D/g, '');
     const mapUrl = data.mapUrl || 'https://sigremedios.vercel.app';
     const icon = 'https://sigremedios.vercel.app/logo192.png';
 
     // Broadcast to foreground
     broadcastChannel.postMessage({ type: 'FCM_PUSH', ...data });
 
-    const actions = [
-        { action: 'action_map_v3', title: '📍 Mapa' }
-    ];
+    // ACTIONS: Mapa PRIMEIRO, Zap DEPOIS (se tiver telefone)
+    const actions = [];
 
+    // SEMPRE adicionar Mapa primeiro
+    actions.push({ action: 'MAPA', title: '📍 Mapa' });
+
+    // Adicionar Zap apenas se tiver telefone
     if (phone) {
-        actions.push({ action: 'action_whatsapp_v3', title: '💚 Zap' });
+        actions.push({ action: 'ZAP', title: '💬 Zap' });
     }
-
-    // REMOVED 'Dismiss' button as requested
 
     const notificationOptions = {
         body: body,
@@ -70,34 +68,48 @@ self.addEventListener('push', (event) => {
     );
 });
 
+// CLICK HANDLER - Ultra explicit with switch
 self.addEventListener('notificationclick', (event) => {
-    console.log('[SW] 🖱️ Clicked:', event.action);
     event.notification.close();
 
     const data = event.notification.data || {};
-    let urlToOpen = data.mapUrl || 'https://sigremedios.vercel.app';
+    const action = event.action || '';
 
-    if (event.action === 'action_whatsapp_v3' && data.phone) {
-        let phone = data.phone;
-        if (phone.length <= 11 && !phone.startsWith('55')) {
-            phone = '55' + phone;
-        }
-        urlToOpen = `https://wa.me/${phone}`;
-    } else if (event.action === 'action_map_v3') {
-        urlToOpen = data.mapUrl; // Explicitly Map
+    console.log('[SW v14] Action:', action);
+    console.log('[SW v14] MapUrl:', data.mapUrl);
+    console.log('[SW v14] Phone:', data.phone);
+
+    let urlToOpen;
+
+    switch (action) {
+        case 'ZAP':
+            // WhatsApp
+            if (data.phone) {
+                let phone = data.phone;
+                if (phone.length <= 11 && !phone.startsWith('55')) {
+                    phone = '55' + phone;
+                }
+                urlToOpen = `https://wa.me/${phone}`;
+            } else {
+                urlToOpen = data.mapUrl || 'https://sigremedios.vercel.app';
+            }
+            break;
+
+        case 'MAPA':
+            // Google Maps - EXPLICIT
+            urlToOpen = data.mapUrl || 'https://sigremedios.vercel.app';
+            break;
+
+        default:
+            // Body click or unknown action -> Mapa
+            urlToOpen = data.mapUrl || 'https://sigremedios.vercel.app';
+            break;
     }
-    // Else (generic body click) -> defaults to mapUrl
 
-    // FORCE OPEN NEW WINDOW - To prevent overwriting the app tab
-    // User feedback: "opens map on top of app, is this good?" -> No, keep app open.
+    console.log('[SW v14] Opening URL:', urlToOpen);
+
     event.waitUntil(
         clients.openWindow(urlToOpen)
-            .then(windowClient => {
-                console.log('[SW] ✅ Opened in new window:', windowClient);
-            })
-            .catch(err => {
-                console.error('[SW] Failed to open window:', err);
-            })
     );
 });
 

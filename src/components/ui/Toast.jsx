@@ -2,13 +2,13 @@ import React, { useEffect } from 'react';
 import { CheckCircle, AlertCircle, X } from 'lucide-react';
 import clsx from 'clsx';
 
-const Toast = ({ message, type = 'success', onClose }) => {
+const Toast = ({ message, type = 'success', onClose, duration = 5000 }) => {
     useEffect(() => {
         const timer = setTimeout(() => {
             onClose();
-        }, 5000); // Aumentado de 3s para 5s para melhor leitura
+        }, duration);
         return () => clearTimeout(timer);
-    }, [onClose]);
+    }, [onClose, duration]);
 
     return (
         <div className={clsx(

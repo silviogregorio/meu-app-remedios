@@ -70,7 +70,8 @@ const Layout = () => {
 
                 showToastRef.current(
                     `O paciente ${pName}, telefone ${pPhone} está precisando de ajuda URGENTE! Veja detalhes na notificação do celular ou pelo aplicativo.`,
-                    'error' // Using 'error' usually gives red color/more attention, or sticky
+                    'error',
+                    10000 // 10 seconds
                 );
             } else {
                 showToastRef.current(`🔔 ${title}: ${body}`, 'info');

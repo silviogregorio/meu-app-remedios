@@ -33,9 +33,9 @@ export const AppProvider = ({ children }) => {
     });
 
 
-    // Helper de Toast
-    const showToast = (message, type = 'success') => {
-        setToast({ message, type });
+    // Helper de Toast (supports optional duration)
+    const showToast = (message, type = 'success', duration = 5000) => {
+        setToast({ message, type, duration });
     };
 
     // Helpers de Transformação de Dados
@@ -1056,7 +1056,7 @@ export const AppProvider = ({ children }) => {
             logout: authSignOut
         }}>
             {children}
-            {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+            {toast && <Toast message={toast.message} type={toast.type} duration={toast.duration} onClose={() => setToast(null)} />}
         </AppContext.Provider>
     );
 };
