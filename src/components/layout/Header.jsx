@@ -267,7 +267,7 @@ const Header = ({ onMenuClick, isPinned }) => {
             </div>
 
             {user && (
-                <div className="flex items-center gap-1 sm:gap-2 md:gap-4 ml-auto">
+                <div className="flex items-center gap-3 sm:gap-4 md:gap-6 ml-auto">
                     {/* 3. Busca */}
                     <button
                         id="tour-search-btn"

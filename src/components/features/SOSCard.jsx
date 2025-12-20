@@ -9,7 +9,7 @@ import { getApiEndpoint } from '../../config/api';
 import confetti from 'canvas-confetti';
 
 const SOSCard = ({ onClose }) => {
-    const { patients, prescriptions, user, medications } = useApp();
+    const { patients, prescriptions, user, medications, triggerPanicAlert, showToast } = useApp();
     const printRef = useRef();
 
     // Add class to body when mounted to handle print styles
@@ -47,7 +47,6 @@ const SOSCard = ({ onClose }) => {
     const [emailAddress, setEmailAddress] = React.useState('');
     const [sendingEmail, setSendingEmail] = React.useState(false);
     const [generatingPDF, setGeneratingPDF] = React.useState(false);
-    const { showToast } = useApp();
 
     const handleEmail = () => {
         setEmailModalOpen(true);
@@ -372,6 +371,23 @@ const SOSCard = ({ onClose }) => {
                         >
                             <MessageCircle size={18} className="mr-2" />
                             Enviar ZAP
+                        </Button>
+
+                        <Button
+                            className="flex-1 sm:flex-none bg-red-600 hover:bg-red-700 text-white shadow-lg whitespace-nowrap animate-pulse"
+                            onClick={async () => {
+                                if (!navigator.geolocation) {
+                                    showToast('Geolocalização não suportada.', 'error');
+                                    return;
+                                }
+                                showToast('Obtendo localização...', 'info');
+                                navigator.geolocation.getCurrentPosition(async (pos) => {
+                                    await triggerPanicAlert(selectedPatientId, pos.coords.latitude, pos.coords.longitude);
+                                }, () => showToast('Erro ao obter localização. Verifique as permissões.', 'error'));
+                            }}
+                        >
+                            <AlertTriangle size={18} className="mr-2" />
+                            Acionar Socorro
                         </Button>
 
                         <Button

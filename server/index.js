@@ -4,8 +4,16 @@ import dotenv from 'dotenv';
 import { body, validationResult } from 'express-validator';
 import rateLimit from 'express-rate-limit';
 import { sendEmail, verifyConnection } from './emailService.js';
+import { initFirebaseAdmin, sendPushNotification } from './firebaseAdmin.js';
+import { createClient } from '@supabase/supabase-js';
 
-dotenv.config();
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+dotenv.config({ path: join(__dirname, '../.env') });
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -163,14 +171,60 @@ app.post('/api/send-email', validateEmail, async (req, res) => {
             });
         }
 
-        const { to, subject, text, observations, type, senderName, senderEmail, sosData, reportData, healthLogsData, healthLogsByPatient, attachments } = req.body;
+        const { to, subject, text, observations, type, senderName, senderEmail, sosData, reportData, healthLogsData, healthLogsByPatient, attachments, tokens } = req.body;
 
         console.log('Received Body Keys:', Object.keys(req.body));
         console.log('healthLogsData:', req.body.healthLogsData ? `Array with ${req.body.healthLogsData.length} items` : 'undefined');
         if (attachments) console.log('Has Attachments:', attachments.length);
 
+        // Enriquecer dados de SOS com Geocoding Reverso (se houver lat/lng)
+        if (type === 'sos' && sosData && sosData.lat && sosData.lng) {
+            try {
+                console.log(`[SOS] Buscando endereço para ${sosData.lat}, ${sosData.lng}...`);
+                const geoResponse = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${sosData.lat}&lon=${sosData.lng}`, {
+                    headers: { 'User-Agent': 'SiG-Remedios-App' }
+                });
+                if (geoResponse.ok) {
+                    const geoData = await geoResponse.json();
+                    sosData.address = geoData.display_name;
+                    console.log(`[SOS] Endereço encontrado: ${sosData.address}`);
+                }
+            } catch (geoErr) {
+                console.error('[SOS] Erro no geocoding reverso:', geoErr);
+            }
+        }
+
         // Enviar email
         const result = await sendEmail({ to, subject, text, observations, type, senderName, senderEmail, sosData, reportData, healthLogsData, healthLogsByPatient, attachments });
+
+        // Enviar Push (Opcional ou Automático para SOS)
+        let targetTokens = tokens || [];
+
+        if (type === 'sos' && to && targetTokens.length === 0) {
+            try {
+                const supabaseUrl = process.env.VITE_SUPABASE_URL || 'https://ahjywlsnmmkavgtkvpod.supabase.co';
+                const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoanl3bHNubW1rYXZndGt2cG9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ1MTU1NzIsImV4cCI6MjA4MDA5MTU3Mn0.jBnLg-LxGDoSTxiSvRVaSgQZDbr0h91Uxm2S7YBcMto';
+                const authHeader = req.headers.authorization;
+                if (authHeader) {
+                    const supabaseServer = createClient(supabaseUrl, supabaseAnonKey, {
+                        global: { headers: { Authorization: authHeader } }
+                    });
+                    const emails = to.split(',').map(e => e.trim());
+                    const { data: rpcTokens, error } = await supabaseServer.rpc('get_tokens_by_emails', { p_emails: emails });
+                    if (!error && rpcTokens) targetTokens = rpcTokens.map(t => t.token);
+                }
+            } catch (err) {
+                console.error('Erro ao buscar tokens via RPC:', err);
+            }
+        }
+
+        if (targetTokens.length > 0) {
+            try {
+                await sendPushNotification(targetTokens, subject, text, { type, ...sosData });
+            } catch (pushErr) {
+                console.error('Falha ao enviar push:', pushErr);
+            }
+        }
 
         res.json(result);
 
@@ -219,6 +273,9 @@ const startServer = async () => {
                     console.log('✅ SMTP configurado e pronto em background.');
                 }
             }).catch(err => console.error('Erro na verificação SMTP:', err));
+
+            // Inicializar Firebase Admin
+            initFirebaseAdmin().catch(err => console.error('Erro ao inicializar Firebase Admin:', err));
         });
 
     } catch (error) {
@@ -227,11 +284,200 @@ const startServer = async () => {
     }
 };
 
+// Inicializar Supabase Admin (Necessário Service Role para ouvir todas as tabelas)
+const supabaseUrl = process.env.VITE_SUPABASE_URL || 'https://ahjywlsnmmkavgtkvpod.supabase.co';
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+
+const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
+    auth: {
+        autoRefreshToken: false,
+        persistSession: false
+    }
+});
+
+const handleSOSInsert = async (payload) => {
+    console.log('🚨 [BACKEND] ===== NOVO SOS DETECTADO =====');
+    const alert = payload.new;
+
+    try {
+        // 1. Buscar Paciente
+        const { data: patient, error: patientError } = await supabaseAdmin.from('patients').select('*').eq('id', alert.patient_id).single();
+        if (patientError) console.error('❌ [BACKEND] Erro ao buscar paciente:', patientError);
+
+        // 2. Buscar Usuário que disparou (com dados de endereço)
+        const { data: userProfile, error: profileError } = await supabaseAdmin.from('profiles').select('*').eq('id', alert.triggered_by).single();
+        if (profileError) console.error('❌ [BACKEND] Erro ao buscar profile:', profileError);
+
+        // 3. Buscar Prescrições e Medicamentos do Paciente
+        const { data: prescriptions } = await supabaseAdmin
+            .from('prescriptions')
+            .select('*, medications(*)')
+            .eq('patient_id', alert.patient_id)
+            .eq('active', true);
+
+        const medicationsList = prescriptions?.map(p => {
+            const med = p.medications;
+            return `${med?.name || 'Medicamento'} (${p.dose_amount || ''} ${med?.unit || ''}) - ${p.frequency || ''}`;
+        }).filter(Boolean) || [];
+
+        const medicationsText = medicationsList.length > 0
+            ? medicationsList.join('<br>')
+            : 'Nenhum medicamento ativo registrado.';
+
+        // 4. Montar lista de contatos de emergência
+        const contactList = [];
+        if (patient?.emergency_contact_name || patient?.emergency_contact_phone) {
+            contactList.push({
+                name: patient.emergency_contact_name || 'Contato do Paciente',
+                phone: patient.emergency_contact_phone || 'Não informado',
+                email: patient.emergency_contact_email
+            });
+        }
+        if (userProfile?.emergency_contact_name || userProfile?.emergency_contact_phone) {
+            if (userProfile.emergency_contact_phone !== patient?.emergency_contact_phone) {
+                contactList.push({
+                    name: userProfile.emergency_contact_name || 'Contato do Usuário',
+                    phone: userProfile.emergency_contact_phone || 'Não informado',
+                    email: userProfile.emergency_contact_email
+                });
+            }
+        }
+
+        // 5. Buscar Email - com fallback
+        let userEmail = userProfile?.email || userProfile?.emergency_contact_email || patient?.email || 'sigsis@gmail.com';
+
+        // 6. Montar lista de destinatários
+        const recipients = [userEmail];
+        const { data: shares } = await supabaseAdmin.from('patient_shares').select('shared_with_email').eq('patient_id', patient?.id).eq('status', 'accepted');
+        if (shares) shares.forEach(s => recipients.push(s.shared_with_email));
+        if (patient?.emergency_contact_email) recipients.push(patient.emergency_contact_email);
+        if (userProfile?.emergency_contact_email) recipients.push(userProfile.emergency_contact_email);
+
+        const uniqueRecipients = [...new Set(recipients.filter(e => e && e.includes('@')))];
+        console.log(`📨 [BACKEND] Enviando SOS para ${uniqueRecipients.length} destinatários`);
+
+        // ENDEREÇO - PRIORIDADE:
+        // 1. Usar address do alert (passado pelo frontend quando usa profile-address)
+        // 2. Montar do profile do usuário
+        // 3. NÃO fazer geocoding reverso (Nominatim erra muito)
+        let displayAddress = null;
+        let locationUrl = null;
+
+        if (alert.location_lat && alert.location_lng) {
+            locationUrl = `https://www.google.com/maps?q=${alert.location_lat},${alert.location_lng}`;
+        }
+
+        // Usar endereço passado pelo frontend (MAIS CONFIÁVEL)
+        if (alert.address) {
+            displayAddress = alert.address;
+            console.log(`📍 [BACKEND] Usando endereço do frontend: ${displayAddress}`);
+        } else if (userProfile?.street && userProfile?.city && userProfile?.state) {
+            // Fallback: montar do profile
+            displayAddress = `${userProfile.street}, ${userProfile.number || ''} - ${userProfile.neighborhood || ''}, ${userProfile.city} - ${userProfile.state}`;
+            console.log(`📍 [BACKEND] Usando endereço do profile: ${displayAddress}`);
+        } else {
+            console.log(`📍 [BACKEND] Endereço não disponível`);
+        }
+
+        // TEXTOS
+        const subject = `🚨 EMERGÊNCIA SOS: ${patient?.name || 'Alerta'}`;
+        const locationText = displayAddress
+            ? `${displayAddress}\n(Ver no mapa: ${locationUrl || 'Coordenadas indisponíveis'})`
+            : locationUrl || 'Localização não disponível';
+        const text = `ALERTA DE PÂNICO!\n\nPaciente: ${patient?.name}\nMedicamentos: ${medicationsList.join(', ') || 'N/A'}\nContato Emergência: ${patient?.emergency_contact_name || 'N/A'} (${patient?.emergency_contact_phone || 'N/A'})\n\nLocalização: ${locationText}\nPrecisão: ${Math.round(alert.accuracy || 0)}m`;
+
+        // ENVIAR EMAILS com dados completos
+        for (const to of uniqueRecipients) {
+            try {
+                await sendEmail({
+                    to,
+                    subject,
+                    text,
+                    type: 'sos',
+                    sosData: {
+                        patientName: patient?.name || 'Paciente',
+                        locationUrl: locationUrl,
+                        address: displayAddress, // NEW: pass address to email template
+                        locationAccuracy: alert.accuracy,
+                        triggeredBy: userProfile?.full_name || 'Usuário',
+                        bloodType: patient?.blood_type || 'Não informado',
+                        allergies: patient?.allergies || 'Não informado',
+                        conditions: patient?.conditions || 'Não informado',
+                        medications: medicationsText,
+                        contacts: contactList,
+                        patientPhone: patient?.phone || '',
+                        patientEmail: patient?.email || ''
+                    }
+                });
+                console.log(`✅ [BACKEND] Email SOS enviado para ${to}`);
+            } catch (emailErr) {
+                console.error(`❌ [BACKEND] Falha ao enviar email para ${to}:`, emailErr.message);
+            }
+        }
+
+        // ENVIAR PUSH
+        const userIds = [patient?.user_id, alert.triggered_by].filter(Boolean);
+        const { data: tokens } = await supabaseAdmin.from('fcm_tokens').select('token, user_id').in('user_id', userIds);
+
+        if (tokens && tokens.length > 0) {
+            const pushTokens = tokens.map(t => t.token);
+            console.log(`📱 [BACKEND] Tentando push para ${pushTokens.length} token(s)`);
+            try {
+                const pushTitle = `🚨 SOS: ${patient?.name || 'Emergência'}`;
+                const pushBody = `${displayAddress || 'Verificar localização no email'}`;
+                const pushResult = await sendPushNotification(
+                    pushTokens,
+                    pushTitle,
+                    pushBody,
+                    {
+                        type: 'sos',
+                        alertId: alert.id,
+                        mapUrl: locationUrl || '/'
+                    }
+                );
+                console.log('✅ [BACKEND] Push enviado!');
+
+                // CLEANUP: Remove tokens inválidos do banco
+                if (pushResult && pushResult.failureCount > 0) {
+                    pushResult.responses.forEach(async (resp, idx) => {
+                        if (!resp.success && resp.error?.code === 'messaging/registration-token-not-registered') {
+                            const badToken = pushTokens[idx];
+                            console.log(`🗑️ [BACKEND] Removendo token inválido do banco...`);
+                            await supabaseAdmin.from('fcm_tokens').delete().eq('token', badToken);
+                        }
+                    });
+                }
+            } catch (pushErr) {
+                console.error('❌ [BACKEND] Falha ao enviar push:', pushErr.message);
+            }
+        } else {
+            console.log('⚠️ [BACKEND] Nenhum token FCM encontrado para os usuários');
+        }
+
+        console.log('🚨 [BACKEND] ===== SOS PROCESSADO =====');
+
+    } catch (err) {
+        console.error('❌ [BACKEND] Erro ao processar SOS Realtime:', err);
+    }
+};
+
 // Iniciar apenas se não estiver na Vercel (serverless)
 if (process.env.VERCEL !== '1') {
     startServer();
+
+    // Iniciar Listener Realtime
+    console.log('👂 Iniciando listener de SOS...');
+    supabaseAdmin
+        .channel('sos-tracker')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'sos_alerts' }, handleSOSInsert)
+        .subscribe((status) => {
+            console.log('📡 Status do SOS Listener:', status);
+        });
 }
 
 // Exportar para Vercel serverless functions
 export default app;
+
+// Force Restart Trigger by Agent - Debugging Listener
+console.log('🔄 [BACKEND] Server file updated. Restarting...');
 

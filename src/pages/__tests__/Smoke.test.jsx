@@ -4,6 +4,27 @@ import { MemoryRouter } from 'react-router-dom';
 import Home from '../Home';
 import Login from '../Login';
 
+// Define global variable for version (Vite build define)
+global.__APP_VERSION__ = '1.3.94';
+
+global.__APP_VERSION__ = '1.3.94';
+
+// Mock localStorage
+if (typeof window !== 'undefined') {
+    const localStorageMock = (function () {
+        let store = {};
+        return {
+            getItem: vi.fn(key => store[key] || null),
+            setItem: vi.fn((key, value) => { store[key] = value.toString(); }),
+            clear: vi.fn(() => { store = {}; }),
+            removeItem: vi.fn(key => { delete store[key]; }),
+            length: 0,
+            key: vi.fn(i => null)
+        };
+    })();
+    Object.defineProperty(window, 'localStorage', { value: localStorageMock });
+}
+
 // Mock dependencies to isolate the page tests
 vi.mock('../../context/AppContext', () => ({
     useApp: () => ({
@@ -26,6 +47,15 @@ vi.mock('../../hooks/useNotifications', () => ({
         permission: 'default',
         requestPermission: vi.fn()
     })
+}));
+
+// Mock Firebase utility
+vi.mock('../../utils/firebase', () => ({
+    requestForToken: vi.fn(() => Promise.resolve('mock-fcm-token')),
+    onMessageListener: vi.fn(() => Promise.resolve({ notification: { title: 'Test', body: 'Test Body' } })),
+    default: {
+        messaging: vi.fn()
+    }
 }));
 
 // Mock simple UI components
@@ -58,6 +88,35 @@ vi.mock('../../components/OnboardingTour', () => ({
     default: () => <div>Onboarding Tour</div>
 }));
 
+vi.mock('../../components/features/LocalOffersCarousel', () => ({
+    default: () => <div data-testid="local-offers">Local Offers Carousel</div>
+}));
+
+vi.mock('../../components/features/OfferCard', () => ({
+    OfferCard: () => <div>Offer Card</div>
+}));
+
+vi.mock('../../services/offerService', () => ({
+    fetchActiveWeightedOffers: vi.fn(() => Promise.resolve([]))
+}));
+
+vi.mock('../../components/ui/PillIcon', () => ({
+    default: () => <div>Pill Icon</div>
+}));
+
+vi.mock('../../components/ui/Pagination', () => ({
+    default: () => <div>Pagination</div>
+}));
+
+vi.mock('../../components/ui/Card', () => ({
+    default: ({ children, className }) => <div className={className}>{children}</div>,
+    CardContent: ({ children, className }) => <div className={className}>{children}</div>
+}));
+
+vi.mock('../../components/ui/Button', () => ({
+    default: ({ children, onClick }) => <button onClick={onClick}>{children}</button>
+}));
+
 vi.mock('../../utils/dateFormatter', () => ({
     formatDate: () => '01/01/2023',
     formatTime: () => '12:00',
@@ -74,7 +133,7 @@ vi.mock('../../utils/gamification', () => ({
 }));
 
 describe('Smoke Tests - Main Pages', () => {
-    it.skip('renders Home page without crashing', () => {
+    it('renders Home page without crashing', () => {
         render(
             <MemoryRouter>
                 <Home />

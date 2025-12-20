@@ -5,7 +5,7 @@ import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Modal from '../components/ui/Modal';
 import Pagination from '../components/ui/Pagination';
-import { Plus, Pill, Trash2, Edit2, X, AlertTriangle, Search, User } from 'lucide-react';
+import { Plus, Pill, Trash2, Edit2, X, AlertTriangle, Search, User, Camera, Box } from 'lucide-react';
 import PillIcon from '../components/ui/PillIcon'; // Import PillIcon
 
 const ITEMS_PER_PAGE = 6;
@@ -31,7 +31,7 @@ const SHAPES = [
 ];
 
 const Medications = () => {
-    const { medications, addMedication, updateMedication, deleteMedication, user } = useApp();
+    const { medications, addMedication, updateMedication, deleteMedication, user, showToast } = useApp();
     const [showForm, setShowForm] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
     const [searchTerm, setSearchTerm] = useState('');
@@ -39,11 +39,13 @@ const Medications = () => {
     const [editingMedId, setEditingMedId] = useState(null);
     const [deleteMedId, setDeleteMedId] = useState(null);
 
-    const [medForm, setMedForm] = useState({ 
-        name: '', 
-        dosage: '', 
-        type: '', 
+    const [medForm, setMedForm] = useState({
+        name: '',
+        dosage: '',
+        type: '',
         quantity: '',
+        unitQuantity: '',
+        observations: '',
         color: 'white', // Default
         shape: 'round'  // Default
     });
@@ -66,6 +68,7 @@ const Medications = () => {
     const handleMedEdit = (med) => {
         setMedForm({
             ...med,
+            unitQuantity: med.unit_quantity || '',
             color: med.color || 'white',
             shape: med.shape || 'round'
         });
@@ -83,7 +86,7 @@ const Medications = () => {
     const handleCancel = () => {
         setShowForm(false);
         setEditingMedId(null);
-        setMedForm({ name: '', dosage: '', type: '', quantity: '', color: 'white', shape: 'round' });
+        setMedForm({ name: '', dosage: '', type: '', quantity: '', unitQuantity: '', observations: '', color: 'white', shape: 'round' });
     };
 
     const [submitting, setSubmitting] = useState(false);
@@ -151,7 +154,7 @@ const Medications = () => {
                     </CardHeader>
                     <CardContent>
                         <form onSubmit={handleMedSubmit} className="flex flex-col gap-6">
-                            
+
                             {/* Visual Preview */}
                             <div className="flex justify-center mb-4">
                                 <div className="p-6 bg-slate-50 rounded-2xl flex flex-col items-center gap-2 border border-slate-100">
@@ -171,8 +174,8 @@ const Medications = () => {
                                                 key={s.id}
                                                 type="button"
                                                 onClick={() => setMedForm({ ...medForm, shape: s.id })}
-                                                className={`px-3 py-2 text-xs font-bold rounded-lg border transition-all ${medForm.shape === s.id 
-                                                    ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' 
+                                                className={`px-3 py-2 text-xs font-bold rounded-lg border transition-all ${medForm.shape === s.id
+                                                    ? 'bg-indigo-600 text-white border-indigo-600 shadow-md'
                                                     : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-300'}`}
                                             >
                                                 {s.label}
@@ -188,8 +191,8 @@ const Medications = () => {
                                                 key={c.id}
                                                 type="button"
                                                 onClick={() => setMedForm({ ...medForm, color: c.id })}
-                                                className={`w-8 h-8 rounded-full border-2 transition-all ${medForm.color === c.id 
-                                                    ? 'ring-2 ring-offset-2 ring-indigo-500 scale-110 border-transparent' 
+                                                className={`w-8 h-8 rounded-full border-2 transition-all ${medForm.color === c.id
+                                                    ? 'ring-2 ring-offset-2 ring-indigo-500 scale-110 border-transparent'
                                                     : 'border-slate-200 hover:scale-105'}`}
                                                 style={{ backgroundColor: c.id === 'white' ? '#f8fafc' : undefined }} // Little tweak for white
                                                 title={c.label}
@@ -200,14 +203,15 @@ const Medications = () => {
                                     </div>
                                 </div>
                             </div>
-                            
-                            <Input
-                                label="Nome do Medicamento"
-                                placeholder="Ex: Dipirona"
-                                value={medForm.name}
-                                onChange={e => setMedForm({ ...medForm, name: e.target.value })}
-                                required
-                            />
+                            <div className="flex flex-col gap-1">
+                                <Input
+                                    label="Nome do Medicamento"
+                                    placeholder="Ex: Dipirona"
+                                    value={medForm.name}
+                                    onChange={e => setMedForm({ ...medForm, name: e.target.value })}
+                                    required
+                                />
+                            </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <Input
                                     label="Dosagem"
@@ -223,14 +227,33 @@ const Medications = () => {
                                     onChange={e => setMedForm({ ...medForm, type: e.target.value })}
                                 />
                             </div>
-                            <Input
-                                label="Quantidade em Estoque"
-                                type="number"
-                                placeholder="Ex: 30"
-                                value={medForm.quantity}
-                                onChange={e => setMedForm({ ...medForm, quantity: e.target.value })}
-                                step="0.1"
-                            />
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <Input
+                                    label="Quantidade Total na Caixa"
+                                    type="number"
+                                    placeholder="Ex: 20"
+                                    value={medForm.unitQuantity}
+                                    onChange={e => setMedForm({ ...medForm, unitQuantity: e.target.value })}
+                                />
+                                <Input
+                                    label="Quantidade Atual em Estoque"
+                                    type="number"
+                                    placeholder="Ex: 15"
+                                    value={medForm.quantity}
+                                    onChange={e => setMedForm({ ...medForm, quantity: e.target.value })}
+                                    step="0.1"
+                                />
+                            </div>
+
+                            <div className="flex flex-col gap-2">
+                                <label className="text-sm font-semibold text-slate-700">Observações</label>
+                                <textarea
+                                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition-all resize-none min-h-[100px]"
+                                    placeholder="Ex: Tomar com água, uso sublingual, etc."
+                                    value={medForm.observations || ''}
+                                    onChange={e => setMedForm({ ...medForm, observations: e.target.value })}
+                                />
+                            </div>
                             <p className="text-xs text-slate-500 bg-blue-50 p-2 rounded-lg -mt-4 border border-blue-100">
                                 <span className="font-bold">Dica:</span> Para líquidos (xaropes, gotas), cadastre o volume total.
                             </p>
@@ -243,92 +266,105 @@ const Medications = () => {
                                 </Button>
                             </div>
                         </form>
-                    </CardContent>
-                </Card>
-            )}
+                    </CardContent >
+                </Card >
+            )
+            }
 
             {/* List Section */}
-            {!showForm && (
-                <>
-                    {filteredMedications.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center py-16 text-center bg-white rounded-3xl border border-dashed border-slate-200">
-                            <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center text-slate-300 mb-6">
-                                <Pill size={40} />
+            {
+                !showForm && (
+                    <>
+                        {filteredMedications.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center py-16 text-center bg-white rounded-3xl border border-dashed border-slate-200">
+                                <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center text-slate-300 mb-6">
+                                    <Pill size={40} />
+                                </div>
+                                <h3 className="text-xl font-bold text-slate-900 dark:text-white">Nenhum medicamento encontrado</h3>
+                                <p className="text-slate-500 dark:text-slate-400 max-w-xs mx-auto mt-2 mb-6">Adicione medicamentos para controlar seu estoque.</p>
+                                <Button variant="outline" onClick={() => setShowForm(true)}>
+                                    Adicionar Medicamento
+                                </Button>
                             </div>
-                            <h3 className="text-xl font-bold text-slate-900 dark:text-white">Nenhum medicamento encontrado</h3>
-                            <p className="text-slate-500 dark:text-slate-400 max-w-xs mx-auto mt-2 mb-6">Adicione medicamentos para controlar seu estoque.</p>
-                            <Button variant="outline" onClick={() => setShowForm(true)}>
-                                Adicionar Medicamento
-                            </Button>
-                        </div>
-                    ) : (
-                        <div className="grid gap-4">
-                            {paginatedItems.map(item => (
-                                <Card key={item.id} className="group hover:border-primary/30">
-                                    <div className="flex flex-col md:flex-row md:items-center p-6 gap-6">
-                                        
-                                        {/* Avatar Column */}
-                                        <div className="w-16 h-16 rounded-2xl bg-slate-50 flex items-center justify-center shrink-0 shadow-sm group-hover:scale-110 transition-transform duration-300 border border-slate-100">
-                                            <PillIcon shape={item.shape} color={item.color} size={32} />
-                                        </div>
+                        ) : (
+                            <div className="grid gap-4">
+                                {paginatedItems.map(item => (
+                                    <Card key={item.id} className="group hover:border-primary/30">
+                                        <div className="flex flex-col md:flex-row md:items-center p-6 gap-6">
 
-                                        <div className="flex-1 min-w-0">
-                                            <h3 className="font-bold text-xl text-slate-900 dark:text-white mb-1">
-                                                {item.name}
-                                                <span className="text-slate-500 dark:text-slate-400 text-base font-normal ml-2">{item.dosage}</span>
-                                            </h3>
+                                            {/* Avatar Column */}
+                                            <div className="w-16 h-16 rounded-2xl bg-slate-50 flex items-center justify-center shrink-0 shadow-sm group-hover:scale-110 transition-transform duration-300 border border-slate-100">
+                                                <PillIcon shape={item.shape} color={item.color} size={32} />
+                                            </div>
 
-                                            <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
-                                                <span className="bg-slate-100 dark:bg-slate-800 px-2.5 py-0.5 rounded-md font-medium text-slate-600 dark:text-slate-300">
-                                                    {item.type || 'Sem tipo'}  
-                                                </span>
-                                                {item.quantity && (
-                                                    <span className="text-slate-600 dark:text-slate-400">
-                                                        • Estoque: {item.quantity}
+                                            <div className="flex-1 min-w-0">
+                                                <h3 className="font-bold text-xl text-slate-900 dark:text-white mb-1">
+                                                    {item.name}
+                                                    <span className="text-slate-500 dark:text-slate-400 text-base font-normal ml-2">{item.dosage}</span>
+                                                </h3>
+
+                                                <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
+                                                    <span className="bg-slate-100 dark:bg-slate-800 px-2.5 py-0.5 rounded-md font-medium text-slate-600 dark:text-slate-300">
+                                                        {item.type || 'Sem tipo'}
                                                     </span>
+                                                    {item.unit_quantity && (
+                                                        <span className="text-slate-600 dark:text-slate-400">
+                                                            • Na Caixa: {item.unit_quantity}
+                                                        </span>
+                                                    )}
+                                                    {item.quantity && (
+                                                        <span className="text-slate-600 dark:text-slate-400">
+                                                            • Estoque: {item.quantity}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                {item.observations && (
+                                                    <div className="mt-2 text-sm text-slate-500 bg-slate-50 dark:bg-slate-800/50 p-2 rounded-lg border border-slate-100 dark:border-slate-800">
+                                                        <span className="font-semibold text-slate-600 dark:text-slate-400">Obs:</span> {item.observations}
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            <div className="flex md:flex-col gap-2 border-t md:border-t-0 md:border-l border-slate-50 dark:border-slate-800 pt-4 md:pt-0 md:pl-6 mt-2 md:mt-0 justify-end">
+                                                {item.user_id === user?.id ? (
+                                                    <>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            className="flex-1 md:flex-none justify-start text-slate-600 dark:text-slate-300 hover:text-primary"
+                                                            onClick={() => handleMedEdit(item)}
+                                                        >
+                                                            <Edit2 size={18} className="mr-2" /> Editar
+                                                        </Button>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            className="flex-1 md:flex-none justify-start text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 hover:text-rose-600"
+                                                            onClick={() => setDeleteMedId(item.id)}
+                                                        >
+                                                            <Trash2 size={18} className="mr-2" /> Excluir
+                                                        </Button>
+                                                    </>
+                                                ) : (
+                                                    <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 rounded-lg text-slate-500 text-sm font-medium">
+                                                        <User size={16} />
+                                                        Modo Leitura
+                                                    </div>
                                                 )}
                                             </div>
                                         </div>
-
-                                        <div className="flex md:flex-col gap-2 border-t md:border-t-0 md:border-l border-slate-50 dark:border-slate-800 pt-4 md:pt-0 md:pl-6 mt-2 md:mt-0 justify-end">
-                                            {item.user_id === user?.id ? (
-                                                <>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        className="flex-1 md:flex-none justify-start text-slate-600 dark:text-slate-300 hover:text-primary"
-                                                        onClick={() => handleMedEdit(item)}
-                                                    >
-                                                        <Edit2 size={18} className="mr-2" /> Editar
-                                                    </Button>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        className="flex-1 md:flex-none justify-start text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 hover:text-rose-600"
-                                                        onClick={() => setDeleteMedId(item.id)}
-                                                    >
-                                                        <Trash2 size={18} className="mr-2" /> Excluir
-                                                    </Button>
-                                                </>
-                                            ) : (
-                                                <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 rounded-lg text-slate-500 text-sm font-medium">
-                                                    <User size={16} />
-                                                    Modo Leitura
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                </Card>
-                            ))}
-                        </div>
-                    )}
-                    <Pagination
-                        currentPage={currentPage}
-                        totalPages={totalPages}
-                        onPageChange={setCurrentPage}
-                    />
-                </>
-            )}
+                                    </Card>
+                                ))}
+                            </div>
+                        )}
+                        <Pagination
+                            currentPage={currentPage}
+                            totalPages={totalPages}
+                            onPageChange={setCurrentPage}
+                        />
+                    </>
+                )
+            }
 
             <Modal
                 isOpen={!!deleteMedId}

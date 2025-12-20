@@ -79,7 +79,10 @@ const Patients = () => {
         neighborhood: '',
         city: '',
         state: '',
-        observations: ''
+        observations: '',
+        emergency_contact_name: '',
+        emergency_contact_phone: '',
+        emergency_contact_email: ''
     });
     const [loadingCep, setLoadingCep] = useState(false);
 
@@ -149,7 +152,10 @@ const Patients = () => {
             neighborhood: '',
             city: '',
             state: '',
-            observations: ''
+            observations: '',
+            emergency_contact_name: '',
+            emergency_contact_phone: '',
+            emergency_contact_email: ''
         });
     };
 
@@ -421,6 +427,36 @@ const Patients = () => {
                                     onChange={e => setFormData({ ...formData, observations: e.target.value })}
                                 />
                             </div>
+
+                            <div className="mt-4 pt-6 border-t border-slate-100">
+                                <h4 className="text-sm font-bold text-red-600 mb-4 flex items-center gap-2">
+                                    🚨 Contato de Emergência (PARA O BOTÃO DE PÂNICO)
+                                </h4>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <Input
+                                        label="Nome do Contato"
+                                        placeholder="Ex: Cônjuge, Filho, Vizinho..."
+                                        value={formData.emergency_contact_name || ''}
+                                        onChange={e => setFormData({ ...formData, emergency_contact_name: e.target.value })}
+                                    />
+                                    <Input
+                                        label="Telefone de Emergência"
+                                        placeholder="(00) 00000-0000"
+                                        value={formData.emergency_contact_phone || ''}
+                                        onChange={e => setFormData({ ...formData, emergency_contact_phone: formatPhone(e.target.value) })}
+                                        maxLength={15}
+                                    />
+                                    <Input
+                                        label="Email de Emergência"
+                                        type="email"
+                                        placeholder="Email para receber o alerta de localização"
+                                        containerClassName="md:col-span-2"
+                                        value={formData.emergency_contact_email || ''}
+                                        onChange={e => setFormData({ ...formData, emergency_contact_email: e.target.value })}
+                                    />
+                                </div>
+                            </div>
+
                             <div className="flex gap-4 mt-4 pt-6 border-t border-slate-50">
                                 <Button type="button" variant="ghost" onClick={handleCancel} className="flex-1">
                                     Cancelar

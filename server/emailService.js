@@ -121,21 +121,64 @@ export const sendEmail = async ({ to, subject, text, observations, type = 'invit
                <div class="value" style="color: #1e3a8a;">${sosData.conditions}</div>
             </div>` : ''}
 
+            ${sosData.locationUrl ? `
+            <div style="margin-top: 20px; text-align: center; background: #fff1f2; border: 2px solid #fecaca; padding: 20px; border-radius: 12px;">
+                <div class="label" style="color: #b91c1c; margin-bottom: 10px;">📍 Localização do Paciente</div>
+                <a href="${sosData.locationUrl}" target="_blank" style="display: inline-block; background-color: #ef4444; color: #ffffff !important; padding: 12px 24px; border-radius: 10px; text-decoration: none; font-weight: 700; box-shadow: 0 4px 6px rgba(239, 68, 68, 0.2);">Ver no Google Maps</a>
+                ${sosData.address ? `
+                <div style="margin-top: 15px; font-size: 14px; color: #1e293b; background: white; padding: 10px; border-radius: 8px; border: 1px solid #fee2e2;">
+                    <strong>Endereço Estimado:</strong><br/>
+                    ${sosData.address}
+                </div>` : ''}
+                ${sosData.locationAccuracy > 300 ? `
+                <div style="margin-top: 10px; font-size: 11px; color: #991b1b; font-style: italic;">
+                    ⚠️ Nota: Precisão estimada de ${Math.round(sosData.locationAccuracy)}m. Pode haver divergência se o paciente estiver em ambiente fechado ou usando rede móvel em Desktop.
+                </div>` : ''}
+            </div>` : `
+            <div style="margin-top: 20px; text-align: center; background: #f8fafc; border: 1px dashed #cbd5e1; padding: 15px; border-radius: 12px; color: #64748b; font-size: 14px;">
+                📍 Localização não disponibilizada pelo dispositivo.
+            </div>`}
+
             <div style="margin-top: 30px;">
                 <h3 style="font-size: 16px; color: #0f172a; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 20px;">💊 Medicamentos em Uso</h3>
-                <div style="background: #f8fafc; border-radius: 12px; padding: 20px; border: 1px solid #e2e8f0;">
+                <div style="background: #f8fafc; border-radius: 12px; padding: 20px; border: 1px solid #e2e8f0; color: #334155; line-height: 1.8;">
                     ${sosData.medications || 'Nenhum medicamento registrado.'}
                 </div>
             </div>
 
-            <div style="margin-top: 30px; background: #1e293b; color: white; padding: 20px; border-radius: 12px;">
-                <span class="label" style="color: #94a3b8;">Contato de Emergência</span>
-                <div style="font-size: 18px; font-weight: 700; margin-top: 5px;">
-                    ${sosData.contacts && sosData.contacts[0] ? sosData.contacts[0].name : 'Responsável'}
-                </div>
-                <div style="font-size: 16px; opacity: 0.9; margin-top: 4px; color: #34d399;">
-                    📞 ${sosData.contacts && sosData.contacts[0] ? sosData.contacts[0].phone : 'Ver app'}
-                </div>
+            <div style="margin-top: 30px;">
+                <h3 style="font-size: 16px; color: #0f172a; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 20px;">📞 Contatos de Emergência</h3>
+                ${sosData.contacts && sosData.contacts.length > 0 ? sosData.contacts.map(contact => {
+          const cleanPhone = String(contact.phone || '').replace(/\D/g, '');
+          const formattedPhone = cleanPhone.length === 11
+            ? `(${cleanPhone.slice(0, 2)}) ${cleanPhone.slice(2, 7)}-${cleanPhone.slice(7)}`
+            : cleanPhone.length === 10
+              ? `(${cleanPhone.slice(0, 2)}) ${cleanPhone.slice(2, 6)}-${cleanPhone.slice(6)}`
+              : contact.phone;
+
+          const whatsappUrl = cleanPhone.length >= 10
+            ? `https://wa.me/55${cleanPhone}?text=${encodeURIComponent(`🚨 *ALERTA SOS - SiG Remédios*\n\nEste é um contato de emergência referente a *${sosData.patientName}*.\n\nLocalização: ${sosData.locationUrl || 'Não informada'}`)}`
+            : null;
+
+          return `
+                    <div style="background: #1e293b; color: white; padding: 20px; border-radius: 12px; margin-bottom: 10px;">
+                        <span class="label" style="color: #94a3b8;">${contact.name}</span>
+                        <div style="font-size: 18px; font-weight: 700; margin-top: 5px;">
+                             <a href="tel:${cleanPhone}" style="color: #ffffff; text-decoration: none;">📞 ${formattedPhone}</a>
+                        </div>
+                        ${whatsappUrl ? `
+                        <div style="margin-top: 10px;">
+                            <a href="${whatsappUrl}" target="_blank" style="display: inline-block; background-color: #25d366; color: #ffffff !important; padding: 10px 20px; border-radius: 8px; text-decoration: none; font-weight: 700; font-size: 14px; border: 1px solid #128c7e;">
+                                <span style="font-size: 16px;">💬</span> Conversar no WhatsApp
+                            </a>
+                        </div>` : ''}
+                    </div>
+                    `;
+        }).join('') : `
+                    <div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 15px; border-radius: 12px; text-align: center; color: #64748b;">
+                        Nenhum contato cadastrado.
+                    </div>
+                `}
             </div>
 
             <div class="cta-container">

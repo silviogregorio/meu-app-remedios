@@ -29,6 +29,8 @@ export const fetchAddressByCEP = async (cep) => {
             cep: data.cep.replace(/\D/g, ''),
             city: data.localidade,
             state: data.uf,
+            street: data.logradouro,
+            neighborhood: data.bairro,
             ibge: data.ibge // 7 digit code
         };
     } catch (viacepError) {
@@ -50,6 +52,8 @@ export const fetchAddressByCEP = async (cep) => {
                 cep: data.cep.replace(/\D/g, ''),
                 city: data.city,
                 state: data.state,
+                street: data.street,
+                neighborhood: data.neighborhood,
                 ibge: null // Marking null to warn if BrasilAPI doesn't provide it easily in this version
             };
         } catch (brasilError) {

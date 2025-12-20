@@ -31,3 +31,4 @@ server/.env
 .vercel
 
 .vercel
+sig-remedios-firebase-adminsdk*.json

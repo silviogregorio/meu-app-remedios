@@ -31,8 +31,39 @@ const Layout = () => {
             // Extract title and body from notification or data
             const title = payload?.notification?.title || payload?.data?.title || 'SiG Remédios';
             const body = payload?.notification?.body || payload?.data?.body || payload?.data?.message || 'Nova notificação';
+            const mapUrl = payload?.data?.mapUrl;
 
-            // ALWAYS try to show browser notification
+            // PLAY ALERT SOUND for SOS notifications using Web Audio API
+            if (payload?.data?.type === 'sos') {
+                try {
+                    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    const oscillator = audioContext.createOscillator();
+                    const gainNode = audioContext.createGain();
+
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioContext.destination);
+
+                    oscillator.frequency.value = 800; // Hz - Alert tone
+                    oscillator.type = 'sine';
+                    gainNode.gain.value = 0.5;
+
+                    oscillator.start();
+
+                    // Play SOS pattern: 3 short, 3 long, 3 short
+                    setTimeout(() => { oscillator.frequency.value = 0; }, 200);
+                    setTimeout(() => { oscillator.frequency.value = 800; }, 300);
+                    setTimeout(() => { oscillator.frequency.value = 0; }, 500);
+                    setTimeout(() => { oscillator.frequency.value = 800; }, 600);
+                    setTimeout(() => { oscillator.frequency.value = 0; }, 800);
+                    setTimeout(() => { oscillator.stop(); audioContext.close(); }, 1000);
+
+                    console.log('🔊 SOS Alert sound played');
+                } catch (e) {
+                    console.warn('Audio creation failed:', e);
+                }
+            }
+
+            // ALWAYS try to show browser notification with click handler
             if (Notification.permission === 'granted') {
                 try {
                     const notification = new Notification(title, {
@@ -40,12 +71,20 @@ const Layout = () => {
                         icon: '/logo192.png',
                         badge: '/logo192.png',
                         requireInteraction: true,
-                        vibrate: [200, 100, 200]
+                        vibrate: [300, 100, 300, 100, 300]
                     });
                     console.log('✅ Browser notification criada:', title);
 
-                    // Auto-close after 10 seconds
-                    setTimeout(() => notification.close(), 10000);
+                    // Handle click - open map if available
+                    notification.onclick = () => {
+                        notification.close();
+                        if (mapUrl && mapUrl !== '/') {
+                            window.open(mapUrl, '_blank');
+                        }
+                    };
+
+                    // Auto-close after 15 seconds
+                    setTimeout(() => notification.close(), 15000);
                 } catch (err) {
                     console.warn('⚠️ Browser notification failed:', err);
                 }

@@ -111,7 +111,26 @@ serve(async (req) => {
 
                     if (recipients.length === 0) continue;
 
-                    // 2. Send Email (using our existing generic send-email endpoint logic or direct SMTP here)
+                    // == NEW: Fetch FCM Tokens ==
+                    const userIds = [prescription.patient.user_id];
+                    // Find user IDs of shared caregivers to get their tokens too
+                    if (shares && shares.length > 0) {
+                        const caregiverEmails = shares.map(s => s.shared_with_email);
+                        const { data: profiles } = await supabase
+                            .from('profiles')
+                            .select('id')
+                            .in('email', caregiverEmails);
+                        if (profiles) userIds.push(...profiles.map(p => p.id));
+                    }
+
+                    const { data: fcmTokens } = await supabase
+                        .from('fcm_tokens')
+                        .select('token')
+                        .in('user_id', userIds);
+
+                    const tokens = fcmTokens?.map(t => t.token) || [];
+
+                    // 2. Send Email
                     // For safety in Edge Function, we'll re-use the logic or call the API. 
                     // Here assuming we use Resend/Nodemailer directly or call another function?
                     // Let's assume we call an internal helper or just Mock logging for now if no SMTP key in this specific file.
@@ -134,6 +153,100 @@ serve(async (req) => {
                             type: 'alert'
                         })
                     });
+
+                    // == NEW: Send Push Notifications via FCM HTTP v1 ==
+                    if (tokens.length > 0) {
+                        console.log(`Sending Push Notification to ${tokens.length} devices via FCM v1.`);
+                        const serviceAccountStr = Deno.env.get('FIREBASE_SERVICE_ACCOUNT');
+
+                        if (serviceAccountStr) {
+                            try {
+                                const serviceAccount = JSON.parse(serviceAccountStr);
+
+                                // Helper to get Access Token for FCM v1
+                                // Using a lightweight approach for Edge Functions
+                                const getAccessToken = async () => {
+                                    const { create, getNumericDate } = await import("https://deno.land/x/djwt@v2.8/mod.ts");
+
+                                    const pem = serviceAccount.private_key;
+                                    const privateKeyContent = pem
+                                        .replace(/-----BEGIN PRIVATE KEY-----/g, "")
+                                        .replace(/-----END PRIVATE KEY-----/g, "")
+                                        .replace(/\s+/g, "");
+                                    const binaryKey = Uint8Array.from(atob(privateKeyContent), c => c.charCodeAt(0));
+
+                                    const key = await crypto.subtle.importKey(
+                                        "pkcs8",
+                                        binaryKey,
+                                        { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
+                                        false,
+                                        ["sign"]
+                                    );
+
+                                    const jwt = await create(
+                                        { alg: "RS256", typ: "JWT" },
+                                        {
+                                            iss: serviceAccount.client_email,
+                                            sub: serviceAccount.client_email,
+                                            aud: "https://oauth2.googleapis.com/token",
+                                            iat: getNumericDate(0),
+                                            exp: getNumericDate(3600),
+                                            scope: "https://www.googleapis.com/auth/cloud-platform",
+                                        },
+                                        key
+                                    );
+
+                                    const resp = await fetch("https://oauth2.googleapis.com/token", {
+                                        method: "POST",
+                                        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                                        body: `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${jwt}`,
+                                    });
+                                    const data = await resp.json();
+                                    return data.access_token;
+                                };
+
+                                const accessToken = await getAccessToken();
+                                const projectId = serviceAccount.project_id;
+
+                                const pushPromises = tokens.map(token =>
+                                    fetch(`https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`, {
+                                        method: 'POST',
+                                        headers: {
+                                            'Authorization': `Bearer ${accessToken}`,
+                                            'Content-Type': 'application/json'
+                                        },
+                                        body: JSON.stringify({
+                                            message: {
+                                                token: token,
+                                                notification: {
+                                                    title: `⚠️ Atraso: ${patientName}`,
+                                                    body: `O remédio ${medName} das ${timeStr} não foi tomado.`,
+                                                },
+                                                webpush: {
+                                                    fcm_options: {
+                                                        link: '/'
+                                                    }
+                                                }
+                                            }
+                                        })
+                                    })
+                                );
+
+                                const pushResults = await Promise.all(pushPromises);
+                                pushResults.forEach(async (res, i) => {
+                                    if (!res.ok) {
+                                        const err = await res.json();
+                                        console.error(`Erro ao enviar para token ${i}:`, err);
+                                    }
+                                });
+
+                            } catch (error) {
+                                console.error('Erro no fluxo FCM v1:', error);
+                            }
+                        } else {
+                            console.warn('FIREBASE_SERVICE_ACCOUNT não configurada. Notificações Push via v1 ignoradas.');
+                        }
+                    }
 
                     // 3. Log Alert
                     await supabase.from('alert_logs').insert({

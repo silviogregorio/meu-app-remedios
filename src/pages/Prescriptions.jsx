@@ -7,7 +7,7 @@ import Input from '../components/ui/Input';
 import Modal from '../components/ui/Modal';
 import ConfirmationModal from '../components/ui/ConfirmationModal';
 import Pagination from '../components/ui/Pagination';
-import { Plus, Edit2, Trash2, X, Search, ClipboardList, Clock, User, Pill, Calendar } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, Search, ClipboardList, Clock, User, Pill, Calendar, Camera } from 'lucide-react';
 import { formatDate } from '../utils/dateFormatter';
 
 const ITEMS_PER_PAGE = 6;
@@ -227,6 +227,7 @@ const Prescriptions = () => {
     };
 
 
+
     const validateForm = () => {
         const errors = [];
 
@@ -362,13 +363,15 @@ const Prescriptions = () => {
 
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <div className="md:col-span-2">
-                                    <Input
-                                        label="Frequência/Posologia"
-                                        placeholder="Ex: 12 em 12 horas, 3x ao dia"
-                                        value={formData.frequency}
-                                        onChange={e => setFormData({ ...formData, frequency: e.target.value })}
-                                        required
-                                    />
+                                    <div className="flex flex-col gap-1">
+                                        <Input
+                                            label="Frequência/Posologia"
+                                            placeholder="Ex: 12 em 12 horas, 3x ao dia"
+                                            value={formData.frequency}
+                                            onChange={e => setFormData({ ...formData, frequency: e.target.value })}
+                                            required
+                                        />
+                                    </div>
                                 </div>
                                 <div className="flex flex-col gap-1.5">
                                     <label className="text-sm font-semibold text-slate-700 ml-1">Dose Por Horário (Qtd)</label>

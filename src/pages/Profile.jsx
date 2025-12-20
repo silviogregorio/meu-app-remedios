@@ -35,6 +35,12 @@ const Profile = () => {
         city: user?.user_metadata?.city || '',
         state: user?.user_metadata?.state || '',
         ibge_code: user?.user_metadata?.ibge_code || '',
+        emergency_contact_name: '',
+        emergency_contact_phone: '',
+        emergency_contact_email: '',
+        street: user?.user_metadata?.street || '',
+        number: user?.user_metadata?.number || '',
+        neighborhood: user?.user_metadata?.neighborhood || '',
         currentPassword: '' // Para validar alteração de email
     });
     const [passwordForm, setPasswordForm] = useState({
@@ -83,7 +89,13 @@ const Profile = () => {
                         state: data?.state || user.user_metadata?.state || '',
                         ibge_code: data?.ibge_code || user.user_metadata?.ibge_code || '',
                         phone: formatPhone(data?.phone || user.user_metadata?.phone || ''),
-                        name: data?.full_name || user.user_metadata?.full_name || ''
+                        name: data?.full_name || user.user_metadata?.full_name || '',
+                        emergency_contact_name: data?.emergency_contact_name || '',
+                        emergency_contact_phone: formatPhone(data?.emergency_contact_phone || ''),
+                        emergency_contact_email: data?.emergency_contact_email || '',
+                        street: data?.street || user.user_metadata?.street || '',
+                        number: data?.number || user.user_metadata?.number || '',
+                        neighborhood: data?.neighborhood || user.user_metadata?.neighborhood || ''
                     }));
                 }
             } catch (err) {
@@ -134,7 +146,13 @@ const Profile = () => {
                         cep: editForm.cep,
                         city: editForm.city,
                         state: editForm.state,
-                        ibge_code: editForm.ibge_code
+                        ibge_code: editForm.ibge_code,
+                        emergency_contact_name: editForm.emergency_contact_name,
+                        emergency_contact_phone: editForm.emergency_contact_phone.replace(/\D/g, ''),
+                        emergency_contact_email: editForm.emergency_contact_email,
+                        street: editForm.street,
+                        number: editForm.number,
+                        neighborhood: editForm.neighborhood
                     }
                 });
 
@@ -144,7 +162,13 @@ const Profile = () => {
                     city: editForm.city,
                     state: editForm.state,
                     ibge_code: editForm.ibge_code,
-                    full_name: editForm.name
+                    full_name: editForm.name,
+                    emergency_contact_name: editForm.emergency_contact_name,
+                    emergency_contact_phone: editForm.emergency_contact_phone.replace(/\D/g, ''),
+                    emergency_contact_email: editForm.emergency_contact_email,
+                    street: editForm.street,
+                    number: editForm.number,
+                    neighborhood: editForm.neighborhood
                 };
 
                 const { data: profileData, error: profileError } = await supabase
@@ -547,7 +571,7 @@ const Profile = () => {
                 <div className="flex flex-col gap-4">
                     <Input
                         label="Nome Completo"
-                        value={editForm.name}
+                        value={editForm.name || ''}
                         onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
                         placeholder="Seu nome"
                     />
@@ -555,14 +579,14 @@ const Profile = () => {
                     <Input
                         label="Email"
                         type="email"
-                        value={editForm.email}
+                        value={editForm.email || ''}
                         onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
                         placeholder="seu@email.com"
                     />
 
                     <Input
                         label="Telefone"
-                        value={editForm.phone}
+                        value={editForm.phone || ''}
                         onChange={(e) => setEditForm({ ...editForm, phone: formatPhone(e.target.value) })}
                         placeholder="(11) 99999-9999"
                         maxLength={15}
@@ -570,7 +594,7 @@ const Profile = () => {
 
                     <Input
                         label="CEP"
-                        value={editForm.cep}
+                        value={editForm.cep || ''}
                         onChange={async (e) => {
                             let value = e.target.value.replace(/\D/g, '');
                             if (value.length > 8) value = value.slice(0, 8);
@@ -585,9 +609,11 @@ const Profile = () => {
                                     setEditForm(prev => ({
                                         ...prev,
                                         cep: formatted,
-                                        city: address.city,
-                                        state: address.state,
-                                        ibge_code: address.ibge
+                                        city: address.city || '',
+                                        state: address.state || '',
+                                        street: address.street || '',
+                                        neighborhood: address.neighborhood || '',
+                                        ibge_code: address.ibge || ''
                                     }));
                                 } catch (err) {
                                     showToast('CEP não encontrado', 'error');
@@ -598,6 +624,30 @@ const Profile = () => {
                         maxLength={9}
                     />
 
+                    <div className="flex gap-4">
+                        <Input
+                            label="Rua / Logradouro"
+                            value={editForm.street || ''}
+                            onChange={(e) => setEditForm({ ...editForm, street: e.target.value })}
+                            placeholder="Rua das Flores"
+                            className="flex-[3]"
+                        />
+                        <Input
+                            label="Número"
+                            value={editForm.number || ''}
+                            onChange={(e) => setEditForm({ ...editForm, number: e.target.value })}
+                            placeholder="123"
+                            className="flex-1"
+                        />
+                    </div>
+
+                    <Input
+                        label="Bairro"
+                        value={editForm.neighborhood || ''}
+                        onChange={(e) => setEditForm({ ...editForm, neighborhood: e.target.value })}
+                        placeholder="Centro"
+                    />
+
                     <Input
                         label="Cidade"
                         value={editForm.city ? `${editForm.city} - ${editForm.state}` : ''}
@@ -605,6 +655,34 @@ const Profile = () => {
                         className="bg-slate-50"
                         placeholder="..."
                     />
+
+                    <div className="mt-4 pt-6 border-t border-slate-100">
+                        <h4 className="text-sm font-bold text-red-600 mb-4 flex items-center gap-2">
+                            🚨 Meu Contato de Emergência SOS Global
+                        </h4>
+                        <div className="flex flex-col gap-4">
+                            <Input
+                                label="Nome do Contato"
+                                placeholder="Pessoa de confiança"
+                                value={editForm.emergency_contact_name || ''}
+                                onChange={(e) => setEditForm({ ...editForm, emergency_contact_name: e.target.value })}
+                            />
+                            <Input
+                                label="Telefone de Emergência"
+                                placeholder="(00) 00000-0000"
+                                value={editForm.emergency_contact_phone || ''}
+                                onChange={(e) => setEditForm({ ...editForm, emergency_contact_phone: formatPhone(e.target.value) })}
+                                maxLength={15}
+                            />
+                            <Input
+                                label="Email de Emergência"
+                                type="email"
+                                placeholder="Receberá todos os seus alertas SOS"
+                                value={editForm.emergency_contact_email || ''}
+                                onChange={(e) => setEditForm({ ...editForm, emergency_contact_email: e.target.value })}
+                            />
+                        </div>
+                    </div>
 
 
                     {(editForm.email?.trim().toLowerCase() !== user?.email?.trim().toLowerCase()) && (
