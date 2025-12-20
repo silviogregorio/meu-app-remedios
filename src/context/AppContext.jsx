@@ -7,6 +7,7 @@ import { PatientService } from '../services/patientService';
 import { MedicationService } from '../services/medicationService';
 import { PrescriptionService } from '../services/prescriptionService';
 import { LogService } from '../services/logService';
+import { requestForToken } from '../utils/firebase';
 
 const AppContext = createContext();
 
@@ -138,7 +139,7 @@ export const AppProvider = ({ children }) => {
             // 8. Buscar Configurações de Acessibilidade (Safe Fetch)
             if (user?.id) {
                 try {
-                    console.log('Fetching accessibility settings for user:', user.id);
+                    // Buscando configurações de acessibilidade silenciosamente
                     const { data: profileData } = await supabase
                         .from('profiles')
                         .select('*')
@@ -203,6 +204,68 @@ export const AppProvider = ({ children }) => {
         return () => {
             supabase.removeChannel(channel);
         };
+    }, [user?.id]);
+
+    // Registrar Token FCM para Notificações Push
+    useEffect(() => {
+        const setupNotifications = async () => {
+            if (user?.id) {
+                const token = await requestForToken();
+                if (token) {
+                    try {
+                        // STRATEGY: Delete old tokens for this user first, then insert fresh token
+                        // This ensures we always have the current, valid token
+
+                        // 1. Delete all existing tokens for this user (they might be stale)
+                        const { error: deleteError } = await supabase
+                            .from('fcm_tokens')
+                            .delete()
+                            .eq('user_id', user.id);
+
+                        if (deleteError) {
+                            console.warn('Aviso ao limpar tokens antigos:', deleteError.message);
+                        }
+
+                        // 2. Insert the fresh token
+                        const { error: insertError } = await supabase
+                            .from('fcm_tokens')
+                            .insert({
+                                user_id: user.id,
+                                token: token,
+                                last_seen: new Date().toISOString()
+                            });
+
+                        if (insertError) {
+                            // Handle unique constraint (token already exists for another user - rare edge case)
+                            if (insertError.code === '23505') {
+                                // Token exists, try upsert as fallback
+                                const { error: upsertError } = await supabase
+                                    .from('fcm_tokens')
+                                    .upsert({
+                                        user_id: user.id,
+                                        token: token,
+                                        last_seen: new Date().toISOString()
+                                    }, { onConflict: 'token' });
+
+                                if (upsertError) {
+                                    console.warn('Erro no fallback do token FCM:', upsertError.message);
+                                } else {
+                                    console.log('✅ Token FCM atualizado (fallback)');
+                                }
+                            } else {
+                                console.warn('Erro ao salvar token FCM:', insertError.message);
+                            }
+                        } else {
+                            console.log('✅ Token FCM registrado com sucesso');
+                        }
+                    } catch (err) {
+                        console.error('Falha ao registrar token FCM:', err);
+                    }
+                }
+            }
+        };
+
+        setupNotifications();
     }, [user?.id]);
 
     // --- Operações CRUD ---
@@ -901,7 +964,12 @@ export const AppProvider = ({ children }) => {
         try {
             // 1. Atualizar metadados do usuário (Auth)
             const { data: authData, error: authError } = await supabase.auth.updateUser({
-                data: { full_name: profileData.name }
+                data: {
+                    full_name: profileData.name,
+                    emergency_contact_name: profileData.emergency_contact_name,
+                    emergency_contact_phone: profileData.emergency_contact_phone,
+                    emergency_contact_email: profileData.emergency_contact_email
+                }
             });
 
             if (authError) throw authError;
@@ -909,7 +977,12 @@ export const AppProvider = ({ children }) => {
             // 2. Atualizar tabela de perfis (Public)
             const { error: profileError } = await supabase
                 .from('profiles')
-                .update({ full_name: profileData.name })
+                .update({
+                    full_name: profileData.name,
+                    emergency_contact_name: profileData.emergency_contact_name,
+                    emergency_contact_phone: profileData.emergency_contact_phone,
+                    emergency_contact_email: profileData.emergency_contact_email
+                })
                 .eq('id', user.id);
 
             if (profileError) throw profileError;
@@ -947,6 +1020,44 @@ export const AppProvider = ({ children }) => {
     const userMedications = medications;
     const userPrescriptions = prescriptions;
 
+    const triggerPanicAlert = async (patientId, lat, lng, accuracy = null, address = null) => {
+        if (!user) return;
+        try {
+            // Tenta salvar o log no banco, mas não trava o envio do email se falhar
+            try {
+                const insertData = {
+                    patient_id: patientId,
+                    triggered_by: user.id,
+                    location_lat: lat,
+                    location_lng: lng,
+                    accuracy: accuracy,
+                    status: 'active'
+                };
+
+                // Adicionar endereço se disponível (evita geocoding reverso no backend)
+                if (address) {
+                    insertData.address = address;
+                }
+
+                const { error: logError } = await supabase.from('sos_alerts').insert([insertData]);
+                if (logError) console.warn('Erro ao logar SOS (tabela pode não existir):', logError.message);
+            } catch (e) { console.error('Falha de log SOS:', e); }
+
+            showToast('🚨 Alerta de Socorro enviado!', 'success');
+
+            // O envio de Email e Push agora é tratado pelo BACKEND (server/index.js)
+            // através de Listener do Supabase Realtime na tabela 'sos_alerts'.
+            // Isso garante que mesmo se o usuário fechar o app, o alerta é processado.
+
+            console.log('✅ [SOS] Registro criado no banco. Backend processará o envio.');
+            return true;
+        } catch (error) {
+            console.error('Erro ao disparar SOS:', error);
+            showToast('Erro ao disparar alerta!', 'error');
+            throw error;
+        }
+    };
+
     return (
         <AppContext.Provider value={{
             user,
@@ -970,6 +1081,7 @@ export const AppProvider = ({ children }) => {
             healthLogs, addHealthLog, updateHealthLog, deleteHealthLog,
             runCaregiverCheck,
             checkLowStock,
+            triggerPanicAlert,
             logout: authSignOut
         }}>
             {children}

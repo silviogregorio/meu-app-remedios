@@ -1,17 +1,86 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Outlet } from 'react-router-dom';
 import Header from './Header';
 import Sidebar from '../ui/Sidebar';
 
 import { useApp } from '../../context/AppContext';
+import { setupOnMessageListener } from '../../utils/firebase';
 
 const Layout = () => {
-    const { accessibility } = useApp();
+    const { accessibility, showToast } = useApp();
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [isPinned, setIsPinned] = useState(() => {
         const saved = localStorage.getItem('sidebarPinned');
         return saved === 'true';
     });
+
+    // Use ref to avoid recreating listener when showToast changes
+    const showToastRef = useRef(showToast);
+    useEffect(() => {
+        showToastRef.current = showToast;
+    }, [showToast]);
+
+    // Listen for foreground FCM push notifications (continuously)
+    // Empty dependency array - set up ONCE and never cleanup until unmount
+    useEffect(() => {
+        console.log('🔔 Setting up foreground FCM listener (once)...');
+
+        const unsubscribe = setupOnMessageListener((payload) => {
+            console.log('🔔 Layout received FCM message:', payload);
+
+            // Extract title and body from notification or data
+            const title = payload?.notification?.title || payload?.data?.title || 'SiG Remédios';
+            const body = payload?.notification?.body || payload?.data?.body || payload?.data?.message || 'Nova notificação';
+
+            // ALWAYS try to show browser notification
+            if (Notification.permission === 'granted') {
+                try {
+                    const notification = new Notification(title, {
+                        body: body,
+                        icon: '/logo192.png',
+                        badge: '/logo192.png',
+                        requireInteraction: true,
+                        vibrate: [200, 100, 200]
+                    });
+                    console.log('✅ Browser notification criada:', title);
+
+                    // Auto-close after 10 seconds
+                    setTimeout(() => notification.close(), 10000);
+                } catch (err) {
+                    console.warn('⚠️ Browser notification failed:', err);
+                }
+            }
+
+            // ALWAYS show in-app toast as backup (use ref to get current function)
+            showToastRef.current(`🔔 ${title}: ${body}`, 'info');
+        });
+
+        return () => {
+            console.log('🔔 Cleaning up foreground FCM listener');
+            if (unsubscribe) {
+                unsubscribe();
+            }
+        };
+    }, []); // Empty deps - setup once on mount
+
+    // Listen for BroadcastChannel messages from Service Worker (backup for data-only messages)
+    useEffect(() => {
+        const channel = new BroadcastChannel('fcm-push-channel');
+
+        channel.onmessage = (event) => {
+            console.log('📢 BroadcastChannel message from SW:', event.data);
+            if (event.data?.type === 'FCM_PUSH') {
+                const { title, body } = event.data;
+                showToastRef.current(`🔔 ${title}: ${body}`, 'info');
+            }
+        };
+
+        console.log('📢 BroadcastChannel listener set up');
+
+        return () => {
+            channel.close();
+        };
+    }, []);
 
     const togglePin = () => {
         const newState = !isPinned;
