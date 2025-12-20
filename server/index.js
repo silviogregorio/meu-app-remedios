@@ -499,7 +499,8 @@ const handleSOSInsert = async (payload) => {
             // Formatar texto para o Push Body
             // REMOVED Name from start to avoid duplication
             const pushPhoneText = phoneForWhatsapp ? `\n📞 Tel: ${formattedPhone}` : '';
-            const pushBody = `${medInfo}\nPRECISA DE AJUDA!${pushPhoneText}\n📍 ${displayAddress || 'Ver localização'}`;
+            const patientNameText = patient?.name || 'Alguém';
+            const pushBody = `${patientNameText}\n${medInfo}\nPRECISA DE AJUDA!${pushPhoneText}\n📍 ${displayAddress || 'Ver localização'}\n\n👆 Clique aqui para abrir o Mapa`;
 
             try {
                 console.log(`📱 [BACKEND] Tentando push para ${fcmTokens.length} token(s)`);

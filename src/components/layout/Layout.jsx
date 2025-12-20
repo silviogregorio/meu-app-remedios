@@ -66,7 +66,8 @@ const Layout = () => {
             // Show in-app toast
             if (payload?.data?.type === 'sos') {
                 const pName = payload.data.patientName || 'Alguém';
-                const pPhone = payload.data.formattedPhone || payload.data.phone || '(sem telefone)';
+                // formattedPhone comes pre-formatted from backend
+                const pPhone = payload.data.formattedPhone || '(sem telefone)';
 
                 showToastRef.current(
                     `O paciente ${pName}, telefone ${pPhone} está precisando de ajuda URGENTE! Veja detalhes na notificação do celular ou pelo aplicativo.`,
