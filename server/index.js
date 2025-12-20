@@ -309,7 +309,19 @@ const handleSOSInsert = async (payload) => {
         if (profileError) console.error('❌ [BACKEND] Erro ao buscar profile:', profileError);
 
         console.log('👤 [BACKEND] User Profile fetched:', userProfile ? `Found (ID: ${userProfile.id})` : 'Not Found');
-        console.log('📞 [BACKEND] User Phone:', userProfile?.phone || 'N/A');
+
+        let userPhone = userProfile?.phone;
+        if (!userPhone) {
+            console.log('⚠️ [BACKEND] Phone not found in profile. Checking Supabase Auth...');
+            try {
+                const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.getUserById(alert.triggered_by);
+                if (authUser && authUser.user) {
+                    userPhone = authUser.user.phone || authUser.user.user_metadata?.phone || authUser.user.user_metadata?.whatsapp;
+                    console.log('👤 [BACKEND] Phone found in Auth:', userPhone);
+                }
+            } catch (e) { console.error('Error fetching auth user:', e); }
+        }
+        console.log('📞 [BACKEND] Final User Phone:', userPhone || 'N/A');
 
         // 3. Buscar Prescrições e Medicamentos do Paciente
         const { data: prescriptions } = await supabaseAdmin
@@ -426,9 +438,9 @@ const handleSOSInsert = async (payload) => {
             const pushTokens = tokens.map(t => t.token);
             const fcmTokens = tokens.map(t => t.token);
             // ENVIAR PUSH NOTIFICATION
-            // Obter telefone: Prioridade para o PRÓPRIO telefone do usuário (quem pediu socorro)
+            // Obter telefone: Prioridade para userPhone (busca robusta acima)
             // Se não tiver, tenta contato de emergência
-            const phoneForWhatsapp = userProfile?.phone || patient?.emergency_contact_phone || '';
+            const phoneForWhatsapp = userPhone || patient?.emergency_contact_phone || '';
 
             // Formatar texto para o Push Body para garantir que o telefone apareça
             const pushPhoneText = phoneForWhatsapp ? `\n📞 Tel: ${phoneForWhatsapp}` : '';
