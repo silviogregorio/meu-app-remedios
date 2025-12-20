@@ -46,16 +46,9 @@ export const sendPushNotification = async (tokens, title, body, data = {}) => {
 
     const mapUrl = data.mapUrl || 'https://sigremedios.vercel.app';
 
-    // MESSAGE WITH NOTIFICATION FOR FCM NATIVE SOUND
-    // Top-level notification = FCM/Google Play Services handles it (with sound)
-    // Data = Service Worker can access for actions
+    // DATA-ONLY message - SW controls display with custom buttons
+    // Android notification config enables sound
     const message = {
-        // TOP-LEVEL NOTIFICATION - FCM native processing with sound
-        notification: {
-            title: String(title),
-            body: String(body),
-            imageUrl: 'https://sigremedios.vercel.app/logo192.png'
-        },
 
         // DATA for Service Worker customization
         data: {
