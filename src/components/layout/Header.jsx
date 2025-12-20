@@ -381,7 +381,7 @@ const Header = ({ onMenuClick, isPinned }) => {
                         )}
                     </div>
                 </div>
-                </div>
+            </div>
     )
 }
 
