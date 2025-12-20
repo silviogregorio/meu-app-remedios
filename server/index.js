@@ -422,8 +422,14 @@ const handleSOSInsert = async (payload) => {
         if (tokens && tokens.length > 0) {
             const pushTokens = tokens.map(t => t.token);
             const fcmTokens = tokens.map(t => t.token);
-            // Obter telefone para ação do WhatsApp (do perfil do usuário ou contato de emergência)
+            // ENVIAR PUSH NOTIFICATION
+            // Obter telefone: Prioridade para o PRÓPRIO telefone do usuário (quem pediu socorro)
+            // Se não tiver, tenta contato de emergência
             const phoneForWhatsapp = userProfile?.phone || patient?.emergency_contact_phone || '';
+
+            // Formatar texto para o Push Body para garantir que o telefone apareça
+            const pushPhoneText = phoneForWhatsapp ? `\n📞 Tel: ${phoneForWhatsapp}` : '';
+            const pushBody = `${patient?.name || 'Alguém'} precisa de ajuda!${pushPhoneText}\n📍 ${displayAddress || 'Ver localização'}`;
 
             try {
                 console.log(`📱 [BACKEND] Tentando push para ${fcmTokens.length} token(s)`);
@@ -431,11 +437,12 @@ const handleSOSInsert = async (payload) => {
                     type: 'sos',
                     alertId: String(alert.id),
                     mapUrl: locationUrl || 'https://sigremedios.vercel.app',
-                    phone: String(phoneForWhatsapp), // Novo campo para WhatsApp
+                    phone: String(phoneForWhatsapp),
                     patientName: String(patient?.name || 'Alguém')
                 };
 
-                const pushResult = await sendPushNotification(fcmTokens, subject, text, pushData);
+                // Usar o pushBody customizado que inclui o telefone
+                const pushResult = await sendPushNotification(fcmTokens, subject, pushBody, pushData);
                 console.log(`✅ [BACKEND] Push enviado!`);
 
                 // CLEANUP: Remove tokens inválidos do banco

@@ -88,32 +88,15 @@ self.addEventListener('notificationclick', (event) => {
         urlToOpen = `https://wa.me/${phone}`;
     }
 
-    // FORCE OPEN WINDOW - Most reliable method for background clicks
+    // FORCE OPEN NEW WINDOW - To prevent overwriting the app tab
+    // User feedback: "opens map on top of app, is this good?" -> No, keep app open.
     event.waitUntil(
-        clients.matchAll({ type: 'window', includeUncontrolled: true })
-            .then((windowClients) => {
-                // Check if app is open
-                for (let client of windowClients) {
-                    if (client.url.includes('sigremedios.vercel.app') && 'focus' in client) {
-                        return client.focus().then(c => {
-                            // If WhatsApp, always open new window to not lose app state
-                            if (event.action === 'whatsapp') {
-                                return clients.openWindow(urlToOpen);
-                            }
-                            // If Map, navigate the focused window
-                            return c.navigate(urlToOpen);
-                        });
-                    }
-                }
-                // If no app window found, open new one
-                if (clients.openWindow) {
-                    return clients.openWindow(urlToOpen);
-                }
+        clients.openWindow(urlToOpen)
+            .then(windowClient => {
+                console.log('[SW] ✅ Opened in new window:', windowClient);
             })
             .catch(err => {
-                console.error('[SW] Click failed:', err);
-                // Last resort fallback
-                if (clients.openWindow) clients.openWindow(urlToOpen);
+                console.error('[SW] Failed to open window:', err);
             })
     );
 });
