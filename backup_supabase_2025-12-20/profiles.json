@@ -1,0 +1,71 @@
+[
+  {
+    "id": "f7d00018-fb2d-471a-acde-7405db7390dc",
+    "email": "silvio@sigsis.com.br",
+    "full_name": "Silvio Teste1",
+    "avatar_url": null,
+    "created_at": "2025-12-02T18:12:23.535768-03:00",
+    "updated_at": "2025-12-15T18:58:29.386864-03:00",
+    "cep": "15610-378",
+    "city": "Fernandópolis",
+    "state": "SP",
+    "ibge_code": "3515509",
+    "accessibility_settings": {
+      "largeText": false,
+      "highContrast": false,
+      "voiceEnabled": false
+    },
+    "emergency_contact_name": null,
+    "emergency_contact_phone": null,
+    "emergency_contact_email": null,
+    "street": null,
+    "number": null,
+    "neighborhood": null
+  },
+  {
+    "id": "5338cb78-fca8-4496-953f-f5e72b30c174",
+    "email": "jaguarconsultoriadigital@gmail.com",
+    "full_name": "jaguarconsultoriadigital@gmail.com",
+    "avatar_url": null,
+    "created_at": "2025-12-09T10:08:25.856896-03:00",
+    "updated_at": "2025-12-15T18:58:29.386864-03:00",
+    "cep": "15610-378",
+    "city": "Fernandópolis",
+    "state": "SP",
+    "ibge_code": "3515509",
+    "accessibility_settings": {
+      "largeText": false,
+      "highContrast": false,
+      "voiceEnabled": false
+    },
+    "emergency_contact_name": null,
+    "emergency_contact_phone": null,
+    "emergency_contact_email": null,
+    "street": null,
+    "number": null,
+    "neighborhood": null
+  },
+  {
+    "id": "b36c1774-bcda-4e2e-9ccf-b20c23089c40",
+    "email": "sigsis@gmail.com",
+    "full_name": "Francisco Gregório",
+    "avatar_url": null,
+    "created_at": "2025-11-30T16:18:40.850347-03:00",
+    "updated_at": "2025-12-19T18:03:54.313836-03:00",
+    "cep": "15610-378",
+    "city": "Fernandópolis",
+    "state": "SP",
+    "ibge_code": "3515509",
+    "accessibility_settings": {
+      "largeText": true,
+      "highContrast": false,
+      "voiceEnabled": true
+    },
+    "emergency_contact_name": "Contato Global Teste",
+    "emergency_contact_phone": "17991426306",
+    "emergency_contact_email": "sigsis@gmail.com",
+    "street": "Rua Aicás",
+    "number": "65",
+    "neighborhood": "Jardim Residencial Uirapuru"
+  }
+]

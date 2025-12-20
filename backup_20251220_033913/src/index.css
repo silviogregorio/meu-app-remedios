@@ -1,0 +1,281 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Premium Health Theme Palette */
+  --color-primary: #0f766e;
+  /* Teal 700 */
+  --color-primary-dark: #0d9488;
+  /* Teal 600 */
+  --color-primary-light: #ccfbf1;
+  /* Teal 100 */
+
+  --color-secondary: #64748b;
+  /* Slate 500 */
+  --color-secondary-light: #f8fafc;
+  /* Slate 50 */
+
+  --color-background: #f8fafc;
+  /* Slate 50 */
+  --color-surface: #ffffff;
+
+  --color-text: #0f172a;
+  /* Slate 900 */
+  --color-text-muted: #64748b;
+  /* Slate 500 */
+
+  --color-danger: #f43f5e;
+  /* Rose 500 */
+  --color-warning: #f59e0b;
+  /* Amber 500 */
+  --color-success: #10b981;
+  /* Emerald 500 */
+
+  /* Typography */
+  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+
+  /* Spacing & Layout */
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.5rem;
+  --radius-full: 9999px;
+
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 10px 10px -5px rgb(0 0 0 / 0.04);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--color-background);
+  color: var(--color-text);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+}
+
+button {
+  cursor: pointer;
+  font-family: inherit;
+  border: none;
+  background: none;
+}
+
+input,
+select,
+textarea {
+  font-family: inherit;
+  outline: none;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Driver.js Popover Fixes */
+.driver-popover-description {
+  white-space: pre-line !important;
+  line-height: 1.5 !important;
+}
+
+/* Custom Shake Animation */
+@keyframes shake {
+
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  25% {
+    transform: translateX(-2px) rotate(-1deg);
+  }
+
+  50% {
+    transform: translateX(2px) rotate(1deg);
+  }
+
+  75% {
+    transform: translateX(-2px) rotate(-1deg);
+  }
+}
+
+.hover\:animate-shake:hover {
+  animation: shake 0.4s ease-in-out;
+}
+
+/* Print Styles */
+@media print {
+
+  /* Ocultar elementos não necessários */
+  .no-print,
+  header,
+  nav,
+  aside,
+  button:not(.print-button) {
+    display: none !important;
+  }
+
+  /* Mostrar elementos apenas para impressão */
+  .print-only {
+    display: block !important;
+  }
+
+  /* Ajustar página */
+  body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: white;
+  }
+
+  main {
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* Remover espaçamentos desnecessários */
+  .print-section {
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+    page-break-inside: avoid;
+  }
+
+  .print-header {
+    border-bottom: 2px solid #000;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  th,
+  td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+  }
+
+  thead {
+    background-color: #f3f4f6 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Forçar cores de status na impressão */
+  .text-green-600 {
+    color: #059669 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .text-orange-600 {
+    color: #ea580c !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .bg-slate-50 {
+    background-color: #f8fafc !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* SOS Portal Handling */
+  body.printing-sos>#root {
+    display: none !important;
+  }
+
+  body.printing-sos .sos-portal {
+    display: block !important;
+  }
+}
+
+/* --- Senior Mode Accessibility --- */
+
+/* 1. Large Text Mode */
+.senior-text {
+  font-size: 125% !important;
+  /* Scale up everything 25% */
+}
+
+/* 2. High Contrast Mode */
+.senior-contrast {
+  /* Override Tailwind Colors with High Contrast Palette */
+  --color-primary: #000000 !important;
+  --color-primary-dark: #000000 !important;
+  --color-primary-light: #ffff00 !important;
+  /* Yellow highlight */
+
+  --color-background: #ffffff !important;
+  --color-surface: #ffffff !important;
+
+  --color-text: #000000 !important;
+  --color-text-muted: #1a1a1a !important;
+
+  /* Force dark borders for visibility */
+  --border-color: #000000 !important;
+}
+
+/* Force elements in high contrast mode */
+.senior-contrast * {
+  border-color: #000000 !important;
+}
+
+.senior-contrast input,
+.senior-contrast button,
+.senior-contrast .card {
+  border: 2px solid #000000 !important;
+  background-color: #fff !important;
+  color: #000 !important;
+  box-shadow: none !important;
+}
+
+.senior-contrast .bg-primary,
+.senior-contrast .bg-blue-600,
+.senior-contrast .bg-indigo-600,
+.senior-contrast button.bg-primary {
+  background-color: #000000 !important;
+  color: #ffff00 !important;
+  /* Black bg, Yellow text */
+}
+
+.senior-contrast .text-white {
+  color: #ffff00 !important;
+  font-weight: 900 !important;
+}
+
+.senior-contrast svg {
+  stroke: #000000 !important;
+  color: #000000 !important;
+}
+@keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } } .animate-shake { animation: shake 0.3s ease-in-out; }

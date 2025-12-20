@@ -13,7 +13,7 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const messaging = firebase.messaging();
 
-console.log('[SW] 🚀 Service Worker v14 - Map Fix');
+console.log('[SW] 🚀 Service Worker v15 - Simplified Actions');
 
 const broadcastChannel = new BroadcastChannel('fcm-push-channel');
 
@@ -27,7 +27,7 @@ self.addEventListener('push', (event) => {
 
     const data = payload.data || payload;
     const title = data.title || '🚨 EMERGÊNCIA SOS';
-    let body = data.body || 'Clique para ver localização';
+    const body = data.body || 'Clique para ver localização';
 
     const rawPhone = data.phone || '';
     const phone = rawPhone.replace(/\D/g, '');
@@ -37,15 +37,11 @@ self.addEventListener('push', (event) => {
     // Broadcast to foreground
     broadcastChannel.postMessage({ type: 'FCM_PUSH', ...data });
 
-    // ACTIONS: Mapa PRIMEIRO, Zap DEPOIS (se tiver telefone)
+    // SIMPLIFIED: Only one action button (Zap) if phone exists
+    // Body click ALWAYS opens Map
     const actions = [];
-
-    // SEMPRE adicionar Mapa primeiro
-    actions.push({ action: 'MAPA', title: '📍 Mapa' });
-
-    // Adicionar Zap apenas se tiver telefone
     if (phone) {
-        actions.push({ action: 'ZAP', title: '💬 Zap' });
+        actions.push({ action: 'zap', title: '💬 Zap' });
     }
 
     const notificationOptions = {
@@ -53,9 +49,10 @@ self.addEventListener('push', (event) => {
         icon: icon,
         badge: icon,
         vibrate: [300, 100, 300, 100, 300],
-        tag: 'sos-' + Date.now(),
+        tag: 'sos-emergency',
         renotify: true,
         requireInteraction: true,
+        silent: false, // Ensure sound
         data: {
             mapUrl: mapUrl,
             phone: phone
@@ -68,45 +65,29 @@ self.addEventListener('push', (event) => {
     );
 });
 
-// CLICK HANDLER - Ultra explicit with switch
+// CLICK HANDLER - Ultra simple
 self.addEventListener('notificationclick', (event) => {
     event.notification.close();
 
     const data = event.notification.data || {};
-    const action = event.action || '';
-
-    console.log('[SW v14] Action:', action);
-    console.log('[SW v14] MapUrl:', data.mapUrl);
-    console.log('[SW v14] Phone:', data.phone);
+    const action = event.action;
 
     let urlToOpen;
 
-    switch (action) {
-        case 'ZAP':
-            // WhatsApp
-            if (data.phone) {
-                let phone = data.phone;
-                if (phone.length <= 11 && !phone.startsWith('55')) {
-                    phone = '55' + phone;
-                }
-                urlToOpen = `https://wa.me/${phone}`;
-            } else {
-                urlToOpen = data.mapUrl || 'https://sigremedios.vercel.app';
-            }
-            break;
-
-        case 'MAPA':
-            // Google Maps - EXPLICIT
-            urlToOpen = data.mapUrl || 'https://sigremedios.vercel.app';
-            break;
-
-        default:
-            // Body click or unknown action -> Mapa
-            urlToOpen = data.mapUrl || 'https://sigremedios.vercel.app';
-            break;
+    // If ZAP button clicked AND phone exists -> WhatsApp
+    // EVERYTHING ELSE -> Map
+    if (action === 'zap' && data.phone) {
+        let phone = data.phone;
+        if (!phone.startsWith('55')) {
+            phone = '55' + phone;
+        }
+        urlToOpen = `https://wa.me/${phone}`;
+    } else {
+        // Body click, any other action, or missing phone -> Map
+        urlToOpen = data.mapUrl || 'https://sigremedios.vercel.app';
     }
 
-    console.log('[SW v14] Opening URL:', urlToOpen);
+    console.log('[SW v15] Action:', action, '-> Opening:', urlToOpen);
 
     event.waitUntil(
         clients.openWindow(urlToOpen)

@@ -1,0 +1,36 @@
+[
+  {
+    "id": "3d0440c5-cb4e-4502-bc92-52a42020e236",
+    "user_id": "b36c1774-bcda-4e2e-9ccf-b20c23089c40",
+    "patient_id": "55184598-3ce5-4068-804d-f4d9313a35ac",
+    "medication_id": "900dacbe-5200-4d5a-9c49-a8a0e0229ae1",
+    "start_date": "2025-12-09",
+    "end_date": "2025-12-10",
+    "frequency": "sdfsdfsdf",
+    "times": [
+      "08:00"
+    ],
+    "instructions": null,
+    "created_at": "2025-12-09T16:46:03.660745-03:00",
+    "updated_at": "2025-12-14T00:56:55.386708-03:00",
+    "dose_amount": "1",
+    "continuous_use": true
+  },
+  {
+    "id": "9125f7b2-434f-4a27-a2cf-5c98094ca160",
+    "user_id": "b36c1774-bcda-4e2e-9ccf-b20c23089c40",
+    "patient_id": "55184598-3ce5-4068-804d-f4d9313a35ac",
+    "medication_id": "d67ca6b0-9b63-4e4a-afcb-57f2c3da34db",
+    "start_date": "2025-12-15",
+    "end_date": "2025-12-21",
+    "frequency": "1",
+    "times": [
+      "23:55"
+    ],
+    "instructions": null,
+    "created_at": "2025-12-15T23:45:21.880901-03:00",
+    "updated_at": "2025-12-15T23:45:21.880901-03:00",
+    "dose_amount": "1",
+    "continuous_use": false
+  }
+]

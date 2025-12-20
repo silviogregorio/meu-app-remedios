@@ -71,7 +71,7 @@ const Layout = () => {
                 showToastRef.current(
                     `O paciente ${pName}, telefone ${pPhone} está precisando de ajuda URGENTE! Veja detalhes na notificação do celular ou pelo aplicativo.`,
                     'error',
-                    10000 // 10 seconds
+                    0 // Persistent - user must close manually
                 );
             } else {
                 showToastRef.current(`🔔 ${title}: ${body}`, 'info');

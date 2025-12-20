@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Confirme a Mudança de Email - SiG Remédios</title>
+</head>
+
+<body
+    style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh;">
+    <table role="presentation" style="width: 100%; border-collapse: collapse;">
+        <tr>
+            <td align="center" style="padding: 40px 20px;">
+                <!-- Main Container -->
+                <table role="presentation"
+                    style="max-width: 600px; width: 100%; background: white; border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.1); overflow: hidden;">
+
+                    <!-- Header with Gradient -->
+                    <tr>
+                        <td
+                            style="background: linear-gradient(135deg, #0ea5e9 0%, #22c55e 100%); padding: 40px 30px; text-align: center;">
+                            <!-- Logo do App -->
+                            <div
+                                style="margin: 0 auto 20px; width: 120px; height: 120px; display: flex; align-items: center; justify-content: center;">
+                                <img src="https://sigremedios.vercel.app/assets/logo.png" alt="SiG Remédios"
+                                    style="width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 4px 12px rgba(0,0,0,0.2));">
+                            </div>
+                            <h1
+                                style="margin: 0; color: white; font-size: 28px; font-weight: 700; text-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                                Confirme seu Email
+                            </h1>
+                            <p style="margin: 10px 0 0; color: rgba(255,255,255,0.95); font-size: 16px;">
+                                SiG Remédios - Gestão Inteligente Saúde Familiar e Medicamentos
+                            </p>
+                        </td>
+                    </tr>
+
+                    <!-- Content -->
+                    <tr>
+                        <td style="padding: 40px 30px;">
+                            <h2 style="margin: 0 0 20px; color: #1e293b; font-size: 22px; font-weight: 600;">
+                                Olá! 👋
+                            </h2>
+
+                            <p style="margin: 0 0 20px; color: #475569; font-size: 16px; line-height: 1.6;">
+                                Você solicitou a mudança do email da sua conta no <strong>SiG Remédios</strong>.
+                            </p>
+
+                            <!-- Email Change Info Box -->
+                            <div
+                                style="background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border-left: 4px solid #3b82f6; border-radius: 12px; padding: 20px; margin: 20px 0;">
+                                <p style="margin: 0 0 8px; color: #1e40af; font-weight: 600; font-size: 14px;">
+                                    Email Anterior:
+                                </p>
+                                <p style="margin: 0 0 16px; color: #475569; font-size: 15px;">
+                                    {{ .Email }}
+                                </p>
+                                <p style="margin: 0 0 8px; color: #1e40af; font-weight: 600; font-size: 14px;">
+                                    Novo Email:
+                                </p>
+                                <p style="margin: 0; color: #475569; font-size: 15px; font-weight: 500;">
+                                    {{ .NewEmail }}
+                                </p>
+                            </div>
+
+                            <p style="margin: 20px 0; color: #475569; font-size: 16px; line-height: 1.6;">
+                                Para confirmar a mudança, clique no botão abaixo:
+                            </p>
+
+                            <!-- CTA Button -->
+                            <table role="presentation" style="width: 100%; margin: 30px 0;">
+                                <tr>
+                                    <td align="center">
+                                        <a href="{{ .ConfirmationURL }}"
+                                            style="display: inline-block; background: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%); color: white; text-decoration: none; padding: 16px 40px; border-radius: 12px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3); transition: all 0.3s;">
+                                            ✅ Confirmar Novo Email
+                                        </a>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <!-- Warning Box -->
+                            <div
+                                style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border-left: 4px solid #f59e0b; border-radius: 12px; padding: 16px; margin: 30px 0;">
+                                <p style="margin: 0; color: #92400e; font-size: 14px; line-height: 1.5;">
+                                    <strong>⚠️ Importante:</strong> Se você não solicitou esta mudança, ignore este
+                                    email. Seu email permanecerá como <strong>{{ .Email }}</strong>.
+                                </p>
+                            </div>
+
+                            <!-- Alternative Link -->
+                            <p style="margin: 30px 0 0; color: #64748b; font-size: 13px; line-height: 1.5;">
+                                Não consegue clicar no botão? Copie e cole este link no navegador:<br>
+                                <a href="{{ .ConfirmationURL }}" style="color: #0ea5e9; word-break: break-all;">{{
+                                    .ConfirmationURL }}</a>
+                            </p>
+                        </td>
+                    </tr>
+
+                    <!-- Footer -->
+                    <tr>
+                        <td
+                            style="background: #f8fafc; padding: 30px; text-align: center; border-top: 1px solid #e2e8f0;">
+                            <p style="margin: 0 0 10px; color: #64748b; font-size: 14px;">
+                                © 2025 <strong>SiG Remédios</strong> - Gestão Inteligente Saúde Familiar e Medicamentos
+                            </p>
+                            <p style="margin: 0; color: #94a3b8; font-size: 12px;">
+                                Este é um email automático. Por favor, não responda.
+                            </p>
+                        </td>
+                    </tr>
+
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+
+</html>

@@ -4,6 +4,9 @@ import clsx from 'clsx';
 
 const Toast = ({ message, type = 'success', onClose, duration = 5000 }) => {
     useEffect(() => {
+        // If duration is 0 or null, don't auto-close (persistent)
+        if (!duration) return;
+
         const timer = setTimeout(() => {
             onClose();
         }, duration);

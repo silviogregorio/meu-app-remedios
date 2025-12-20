@@ -1,0 +1,41 @@
+[
+  {
+    "id": "0d787b6e-5540-4560-ae2a-d5d6190b53c9",
+    "user_id": "f7d00018-fb2d-471a-acde-7405db7390dc",
+    "name": "Dipirona",
+    "dosage": "1 mg",
+    "type": "comprimido",
+    "created_at": "2025-12-02T22:58:48.7573-03:00",
+    "updated_at": "2025-12-02T22:58:48.7573-03:00",
+    "quantity": 0,
+    "last_alert_date": null,
+    "color": "white",
+    "shape": "round"
+  },
+  {
+    "id": "900dacbe-5200-4d5a-9c49-a8a0e0229ae1",
+    "user_id": "b36c1774-bcda-4e2e-9ccf-b20c23089c40",
+    "name": "Dipirona",
+    "dosage": "1 mg",
+    "type": "comprimido",
+    "created_at": "2025-12-06T10:48:24.806278-03:00",
+    "updated_at": "2025-12-15T00:49:41.52501-03:00",
+    "quantity": 28,
+    "last_alert_date": null,
+    "color": "white",
+    "shape": "round"
+  },
+  {
+    "id": "d67ca6b0-9b63-4e4a-afcb-57f2c3da34db",
+    "user_id": "b36c1774-bcda-4e2e-9ccf-b20c23089c40",
+    "name": "teste",
+    "dosage": "1 mg",
+    "type": "Comprimido",
+    "created_at": "2025-12-15T23:44:48.817748-03:00",
+    "updated_at": "2025-12-16T00:35:26.720208-03:00",
+    "quantity": 9,
+    "last_alert_date": null,
+    "color": "purple",
+    "shape": "round"
+  }
+]

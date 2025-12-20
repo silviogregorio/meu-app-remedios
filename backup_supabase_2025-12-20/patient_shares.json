@@ -1,0 +1,24 @@
+[
+  {
+    "id": "6a482097-dd2b-4bb3-b326-c4a2d7bf138f",
+    "owner_id": "b36c1774-bcda-4e2e-9ccf-b20c23089c40",
+    "patient_id": "55184598-3ce5-4068-804d-f4d9313a35ac",
+    "shared_with_email": "jaguarconsultoriadigital@gmail.com",
+    "permission": "view",
+    "status": "pending",
+    "created_at": "2025-12-09T16:38:17.468525-03:00",
+    "accepted_at": "2025-12-09T16:38:17.75-03:00",
+    "shared_with_id": "5338cb78-fca8-4496-953f-f5e72b30c174"
+  },
+  {
+    "id": "83cb348f-6990-4b2c-b5c3-5ba86197efa1",
+    "owner_id": "b36c1774-bcda-4e2e-9ccf-b20c23089c40",
+    "patient_id": "55184598-3ce5-4068-804d-f4d9313a35ac",
+    "shared_with_email": "suporte@sigsis.com.br",
+    "permission": "edit",
+    "status": "pending",
+    "created_at": "2025-12-13T18:04:16.34071-03:00",
+    "accepted_at": null,
+    "shared_with_id": null
+  }
+]
