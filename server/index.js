@@ -396,6 +396,8 @@ const handleSOSInsert = async (payload) => {
 
         // TEXTOS
         const subject = `🚨 EMERGÊNCIA SOS: ${patient?.name || 'Alerta'}`;
+        // Título simplificado para o push notification
+        const pushTitle = `🚨 EMERGÊNCIA SOS`;
         const locationText = displayAddress
             ? `${displayAddress}\n(Ver no mapa: ${locationUrl || 'Coordenadas indisponíveis'})`
             : locationUrl || 'Localização não disponível';
@@ -511,7 +513,8 @@ const handleSOSInsert = async (payload) => {
                 };
 
                 // Usar o pushBody customizado que inclui o telefone
-                const pushResult = await sendPushNotification(fcmTokens, subject, pushBody, pushData);
+                const pushTitle = `🚨 EMERGÊNCIA SOS`;
+                const pushResult = await sendPushNotification(fcmTokens, pushTitle, pushBody, pushData);
                 console.log(`✅ [BACKEND] Push enviado!`);
 
                 // CLEANUP: Remove tokens inválidos do banco
