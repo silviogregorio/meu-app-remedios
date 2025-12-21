@@ -18,7 +18,7 @@ import SponsorDisplay from '../components/features/SponsorDisplay';
 import LocalOffersCarousel from '../components/features/LocalOffersCarousel';
 import { fetchActiveWeightedOffers } from '../services/offerService';
 import { OfferCard } from '../components/features/OfferCard';
-import { MedicationCardShimmer } from '../components/ui/Shimmer';
+import { MedicationCardShimmer, HeroCardShimmer, StatsCardShimmer } from '../components/ui/Shimmer';
 
 const ITEMS_PER_PAGE = 6;
 
@@ -343,187 +343,198 @@ const Home = () => {
             )}
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <Card className="md:col-span-2 bg-gradient-to-br from-blue-600 to-blue-700 text-white border-none shadow-xl shadow-blue-900/20 overflow-hidden relative">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-10 -mt-10 blur-2xl"></div>
-                    <CardContent className="p-4 relative z-10">
-                        {(() => {
-                            const now = new Date();
-                            const currentTime = formatTime(now);
-
-                            const nextDose = todaysSchedule.find(item =>
-                                !item.isTaken && item.time >= currentTime
-                            );
-
-                            if (nextDose) {
-                                const [hours, minutes] = nextDose.time.split(':').map(Number);
-                                const doseDate = new Date();
-                                doseDate.setHours(hours, minutes, 0, 0);
-                                const diffMinutes = Math.round((doseDate - now) / 60000);
-
-                                let timeText;
-                                if (diffMinutes < 0) timeText = 'Agora';
-                                else if (diffMinutes < 60) timeText = `Em ${diffMinutes} min`;
-                                else {
-                                    const h = Math.floor(diffMinutes / 60);
-                                    const m = diffMinutes % 60;
-                                    timeText = `Em ${h}h ${m > 0 ? `${m}min` : ''}`;
-                                }
-
-                                return (
-                                    <div className="flex flex-col gap-4">
-                                        <div className="flex items-start justify-between">
-                                            <div>
-                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-500/30 text-blue-50 text-xs font-medium backdrop-blur-sm border border-blue-400/30">
-                                                    <Clock size={12} />
-                                                    Próxima Dose
-                                                </span>
-
-                                                {/* BIG Visual Identity for Accessibility */}
-                                                <div className="flex items-center gap-4 mt-3">
-                                                    <div className="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center shrink-0 shadow-lg">
-                                                        <PillIcon
-                                                            shape={nextDose.medication?.shape || 'round'}
-                                                            color={nextDose.medication?.color || 'white'}
-                                                            size={48}
-                                                            className="drop-shadow-md"
-                                                        />
-                                                    </div>
-                                                    <div>
-                                                        <h3 className="text-3xl font-bold">{nextDose.medicationName}</h3>
-                                                        <p className="text-blue-100 text-xl font-medium">
-                                                            {Number(nextDose.doseAmount)} {nextDose.medicationType} {nextDose.dosage}
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div className="text-right">
-                                                <div className="text-4xl font-bold tracking-tight">{nextDose.time}</div>
-                                                <div className="text-blue-200 font-medium text-lg mt-1">{timeText}</div>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-center gap-2 text-sm text-blue-100 bg-blue-800/20 p-3 rounded-lg backdrop-blur-sm mt-2">
-                                            <User size={16} />
-                                            Paciente: <span className="font-bold">{nextDose.patientName}</span>
-                                        </div>
-                                    </div>
-                                );
-                            } else {
-                                const allTaken = todaysSchedule.length > 0 && todaysSchedule.every(i => i.isTaken);
-                                return (
-                                    <div className="flex flex-col items-center justify-center py-2 text-center h-full">
-                                        <div className="w-full animate-in fade-in slide-in-from-bottom duration-700">
-                                            <div
-                                                className="bg-gradient-to-br from-blue-500 to-indigo-600 rounded-3xl overflow-hidden shadow-xl transform transition-transform duration-300"
-                                                onClick={(e) => {
-                                                    const target = e.currentTarget;
-                                                    target.classList.add('animate-shake');
-                                                    setTimeout(() => target.classList.remove('animate-shake'), 500);
-                                                }}
-                                            >
-                                                {/* Image Section - Expansive with Overlay */}
-                                                <div className="relative w-full h-64 sm:h-72 active:scale-95 transition-transform duration-200 cursor-pointer">
-                                                    <img
-                                                        src="/assets/images/peace_illustration.png"
-                                                        alt="Tranquilidade"
-                                                        className="w-full h-full object-cover hover:scale-105 transition-transform duration-700"
-                                                    />
-                                                    <div className="absolute inset-0 bg-gradient-to-t from-blue-600/90 via-transparent to-transparent"></div>
-
-                                                    {/* Text Overlay */}
-                                                    <div className="absolute bottom-0 left-0 right-0 p-6 text-center">
-                                                        <h3 className="text-2xl font-bold text-white mb-2 drop-shadow-md">
-                                                            {allTaken ? 'Parabéns, tudo tomado!' : 'Sem mais doses hoje'}
-                                                        </h3>
-                                                        <p className="text-blue-100 font-medium text-lg leading-relaxed drop-shadow-sm max-w-xs mx-auto">
-                                                            {allTaken ? 'Você completou seu dia.' : 'Curta seu dia com paz, tranquilidade e saúde.'}
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                );
-                            }
-                        })()}
-                    </CardContent>
-                </Card>
-
-                <Card id="tour-summary-card" className="bg-white border-slate-200 shadow-sm relative overflow-hidden">
-                    <CardContent className="p-3 flex flex-col gap-2 relative z-10">
-                        <div className="flex items-center justify-between mb-1">
-                            <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm flex items-center gap-2">
-                                <Zap className="text-amber-500 fill-amber-500" size={16} />
-                                Energia
-                            </h3>
-                            {(() => {
-                                const total = todaysSchedule.length;
-                                const taken = todaysSchedule.filter(i => i.isTaken).length;
-                                const percentage = total > 0 ? Math.round((taken / total) * 100) : 100;
-
-                                return (
-                                    <span className="text-lg font-black text-slate-900">{percentage}%</span>
-                                );
-                            })()}
+                {isInitialLoading ? (
+                    <>
+                        <div className="md:col-span-2">
+                            <HeroCardShimmer />
                         </div>
+                        <StatsCardShimmer />
+                    </>
+                ) : (
+                    <>
+                        <Card className="md:col-span-2 bg-gradient-to-br from-blue-600 to-blue-700 text-white border-none shadow-xl shadow-blue-900/20 overflow-hidden relative">
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-10 -mt-10 blur-2xl"></div>
+                            <CardContent className="p-4 relative z-10">
+                                {(() => {
+                                    const now = new Date();
+                                    const currentTime = formatTime(now);
 
-                        {(() => {
-                            const total = todaysSchedule.length;
-                            const taken = todaysSchedule.filter(i => i.isTaken).length;
-                            // Fix: If total is 0, percentage is 100% (Day Complete/Rest)
-                            const percentage = total > 0 ? Math.round((taken / total) * 100) : 100;
-                            const isComplete = percentage === 100;
+                                    const nextDose = todaysSchedule.find(item =>
+                                        !item.isTaken && item.time >= currentTime
+                                    );
 
-                            // State for animation
-                            const [animatedPercentage, setAnimatedPercentage] = useState(0);
+                                    if (nextDose) {
+                                        const [hours, minutes] = nextDose.time.split(':').map(Number);
+                                        const doseDate = new Date();
+                                        doseDate.setHours(hours, minutes, 0, 0);
+                                        const diffMinutes = Math.round((doseDate - now) / 60000);
 
-                            useEffect(() => {
-                                const timer = setTimeout(() => {
-                                    setAnimatedPercentage(percentage);
-                                }, 100);
-                                return () => clearTimeout(timer);
-                            }, [percentage]);
+                                        let timeText;
+                                        if (diffMinutes < 0) timeText = 'Agora';
+                                        else if (diffMinutes < 60) timeText = `Em ${diffMinutes} min`;
+                                        else {
+                                            const h = Math.floor(diffMinutes / 60);
+                                            const m = diffMinutes % 60;
+                                            timeText = `Em ${h}h ${m > 0 ? `${m}min` : ''}`;
+                                        }
 
-                            return (
-                                <div className="flex flex-col gap-2 mt-2">
-                                    {/* Gamified Bar - Restored Animation */}
-                                    <div className="relative h-2 bg-slate-100 rounded-full overflow-hidden shadow-inner">
-                                        <div
-                                            className="absolute top-0 left-0 h-full bg-gradient-to-r from-emerald-400 to-emerald-600 rounded-full shadow-[0_0_10px_rgba(16,185,129,0.5)] transition-all duration-[3000ms] ease-out"
-                                            style={{ width: `${animatedPercentage}%` }}
-                                        />
-                                    </div>
+                                        return (
+                                            <div className="flex flex-col gap-4">
+                                                <div className="flex items-start justify-between">
+                                                    <div>
+                                                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-500/30 text-blue-50 text-xs font-medium backdrop-blur-sm border border-blue-400/30">
+                                                            <Clock size={12} />
+                                                            Próxima Dose
+                                                        </span>
 
-                                    {/* Restored Message Box with Compact Padding */}
-                                    <div className="bg-slate-50 rounded-lg p-2 border border-slate-100 flex items-center gap-2.5">
-                                        <div className={`p-1.5 rounded-full flex-shrink-0 ${isComplete ? 'bg-amber-100 border border-amber-200' : 'bg-blue-100 text-blue-600'
-                                            }`}>
-                                            {isComplete ? <Star size={18} color="#d97706" fill="#fbbf24" className="animate-bounce drop-shadow-sm" /> : <Activity size={18} />}
-                                        </div>
-                                        <div>
-                                            <p className="font-bold text-slate-700 text-xs mb-0.5">
-                                                {isComplete ? (
-                                                    total === 0 ? "Dia Livre! Aproveite." : "Objetivo Concluído!"
-                                                ) : "Continue assim!"}
-                                            </p>
-                                            <p className="text-[10px] text-slate-500 leading-tight">
-                                                {isComplete
-                                                    ? (total === 0 ? "Sua saúde está em dia." : "Você completou tudo.")
-                                                    : `${percentage}% da meta diária.`}
-                                            </p>
-                                        </div>
-                                    </div>
+                                                        {/* BIG Visual Identity for Accessibility */}
+                                                        <div className="flex items-center gap-4 mt-3">
+                                                            <div className="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center shrink-0 shadow-lg">
+                                                                <PillIcon
+                                                                    shape={nextDose.medication?.shape || 'round'}
+                                                                    color={nextDose.medication?.color || 'white'}
+                                                                    size={48}
+                                                                    className="drop-shadow-md"
+                                                                />
+                                                            </div>
+                                                            <div>
+                                                                <h3 className="text-3xl font-bold">{nextDose.medicationName}</h3>
+                                                                <p className="text-blue-100 text-xl font-medium">
+                                                                    {Number(nextDose.doseAmount)} {nextDose.medicationType} {nextDose.dosage}
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div className="text-right">
+                                                        <div className="text-4xl font-bold tracking-tight">{nextDose.time}</div>
+                                                        <div className="text-blue-200 font-medium text-lg mt-1">{timeText}</div>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-2 text-sm text-blue-100 bg-blue-800/20 p-3 rounded-lg backdrop-blur-sm mt-2">
+                                                    <User size={16} />
+                                                    Paciente: <span className="font-bold">{nextDose.patientName}</span>
+                                                </div>
+                                            </div>
+                                        );
+                                    } else {
+                                        const allTaken = todaysSchedule.length > 0 && todaysSchedule.every(i => i.isTaken);
+                                        return (
+                                            <div className="flex flex-col items-center justify-center py-2 text-center h-full">
+                                                <div className="w-full animate-in fade-in slide-in-from-bottom duration-700">
+                                                    <div
+                                                        className="bg-gradient-to-br from-blue-500 to-indigo-600 rounded-3xl overflow-hidden shadow-xl transform transition-transform duration-300"
+                                                        onClick={(e) => {
+                                                            const target = e.currentTarget;
+                                                            target.classList.add('animate-shake');
+                                                            setTimeout(() => target.classList.remove('animate-shake'), 500);
+                                                        }}
+                                                    >
+                                                        {/* Image Section - Expansive with Overlay */}
+                                                        <div className="relative w-full h-64 sm:h-72 active:scale-95 transition-transform duration-200 cursor-pointer">
+                                                            <img
+                                                                src="/assets/images/peace_illustration.png"
+                                                                alt="Tranquilidade"
+                                                                className="w-full h-full object-cover hover:scale-105 transition-transform duration-700"
+                                                            />
+                                                            <div className="absolute inset-0 bg-gradient-to-t from-blue-600/90 via-transparent to-transparent"></div>
+
+                                                            {/* Text Overlay */}
+                                                            <div className="absolute bottom-0 left-0 right-0 p-6 text-center">
+                                                                <h3 className="text-2xl font-bold text-white mb-2 drop-shadow-md">
+                                                                    {allTaken ? 'Parabéns, tudo tomado!' : 'Sem mais doses hoje'}
+                                                                </h3>
+                                                                <p className="text-blue-100 font-medium text-lg leading-relaxed drop-shadow-sm max-w-xs mx-auto">
+                                                                    {allTaken ? 'Você completou seu dia.' : 'Curta seu dia com paz, tranquilidade e saúde.'}
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    }
+                                })()}
+                            </CardContent>
+                        </Card>
+
+                        <Card id="tour-summary-card" className="bg-white border-slate-200 shadow-sm relative overflow-hidden">
+                            <CardContent className="p-3 flex flex-col gap-2 relative z-10">
+                                <div className="flex items-center justify-between mb-1">
+                                    <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm flex items-center gap-2">
+                                        <Zap className="text-amber-500 fill-amber-500" size={16} />
+                                        Energia
+                                    </h3>
+                                    {(() => {
+                                        const total = todaysSchedule.length;
+                                        const taken = todaysSchedule.filter(i => i.isTaken).length;
+                                        const percentage = total > 0 ? Math.round((taken / total) * 100) : 100;
+
+                                        return (
+                                            <span className="text-lg font-black text-slate-900">{percentage}%</span>
+                                        );
+                                    })()}
                                 </div>
-                            );
-                        })()}
-                    </CardContent>
 
-                    {/* Decorative Background Elements */}
-                    <div className="absolute -bottom-10 -right-10 w-32 h-32 bg-gradient-to-br from-indigo-50 to-blue-50 rounded-full blur-2xl opacity-50 pointer-events-none"></div>
-                </Card>
-            </div >
+                                {(() => {
+                                    const total = todaysSchedule.length;
+                                    const taken = todaysSchedule.filter(i => i.isTaken).length;
+                                    // Fix: If total is 0, percentage is 100% (Day Complete/Rest)
+                                    const percentage = total > 0 ? Math.round((taken / total) * 100) : 100;
+                                    const isComplete = percentage === 100;
+
+                                    // State for animation
+                                    const [animatedPercentage, setAnimatedPercentage] = useState(0);
+
+                                    useEffect(() => {
+                                        const timer = setTimeout(() => {
+                                            setAnimatedPercentage(percentage);
+                                        }, 100);
+                                        return () => clearTimeout(timer);
+                                    }, [percentage]);
+
+                                    return (
+                                        <div className="flex flex-col gap-2 mt-2">
+                                            {/* Gamified Bar - Restored Animation */}
+                                            <div className="relative h-2 bg-slate-100 rounded-full overflow-hidden shadow-inner">
+                                                <div
+                                                    className="absolute top-0 left-0 h-full bg-gradient-to-r from-emerald-400 to-emerald-600 rounded-full shadow-[0_0_10px_rgba(16,185,129,0.5)] transition-all duration-[3000ms] ease-out"
+                                                    style={{ width: `${animatedPercentage}%` }}
+                                                />
+                                            </div>
+
+                                            {/* Restored Message Box with Compact Padding */}
+                                            <div className="bg-slate-50 rounded-lg p-2 border border-slate-100 flex items-center gap-2.5">
+                                                <div className={`p-1.5 rounded-full flex-shrink-0 ${isComplete ? 'bg-amber-100 border border-amber-200' : 'bg-blue-100 text-blue-600'
+                                                    }`}>
+                                                    {isComplete ? <Star size={18} color="#d97706" fill="#fbbf24" className="animate-bounce drop-shadow-sm" /> : <Activity size={18} />}
+                                                </div>
+                                                <div>
+                                                    <p className="font-bold text-slate-700 text-xs mb-0.5">
+                                                        {isComplete ? (
+                                                            total === 0 ? "Dia Livre! Aproveite." : "Objetivo Concluído!"
+                                                        ) : "Continue assim!"}
+                                                    </p>
+                                                    <p className="text-[10px] text-slate-500 leading-tight">
+                                                        {isComplete
+                                                            ? (total === 0 ? "Sua saúde está em dia." : "Você completou tudo.")
+                                                            : `${percentage}% da meta diária.`}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })()}
+                            </CardContent>
+
+                            {/* Decorative Background Elements */}
+                            <div className="absolute -bottom-10 -right-10 w-32 h-32 bg-gradient-to-br from-indigo-50 to-blue-50 rounded-full blur-2xl opacity-50 pointer-events-none"></div>
+                        </Card>
+                    </>
+                )}
+            </div>
 
             {/* Sponsor Display (Banner) */}
-            < SponsorDisplay user={user} variant="banner" />
+            <SponsorDisplay user={user} variant="banner" />
 
             {/* Late Doses Alert */}
             {

@@ -50,4 +50,39 @@ export const PatientCardShimmer = () => {
     );
 };
 
+// Shimmer for hero card (next dose/all done)
+export const HeroCardShimmer = () => {
+    return (
+        <div className="bg-gradient-to-br from-blue-600 to-blue-700 text-white border-none shadow-xl rounded-2xl p-6">
+            <div className="space-y-4">
+                <Shimmer className="h-6 w-32 rounded bg-blue-500/50" />
+                <div className="flex items-center gap-4">
+                    <Shimmer className="w-16 h-16 rounded-2xl bg-blue-500/50" />
+                    <div className="flex-1 space-y-3">
+                        <Shimmer className="h-8 w-3/4 rounded bg-blue-500/50" />
+                        <Shimmer className="h-6 w-1/2 rounded bg-blue-500/50" />
+                    </div>
+                </div>
+                <Shimmer className="h-10 w-full rounded-lg bg-blue-500/50" />
+            </div>
+        </div>
+    );
+};
+
+// Shimmer for stats/energy card
+export const StatsCardShimmer = () => {
+    return (
+        <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-slate-800">
+            <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                    <Shimmer className="h-5 w-24 rounded" />
+                    <Shimmer className="h-6 w-12 rounded" />
+                </div>
+                <Shimmer className="h-2 w-full rounded-full" />
+                <Shimmer className="h-16 w-full rounded-lg" />
+            </div>
+        </div>
+    );
+};
+
 export default Shimmer;
