@@ -8,6 +8,7 @@ import { MedicationService } from '../services/medicationService';
 import { PrescriptionService } from '../services/prescriptionService';
 import { LogService } from '../services/logService';
 import { requestForToken } from '../utils/firebase';
+import { setBadge } from '../utils/badge';
 
 const AppContext = createContext();
 
@@ -238,6 +239,60 @@ export const AppProvider = ({ children }) => {
 
         setupNotifications();
     }, [user?.id]);
+
+    // Atualizar Badge com doses pendentes
+    useEffect(() => {
+        if (!user) return;
+
+        const updateBadge = () => {
+            const now = new Date();
+            const today = now.toISOString().split('T')[0];
+            const currentTime = now.toTimeString().slice(0, 5);
+
+            let pendingCount = 0;
+
+            prescriptions.forEach(presc => {
+                const start = new Date(presc.startDate);
+                const end = presc.endDate ? new Date(presc.endDate) : null;
+                const target = new Date(today);
+                target.setHours(0, 0, 0, 0);
+                start.setHours(0, 0, 0, 0);
+                if (end) end.setHours(0, 0, 0, 0);
+
+                if (target < start) return;
+                if (end && target > end) return;
+
+                let isDue = false;
+                if (presc.frequency === 'daily') isDue = true;
+                else if (presc.frequency === 'specific_days') {
+                    const weekMap = { 0: 'dom', 1: 'seg', 2: 'ter', 3: 'qua', 4: 'qui', 5: 'sex', 6: 'sab' };
+                    const dayStr = weekMap[target.getDay()];
+                    if (presc.weekDays && presc.weekDays.includes(dayStr)) isDue = true;
+                } else if (presc.frequency === 'interval') {
+                    const diffDays = Math.floor((target - start) / (1000 * 60 * 60 * 24));
+                    if (diffDays % presc.intervalDays === 0) isDue = true;
+                }
+
+                if (isDue) {
+                    presc.times.forEach(time => {
+                        const log = consumptionLog.find(l =>
+                            l.prescription_id === presc.id &&
+                            l.scheduled_time === time &&
+                            l.taken_at.startsWith(today)
+                        );
+
+                        if (!log) {
+                            pendingCount++;
+                        }
+                    });
+                }
+            });
+
+            setBadge(pendingCount);
+        };
+
+        updateBadge();
+    }, [user, prescriptions, consumptionLog]);
 
     // --- Operações CRUD ---
 

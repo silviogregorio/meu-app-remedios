@@ -24,6 +24,7 @@ import Landing from './pages/Landing';
 import AdminSponsors from './pages/AdminSponsors';
 import AdminSecurity from './pages/AdminSecurity';
 import AdminSupport from './pages/AdminSupport';
+import Widget from './pages/Widget';
 
 import NotificationManager from './components/NotificationManager';
 import { ThemeProvider } from './context/ThemeContext';
@@ -69,6 +70,7 @@ function App() {
                   <Route path="/manual" element={<ProtectedRoute><Manual /></ProtectedRoute>} />
                   <Route path="/contact" element={<ProtectedRoute><Support /></ProtectedRoute>} />
                   <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+                  <Route path="/widget" element={<ProtectedRoute><Widget /></ProtectedRoute>} />
                   <Route path="/admin/sponsors" element={<ProtectedRoute><AdminSponsors /></ProtectedRoute>} />
                   <Route path="/admin/support" element={<ProtectedRoute adminOnly={true}><AdminSupport /></ProtectedRoute>} />
                   <Route path="/admin/security" element={<ProtectedRoute adminOnly={true}><AdminSecurity /></ProtectedRoute>} />
