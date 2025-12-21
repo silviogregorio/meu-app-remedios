@@ -55,15 +55,15 @@ export const HeroCardShimmer = () => {
     return (
         <div className="bg-gradient-to-br from-blue-600 to-blue-700 text-white border-none shadow-xl rounded-2xl p-6">
             <div className="space-y-4">
-                <Shimmer className="h-6 w-32 rounded" />
+                <div className="h-6 w-32 rounded shimmer-dark"></div>
                 <div className="flex items-center gap-4">
-                    <Shimmer className="w-16 h-16 rounded-2xl" />
+                    <div className="w-16 h-16 rounded-2xl shimmer-dark"></div>
                     <div className="flex-1 space-y-3">
-                        <Shimmer className="h-8 w-3/4 rounded" />
-                        <Shimmer className="h-6 w-1/2 rounded" />
+                        <div className="h-8 w-3/4 rounded shimmer-dark"></div>
+                        <div className="h-6 w-1/2 rounded shimmer-dark"></div>
                     </div>
                 </div>
-                <Shimmer className="h-10 w-full rounded-lg" />
+                <div className="h-10 w-full rounded-lg shimmer-dark"></div>
             </div>
         </div>
     );
