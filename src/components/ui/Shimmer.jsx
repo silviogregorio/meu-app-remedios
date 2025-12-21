@@ -53,17 +53,55 @@ export const PatientCardShimmer = () => {
 // Shimmer for hero card (next dose/all done)
 export const HeroCardShimmer = () => {
     return (
-        <div className="bg-gradient-to-br from-blue-600 to-blue-700 text-white border-none shadow-xl rounded-2xl p-6">
+        <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl p-6">
             <div className="space-y-4">
-                <div className="h-6 w-32 rounded shimmer-dark"></div>
+                <Shimmer className="h-6 w-32 rounded" />
                 <div className="flex items-center gap-4">
-                    <div className="w-16 h-16 rounded-2xl shimmer-dark"></div>
+                    <Shimmer className="w-16 h-16 rounded-2xl" />
                     <div className="flex-1 space-y-3">
-                        <div className="h-8 w-3/4 rounded shimmer-dark"></div>
-                        <div className="h-6 w-1/2 rounded shimmer-dark"></div>
+                        <Shimmer className="h-8 w-3/4 rounded" />
+                        <Shimmer className="h-6 w-1/2 rounded" />
                     </div>
                 </div>
-                <div className="h-10 w-full rounded-lg shimmer-dark"></div>
+                <Shimmer className="h-10 w-full rounded-lg" />
+            </div>
+        </div>
+    );
+};
+
+// Shimmer for offer card (carousel item)
+export const OfferCardShimmer = () => {
+    return (
+        <div className="bg-white dark:bg-slate-900 rounded-xl p-3 shadow-sm border border-orange-100 dark:border-slate-800 min-w-[250px]">
+            <div className="flex gap-3 mb-3">
+                <Shimmer className="w-12 h-12 rounded-lg flex-shrink-0" />
+                <div className="flex-1 space-y-2">
+                    <Shimmer className="h-4 w-3/4 rounded" />
+                    <Shimmer className="h-3 w-1/2 rounded" />
+                </div>
+            </div>
+            <div className="space-y-2">
+                <Shimmer className="h-3 w-full rounded" />
+                <Shimmer className="h-3 w-full rounded" />
+            </div>
+            <Shimmer className="h-8 w-full rounded-lg mt-3" />
+        </div>
+    );
+};
+
+// Shimmer for offers carousel (desktop 3 cols)
+export const OfferCarouselShimmer = () => {
+    return (
+        <div className="mb-4">
+            <div className="flex items-center gap-2 mb-3 px-1">
+                <Shimmer className="w-5 h-5 rounded" />
+                <Shimmer className="h-6 w-48 rounded" />
+            </div>
+            <div className="flex gap-4 overflow-hidden px-1">
+                <OfferCardShimmer />
+                <OfferCardShimmer />
+                <OfferCardShimmer />
+                <div className="hidden md:block"><OfferCardShimmer /></div>
             </div>
         </div>
     );

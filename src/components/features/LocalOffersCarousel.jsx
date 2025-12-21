@@ -4,6 +4,7 @@ import { OfferService } from '../../services/offerService';
 import { Tag } from 'lucide-react';
 import { getWeightedOffers } from '../../utils/adRotation';
 import { OfferCard } from './OfferCard';
+import { OfferCarouselShimmer } from '../ui/Shimmer';
 
 const LocalOffersCarousel = ({ userIbge }) => {
     const { user } = useApp();
@@ -18,9 +19,18 @@ const LocalOffersCarousel = ({ userIbge }) => {
             }
 
             setLoading(true);
+            const startTime = Date.now();
+
             try {
                 const fetchedOffers = await OfferService.fetchByLocation(userIbge);
                 const uniqueSelected = getWeightedOffers(fetchedOffers, 10);
+
+                // Ensure minimum 1.5s loading time for shimmer visibility
+                const elapsed = Date.now() - startTime;
+                if (elapsed < 1500) {
+                    await new Promise(resolve => setTimeout(resolve, 1500 - elapsed));
+                }
+
                 setOffers(uniqueSelected);
 
                 // Track views for all displayed offers
@@ -38,7 +48,8 @@ const LocalOffersCarousel = ({ userIbge }) => {
         loadOffers();
     }, [userIbge]);
 
-    if (loading || offers.length === 0) return null;
+    if (loading) return <OfferCarouselShimmer />;
+    if (offers.length === 0) return null;
 
     const uniqueSponsors = [...new Set(offers.map(o => o.sponsor?.name).filter(Boolean))].join(', ');
 
