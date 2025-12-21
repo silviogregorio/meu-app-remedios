@@ -193,10 +193,13 @@ const Home = () => {
         filterSchedule();
     }, [selectedDate, selectedPatient, selectedMedication, selectedStatus, prescriptions, consumptionLog, medications, patients]);
 
-    // Disable loading once data is available
+    // Disable loading once data is available (with minimum visible time)
     useEffect(() => {
         if (prescriptions.length >= 0 && medications.length >= 0) {
-            setIsInitialLoading(false);
+            // Keep shimmer visible for at least 800ms
+            setTimeout(() => {
+                setIsInitialLoading(false);
+            }, 800);
         }
     }, [prescriptions, medications]);
     // useEffect(() => { // Removed
