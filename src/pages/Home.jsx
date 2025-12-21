@@ -37,6 +37,7 @@ const Home = () => {
     const [selectedStatus, setSelectedStatus] = useState('all');
     const [currentPage, setCurrentPage] = useState(1);
     const [startTour, setStartTour] = useState(false);
+    const [animatedPercentage, setAnimatedPercentage] = useState(0);
 
     // Derived state
     const hasActiveFilters = selectedPatient !== 'all' || selectedMedication !== 'all' || selectedStatus !== 'all' || selectedDate !== new Date().toISOString().split('T')[0];
@@ -202,6 +203,18 @@ const Home = () => {
             }, 800);
         }
     }, [prescriptions, medications]);
+
+    // Animate percentage bar
+    useEffect(() => {
+        const total = todaysSchedule.length;
+        const taken = todaysSchedule.filter(i => i.isTaken).length;
+        const percentage = total > 0 ? Math.round((taken / total) * 100) : 100;
+
+        const timer = setTimeout(() => {
+            setAnimatedPercentage(percentage);
+        }, 100);
+        return () => clearTimeout(timer);
+    }, [todaysSchedule]);
     // useEffect(() => { // Removed
     //     const loadOffers = async () => {
     //         try {
@@ -481,16 +494,6 @@ const Home = () => {
                                     // Fix: If total is 0, percentage is 100% (Day Complete/Rest)
                                     const percentage = total > 0 ? Math.round((taken / total) * 100) : 100;
                                     const isComplete = percentage === 100;
-
-                                    // State for animation
-                                    const [animatedPercentage, setAnimatedPercentage] = useState(0);
-
-                                    useEffect(() => {
-                                        const timer = setTimeout(() => {
-                                            setAnimatedPercentage(percentage);
-                                        }, 100);
-                                        return () => clearTimeout(timer);
-                                    }, [percentage]);
 
                                     return (
                                         <div className="flex flex-col gap-2 mt-2">
