@@ -29,7 +29,7 @@ self.addEventListener('push', (event) => {
     const data = payload.data || {};
 
     const title = notification.title || data.title || '🚨 EMERGÊNCIA SOS';
-    const body = notification.body || data.body || 'Clique para ver detalhes';
+    const body = notification.body || data.body || 'Clique aqui para abrir o mapa e ver a localização';
 
     // Configs
     const rawPhone = data.phone || '';
