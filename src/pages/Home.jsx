@@ -197,10 +197,10 @@ const Home = () => {
     // Disable loading once data is available (with minimum visible time)
     useEffect(() => {
         if (prescriptions.length >= 0 && medications.length >= 0) {
-            // Keep shimmer visible for at least 800ms
+            // Keep shimmer visible for at least 1500ms (1.5s)
             setTimeout(() => {
                 setIsInitialLoading(false);
-            }, 800);
+            }, 1500);
         }
     }, [prescriptions, medications]);
 
