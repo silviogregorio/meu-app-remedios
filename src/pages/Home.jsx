@@ -18,6 +18,7 @@ import SponsorDisplay from '../components/features/SponsorDisplay';
 import LocalOffersCarousel from '../components/features/LocalOffersCarousel';
 import { fetchActiveWeightedOffers } from '../services/offerService';
 import { OfferCard } from '../components/features/OfferCard';
+import { MedicationCardShimmer } from '../components/ui/Shimmer';
 
 const ITEMS_PER_PAGE = 6;
 
@@ -28,6 +29,7 @@ const Home = () => {
     const [offersError, setOffersError] = useState(null);
     const [offers, setOffers] = useState([]);
     const [offersLoading, setOffersLoading] = useState(true);
+    const [isInitialLoading, setIsInitialLoading] = useState(true);
 
     const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
     const [selectedPatient, setSelectedPatient] = useState('all');
@@ -190,6 +192,13 @@ const Home = () => {
 
         filterSchedule();
     }, [selectedDate, selectedPatient, selectedMedication, selectedStatus, prescriptions, consumptionLog, medications, patients]);
+
+    // Disable loading once data is available
+    useEffect(() => {
+        if (prescriptions.length >= 0 && medications.length >= 0) {
+            setIsInitialLoading(false);
+        }
+    }, [prescriptions, medications]);
     // useEffect(() => { // Removed
     //     const loadOffers = async () => {
     //         try {
@@ -678,7 +687,15 @@ const Home = () => {
                         const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
                         const paginatedSchedule = todaysSchedule.slice(startIndex, startIndex + ITEMS_PER_PAGE);
 
-                        return todaysSchedule.length === 0 ? (
+
+                        return isInitialLoading ? (
+                            // Show shimmer skeletons while loading
+                            <>
+                                <MedicationCardShimmer />
+                                <MedicationCardShimmer />
+                                <MedicationCardShimmer />
+                            </>
+                        ) : todaysSchedule.length === 0 ? (
                             <Card className="border-dashed">
                                 <CardContent className="py-8 text-center">
                                     <p className="text-[#64748b]">
