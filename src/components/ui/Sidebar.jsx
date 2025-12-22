@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { Home, Users, Pill, FileText, User, X, LogOut, ClipboardList, Share2, Briefcase, Pin, PinOff, Heart, BookOpen, LifeBuoy, MessageSquare } from 'lucide-react';
+import { Home, Users, Pill, FileText, User, X, LogOut, ClipboardList, Share2, Briefcase, Pin, PinOff, Heart, BookOpen, LifeBuoy, MessageSquare, Settings, Calendar } from 'lucide-react';
 import clsx from 'clsx';
 import { useApp } from '../../context/AppContext';
 import { supabase } from '../../lib/supabase';
@@ -15,6 +15,7 @@ const Sidebar = ({ isOpen, onClose, isPinned, onTogglePin }) => {
             items: [
                 { path: '/app', icon: Home, label: 'Início' },
                 { path: '/diary', icon: Heart, label: 'Sinais Vitais Diários' },
+                { path: '/appointments', icon: Calendar, label: 'Consultas Médicas' },
                 { path: '/reports', icon: FileText, label: 'Relatórios' },
             ]
         },
@@ -40,6 +41,7 @@ const Sidebar = ({ isOpen, onClose, isPinned, onTogglePin }) => {
     const adminEmails = ['sigremedios@gmail.com', 'sigsis@gmail.com', 'silviogregorio@gmail.com'];
     if (adminEmails.includes(user?.email)) {
         navGroups[2].items.push(
+            { path: '/admin/settings', icon: Settings, label: 'Configurações' },
             { path: '/admin/sponsors', icon: Briefcase, label: 'Parceiros' },
             { path: '/admin/support', icon: MessageSquare, label: 'Suporte' }
         );

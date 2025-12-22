@@ -19,11 +19,13 @@ import Profile from './pages/Profile';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Share from './pages/Share';
+import Appointments from './pages/Appointments';
 
 import Landing from './pages/Landing';
 import AdminSponsors from './pages/AdminSponsors';
 import AdminSecurity from './pages/AdminSecurity';
 import AdminSupport from './pages/AdminSupport';
+import AdminSettings from './pages/AdminSettings';
 import Widget from './pages/Widget';
 
 import NotificationManager from './components/NotificationManager';
@@ -65,12 +67,14 @@ function App() {
                   <Route path="/medications" element={<ProtectedRoute><Medications /></ProtectedRoute>} />
                   <Route path="/prescriptions" element={<ProtectedRoute><Prescriptions /></ProtectedRoute>} />
                   <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
+                  <Route path="/appointments" element={<ProtectedRoute><Appointments /></ProtectedRoute>} />
                   <Route path="/diary" element={<ProtectedRoute><HealthDiary /></ProtectedRoute>} />
                   <Route path="/share" element={<ProtectedRoute><Share /></ProtectedRoute>} />
                   <Route path="/manual" element={<ProtectedRoute><Manual /></ProtectedRoute>} />
                   <Route path="/contact" element={<ProtectedRoute><Support /></ProtectedRoute>} />
                   <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
                   <Route path="/widget" element={<ProtectedRoute><Widget /></ProtectedRoute>} />
+                  <Route path="/admin/settings" element={<ProtectedRoute adminOnly={true}><AdminSettings /></ProtectedRoute>} />
                   <Route path="/admin/sponsors" element={<ProtectedRoute><AdminSponsors /></ProtectedRoute>} />
                   <Route path="/admin/support" element={<ProtectedRoute adminOnly={true}><AdminSupport /></ProtectedRoute>} />
                   <Route path="/admin/security" element={<ProtectedRoute adminOnly={true}><AdminSecurity /></ProtectedRoute>} />

@@ -381,6 +381,179 @@ export const sendEmail = async ({ to, subject, text, observations, type = 'invit
         `);
       }
 
+      if (type === 'low_stock') {
+        const { lowStockData } = data;
+        const threshold = lowStockData?.threshold || 4;
+
+        return baseHtml(`
+          <div class="header" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);">
+             <div style="background: rgba(255,255,255,0.2); width: 64px; height: 64px; border-radius: 50%; display: block; text-align: center; line-height: 64px; margin: 0 auto 15px auto; font-size: 32px; color: transparent; text-shadow: 0 0 0 #ffffff;">⚠️</div>
+             <h1>Alerta de Estoque Baixo</h1>
+             <p style="color: rgba(255,255,255,0.9); margin: 5px 0 0; font-weight: 500;">${lowStockData?.medicationName}</p>
+          </div>
+          <div class="content">
+            <div class="welcome-text" style="color: #d97706;">Olá, ${lowStockData?.recipientName || 'Usuário'}!</div>
+            <p>O estoque do medicamento <strong>${lowStockData?.medicationName}</strong> está baixo e precisa ser reposto em breve.</p>
+            
+            <!-- Cards de Informação -->
+            <div style="display: flex; gap: 10px; margin: 25px 0; flex-wrap: wrap;">
+                <!-- Paciente -->
+                <div style="flex: 1; min-width: 120px; background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 12px; padding: 15px; text-align: center;">
+                    <div style="color: #0284c7; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">PACIENTE</div>
+                    <div style="color: #0369a1; font-size: 16px; font-weight: 700; margin-top: 5px;">${lowStockData?.patientName}</div>
+                </div>
+                
+                <!-- Estoque Atual -->
+                <div style="flex: 1; min-width: 120px; background: #fef3c7; border: 1px solid #fde68a; border-radius: 12px; padding: 15px; text-align: center;">
+                    <div style="color: #d97706; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">ESTOQUE ATUAL</div>
+                    <div style="color: #92400e; font-size: 20px; font-weight: 800; margin-top: 5px;">${lowStockData?.currentStock} ${lowStockData?.unit || 'unid.'}</div>
+                </div>
+                
+                <!-- Duração -->
+                <div style="flex: 1; min-width: 120px; background: #fee2e2; border: 1px solid #fecaca; border-radius: 12px; padding: 15px; text-align: center;">
+                    <div style="color: #dc2626; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">DURAÇÃO</div>
+                    <div style="color: #991b1b; font-size: 20px; font-weight: 800; margin-top: 5px;">${lowStockData?.daysRemaining} dia${lowStockData?.daysRemaining !== 1 ? 's' : ''}</div>
+                </div>
+            </div>
+
+            <!-- Informações do Medicamento -->
+            <div class="message-box" style="border-left-color: #f59e0b; background: #fffbeb;">
+               <span class="label" style="color: #d97706;">💊 INFORMAÇÕES DO MEDICAMENTO</span>
+               <div style="margin-top: 10px; color: #78350f;">
+                  <div style="margin-bottom: 8px;"><strong>Nome:</strong> ${lowStockData?.medicationName}</div>
+                  ${lowStockData?.dosage ? `<div style="margin-bottom: 8px;"><strong>Dosagem:</strong> ${lowStockData.dosage}</div>` : ''}
+                  <div style="margin-bottom: 8px;"><strong>Uso diário:</strong> ${lowStockData?.dailyUsage || 'N/A'} ${lowStockData?.unit || 'unidades'}/dia</div>
+                  <div><strong>Quantidade sugerida:</strong> ${lowStockData?.suggestedQuantity || 'N/A'} ${lowStockData?.unit || 'unidades'} (30 dias)</div>
+               </div>
+            </div>
+
+            <!-- Alert Box -->
+            <div style="background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%); border: 2px solid #fed7aa; border-radius: 12px; padding: 20px; margin: 25px 0; text-align: center;">
+                <div style="color: #ea580c; font-size: 14px; font-weight: 700; margin-bottom: 10px;">
+                    ⏰ ATENÇÃO: Estoque acaba em ${lowStockData?.daysRemaining} dia${lowStockData?.daysRemaining !== 1 ? 's' : ''}!
+                </div>
+                <div style="color: #9a3412; font-size: 13px; line-height: 1.6;">
+                    Baseado no uso diário de <strong>${lowStockData?.dailyUsage || '1.0'}</strong> ${lowStockData?.unit || 'unidades'}, recomendamos fazer a reposição o quanto antes.
+                </div>
+            </div>
+
+            <!-- WhatsApp CTA -->
+            ${lowStockData?.whatsappLink ? `
+            <div style="background: #dcfce7; border: 2px solid #86efac; border-radius: 12px; padding: 24px; text-align: center; margin: 25px 0;">
+                <div style="color: #166534; font-size: 14px; font-weight: 600; margin-bottom: 12px;">
+                    🛒 COMPRAR AGORA NO WhatsApp
+                </div>
+                <a href="${lowStockData.whatsappLink}" target="_blank" style="display: inline-block; background-color: #25d366; color: #ffffff !important; padding: 14px 32px; border-radius: 12px; text-decoration: none; font-weight: 700; font-size: 16px; box-shadow: 0 4px 6px rgba(37, 211, 102, 0.3); transition: all 0.2s;">
+                    💬 Enviar Mensagem
+                </a>
+                <div style="color: #15803d; font-size: 12px; margin-top: 12px; font-style: italic;">
+                    Mensagem pré-formatada com detalhes do medicamento
+                </div>
+            </div>
+            ` : ''}
+
+            <!-- Configuração Alert -->
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; margin: 20px 0; font-size: 12px; color: #64748b; text-align: center;">
+                ⚙️ Este alerta é disparado quando o estoque fica abaixo de <strong>${threshold} dias</strong>. Você recebe no máximo 1 alerta por dia por medicamento.
+            </div>
+
+            <div class="cta-container">
+              <a href="${frontendUrl}/app" class="button" style="background-color: #f59e0b;">Acessar Sistema</a>
+            </div>
+          </div>
+        `);
+      }
+
+      if (type === 'weekly_summary') {
+        const { weeklyData } = data;
+
+        return baseHtml(`
+          <div class="header" style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);">
+             <div style="background: rgba(255,255,255,0.2); width: 64px; height: 64px; border-radius: 50%; display: block; text-align: center; line-height: 64px; margin: 0 auto 15px auto; font-size: 32px; color: transparent; text-shadow: 0 0 0 #ffffff;">📊</div>
+             <h1>Resumo Semanal</h1>
+             <p style="color: rgba(255,255,255,0.9); margin: 5px 0 0; font-weight: 500;">${weeklyData.period}</p>
+          </div>
+          <div class="content">
+            <div class="welcome-text" style="color: #8b5cf6;">Olá, ${weeklyData.caregiverName}!</div>
+            <p>Segue o resumo de adesão aos medicamentos da semana passada para os pacientes que você acompanha.</p>
+            
+            ${weeklyData.patients.map((patient, index) => `
+              <!-- Card do Paciente -->
+              <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 24px; margin: ${index > 0 ? '24' : '16'}px 0; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                <!-- Header do Paciente -->
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 2px solid #f1f5f9;">
+                  <div style="width: 48px; height: 48px; border-radius: 50%; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 700; color: white;">
+                    ${patient.patientName.charAt(0).toUpperCase()}
+                  </div>
+                  <div>
+                    <div style="font-size: 18px; font-weight: 700; color: #1e293b;">${patient.patientName}</div>
+                    <div style="font-size: 13px; color: #64748b;">Paciente</div>
+                  </div>
+                </div>
+                
+                <!-- Grid de Métricas -->
+                <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
+                  <!-- Total -->
+                  <div style="flex: 1; min-width: 100px; background: #eff6ff; border: 1px solid #dbeafe; border-radius: 12px; padding: 16px; text-align: center;">
+                    <div style="color: #1e40af; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;">TOTAL</div>
+                    <div style="color: #1e3a8a; font-size: 28px; font-weight: 900;">${patient.total}</div>
+                  </div>
+                  
+                  <!-- Tomadas -->
+                  <div style="flex: 1; min-width: 100px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 16px; text-align: center;">
+                    <div style="color: #15803d; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;">TOMADAS</div>
+                    <div style="color: #166534; font-size: 28px; font-weight: 900;">${patient.taken}</div>
+                  </div>
+                  
+                  <!-- Pendentes -->
+                  <div style="flex: 1; min-width: 100px; background: #fff7ed; border: 1px solid #fed7aa; border-radius: 12px; padding: 16px; text-align: center;">
+                    <div style="color: #c2410c; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;">PENDENTES</div>
+                    <div style="color: #9a3412; font-size: 28px; font-weight: 900;">${patient.pending}</div>
+                  </div>
+                </div>
+                
+                <!-- Card de Adesão (Destaque) -->
+                <div style="background: linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%); border: 2px solid #e9d5ff; border-radius: 12px; padding: 20px; text-align: center;">
+                  <div style="color: #7e22ce; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px;">TAXA DE ADESÃO</div>
+                  <div style="color: #6b21a8; font-size: 42px; font-weight: 900; line-height: 1;">${patient.adherenceRate}%</div>
+                  
+                  <!-- Barra de Progresso -->
+                  <div style="height: 8px; width: 100%; max-width: 250px; background: #e9d5ff; border-radius: 4px; margin: 16px auto 0; overflow: hidden;">
+                    <div style="height: 100%; width: ${patient.adherenceRate}%; background: linear-gradient(90deg, #a855f7 0%, #9333ea 100%); border-radius: 4px; transition: width 0.3s ease;"></div>
+                  </div>
+                  
+                  <!-- Emoji de Feedback -->
+                  <div style="font-size: 32px; margin-top: 12px;">
+                    ${patient.adherenceRate >= 90 ? '🎉' : patient.adherenceRate >= 70 ? '👍' : patient.adherenceRate >= 50 ? '😐' : '⚠️'}
+                  </div>
+                </div>
+              </div>
+            `).join('')}
+            
+            <!-- Resumo Geral -->
+            ${weeklyData.patients.length > 1 ? `
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; margin-top: 24px; text-align: center;">
+              <div style="color: #475569; font-size: 14px; font-weight: 600; margin-bottom: 8px;">
+                📋 Total de ${weeklyData.patients.length} paciente${weeklyData.patients.length > 1 ? 's' : ''} acompanhado${weeklyData.patients.length > 1 ? 's' : ''}
+              </div>
+              <div style="color: #64748b; font-size: 13px;">
+                Média geral de adesão: <strong style="color: #8b5cf6;">${Math.round(weeklyData.patients.reduce((sum, p) => sum + p.adherenceRate, 0) / weeklyData.patients.length)}%</strong>
+              </div>
+            </div>
+            ` : ''}
+
+            <div class="cta-container">
+              <a href="${frontendUrl}/app" class="button" style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);">Ver Detalhes no App</a>
+            </div>
+            
+            <p style="text-align: center; font-size: 12px; color: #94a3b8; margin-top: 20px;">
+              📧 Você recebe este resumo toda segunda-feira às 9h da manhã.<br/>
+              Gerado automaticamente pelo SiG Remédios.
+            </p>
+          </div>
+        `);
+      }
+
       // Default: Sharing/Invite
       return baseHtml(`
         <div class="header">

@@ -13,7 +13,12 @@ import { dirname, join } from 'path';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
+// Carregar .env ANTES de importar módulos que usam process.env
 dotenv.config({ path: join(__dirname, '../.env') });
+
+// Importar DEPOIS do dotenv para garantir que process.env está populado
+import { startWeeklyReportCron } from './weeklyReportCron.js';
+import { startReminderCron } from './reminderCron.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -48,6 +53,40 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '10mb' })); // Limit payload size
 app.use(generalLimiter);
+
+// Middleware de Verificação de JWT (Supabase)
+const verifyJWT = async (req, res, next) => {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        console.warn(`[Auth] Acesso negado: Token ausente em ${req.url}`);
+        return res.status(401).json({ success: false, error: 'Acesso negado: Token não fornecido' });
+    }
+
+    const token = authHeader.split(' ')[1];
+    try {
+        const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
+        const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
+
+        if (!supabaseUrl || !supabaseAnonKey) {
+            throw new Error('Configuração do Supabase ausente no servidor');
+        }
+
+        const supabase = createClient(supabaseUrl, supabaseAnonKey);
+        const { data: { user }, error } = await supabase.auth.getUser(token);
+
+        if (error || !user) {
+            console.warn(`[Auth] Token inválido em ${req.url}:`, error?.message);
+            return res.status(401).json({ success: false, error: 'Sessão inválida ou expirada' });
+        }
+
+        // Anexar usuário à requisição para uso posterior
+        req.user = user;
+        next();
+    } catch (error) {
+        console.error('[Auth] Erro na verificação do token:', error);
+        res.status(500).json({ success: false, error: 'Erro interno na verificação de identidade' });
+    }
+};
 
 // Debug middleware
 app.use((req, res, next) => {
@@ -157,8 +196,8 @@ app.post('/send-email', validateEmail, async (req, res) => {
     res.redirect(307, '/api/send-email');
 });
 
-// Rota para enviar email
-app.post('/api/send-email', validateEmail, async (req, res) => {
+// Rota para enviar email (Protegida)
+app.post('/api/send-email', verifyJWT, validateEmail, async (req, res) => {
     try {
         // Check validation errors
         const errors = validationResult(req);
@@ -202,10 +241,11 @@ app.post('/api/send-email', validateEmail, async (req, res) => {
 
         if (type === 'sos' && to && targetTokens.length === 0) {
             try {
-                const supabaseUrl = process.env.VITE_SUPABASE_URL || 'https://ahjywlsnmmkavgtkvpod.supabase.co';
-                const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoanl3bHNubW1rYXZndGt2cG9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ1MTU1NzIsImV4cCI6MjA4MDA5MTU3Mn0.jBnLg-LxGDoSTxiSvRVaSgQZDbr0h91Uxm2S7YBcMto';
+                const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
+                const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
                 const authHeader = req.headers.authorization;
-                if (authHeader) {
+
+                if (authHeader && supabaseUrl && supabaseAnonKey) {
                     const supabaseServer = createClient(supabaseUrl, supabaseAnonKey, {
                         global: { headers: { Authorization: authHeader } }
                     });
@@ -276,24 +316,42 @@ const startServer = async () => {
 
             // Inicializar Firebase Admin
             initFirebaseAdmin().catch(err => console.error('Erro ao inicializar Firebase Admin:', err));
+
+            // Iniciar Cron Job de Resumo Semanal
+            startWeeklyReportCron();
+            console.log('📅 Cron job de resumo semanal ativado (Segunda 9h)');
+
+            // Iniciar Cron Job de Lembrete "Você tomou?"
+            startReminderCron();
+            console.log('🔔 Cron job de lembrete "Você tomou?" ativado');
         });
 
     } catch (error) {
-        console.error('❌ Erro ao iniciar servidor:', error);
+        console.error('❌ CRITICAL ERROR IN startServer:', error);
+        // More detailed log
+        if (error.code === 'EADDRINUSE') {
+            console.error(`❌ PORT ${PORT} IS ALREADY IN USE!`);
+        }
         process.exit(1);
     }
 };
 
 // Inicializar Supabase Admin (Necessário Service Role para ouvir todas as tabelas)
-const supabaseUrl = process.env.VITE_SUPABASE_URL || 'https://ahjywlsnmmkavgtkvpod.supabase.co';
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
 
-const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
-    auth: {
-        autoRefreshToken: false,
-        persistSession: false
-    }
-});
+if (!supabaseUrl || !supabaseServiceKey) {
+    console.warn('⚠️  Supabase URL ou Service Key não encontrados no .env. Algumas funções (como SOS) podem falhar.');
+}
+
+const supabaseAdmin = (supabaseUrl && supabaseServiceKey)
+    ? createClient(supabaseUrl, supabaseServiceKey, {
+        auth: {
+            autoRefreshToken: false,
+            persistSession: false
+        }
+    })
+    : null;
 
 const handleSOSInsert = async (payload) => {
     console.log('🚨 [BACKEND] ===== NOVO SOS DETECTADO =====');
@@ -555,14 +613,18 @@ const handleSOSInsert = async (payload) => {
 if (process.env.VERCEL !== '1') {
     startServer();
 
-    // Iniciar Listener Realtime
-    console.log('👂 Iniciando listener de SOS...');
-    supabaseAdmin
-        .channel('sos-tracker')
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'sos_alerts' }, handleSOSInsert)
-        .subscribe((status) => {
-            console.log('📡 Status do SOS Listener:', status);
-        });
+    // Iniciar Listener Realtime (Se Supabase Admin estiver configurado)
+    if (supabaseAdmin) {
+        console.log('👂 Iniciando listener de SOS...');
+        supabaseAdmin
+            .channel('sos-tracker')
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'sos_alerts' }, handleSOSInsert)
+            .subscribe((status) => {
+                console.log('📡 Status do SOS Listener:', status);
+            });
+    } else {
+        console.warn('⚠️  Listener de SOS não iniciado: supabaseAdmin não configurado.');
+    }
 }
 
 // Exportar para Vercel serverless functions

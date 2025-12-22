@@ -7,6 +7,7 @@ import Modal from '../components/ui/Modal';
 import ConfirmationModal from '../components/ui/ConfirmationModal';
 import Pagination from '../components/ui/Pagination';
 import { Plus, User, Edit2, Trash2, X, Search, ChevronRight, Calendar, Phone, Mail, Share2, MapPin } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import ShareModal from '../components/ShareModal';
 import { api } from '../services/api';
 
@@ -56,6 +57,7 @@ const formatAge = (birthDate) => {
 };
 
 const Patients = () => {
+    const navigate = useNavigate();
     const { patients, addPatient, updatePatient, deletePatient, sharePatient, unsharePatient, showToast, user } = useApp();
     const [showForm, setShowForm] = useState(false);
     const [editingId, setEditingId] = useState(null);
@@ -242,8 +244,12 @@ const Patients = () => {
 
             {!showForm && patients.length > 0 && (
                 <div className="relative">
+                    <label htmlFor="patient-search" className="sr-only">Buscar paciente</label>
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
                     <input
+                        id="patient-search"
+                        name="search"
+                        autoComplete="off"
                         type="text"
                         placeholder="Buscar por nome ou condição..."
                         value={searchTerm}
@@ -282,6 +288,9 @@ const Patients = () => {
                         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
                             <Input
                                 label="Nome Completo"
+                                id="patientName"
+                                name="name"
+                                autoComplete="name"
                                 placeholder="Ex: Maria Silva"
                                 value={formData.name}
                                 onChange={e => setFormData({ ...formData, name: e.target.value })}
@@ -291,24 +300,41 @@ const Patients = () => {
                             <Input
                                 label="Email"
                                 type="email"
+                                id="patientEmail"
+                                name="email"
+                                autoComplete="email"
                                 placeholder="ex: maria@email.com"
                                 value={formData.email || ''}
                                 onChange={e => setFormData({ ...formData, email: e.target.value })}
                             />
-                            <div className="flex gap-6">
+                            <div className="flex gap-6 items-end">
                                 <Input
                                     label="Data de Nascimento"
                                     type="date"
+                                    id="patientBirthDate"
+                                    name="birthDate"
+                                    autoComplete="bday"
                                     containerClassName="w-1/2"
                                     value={formData.birthDate}
                                     onChange={e => setFormData({ ...formData, birthDate: e.target.value })}
                                     required
                                 />
+                                {formData.birthDate && (
+                                    <div className="w-1/2 mb-3">
+                                        <p className="text-sm font-bold text-primary flex items-center gap-2">
+                                            <Calendar size={14} />
+                                            Idade: {formatAge(formData.birthDate)}
+                                        </p>
+                                    </div>
+                                )}
                             </div>
 
                             <div className="flex gap-6">
                                 <Input
                                     label="Telefone"
+                                    id="patientPhone"
+                                    name="phone"
+                                    autoComplete="tel"
                                     placeholder="(00) 00000-0000"
                                     containerClassName="w-1/2"
                                     value={formData.phone}
@@ -316,8 +342,10 @@ const Patients = () => {
                                     maxLength={15}
                                 />
                                 <div className="flex flex-col gap-1.5 w-1/2">
-                                    <label className="text-sm font-semibold text-slate-700 ml-1">Tipo Sanguíneo</label>
+                                    <label htmlFor="patientBloodType" className="text-sm font-semibold text-slate-700 ml-1">Tipo Sanguíneo</label>
                                     <select
+                                        id="patientBloodType"
+                                        name="bloodType"
                                         className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-slate-900 focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-200"
                                         value={formData.bloodType || ''}
                                         onChange={e => setFormData({ ...formData, bloodType: e.target.value })}
@@ -338,6 +366,8 @@ const Patients = () => {
                             <div className="flex gap-6">
                                 <Input
                                     label="Condição Principal"
+                                    id="patientCondition"
+                                    name="condition"
                                     placeholder="Ex: Hipertensão"
                                     containerClassName="w-1/2"
                                     value={formData.condition}
@@ -345,6 +375,8 @@ const Patients = () => {
                                 />
                                 <Input
                                     label="Alergias (SOS)"
+                                    id="patientAllergies"
+                                    name="allergies"
                                     placeholder="Ex: Dipirona, Penicilina..."
                                     containerClassName="w-1/2"
                                     value={formData.allergies}
@@ -354,6 +386,9 @@ const Patients = () => {
 
                             <Input
                                 label={loadingCep ? "CEP (buscando...)" : "CEP"}
+                                id="patientCep"
+                                name="cep"
+                                autoComplete="postal-code"
                                 placeholder="00000-000"
                                 value={formData.cep}
                                 onChange={handleCepChange}
@@ -364,6 +399,9 @@ const Patients = () => {
                             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                                 <Input
                                     label="Logradouro"
+                                    id="patientStreet"
+                                    name="street"
+                                    autoComplete="address-line1"
                                     placeholder="Rua, Avenida..."
                                     containerClassName="md:col-span-3"
                                     value={formData.street}
@@ -372,6 +410,9 @@ const Patients = () => {
                                 />
                                 <Input
                                     label="Número"
+                                    id="patientNumber"
+                                    name="number"
+                                    autoComplete="off"
                                     placeholder="123"
                                     containerClassName="md:col-span-1"
                                     value={formData.number}
@@ -382,6 +423,9 @@ const Patients = () => {
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <Input
                                     label="Complemento"
+                                    id="patientComplement"
+                                    name="complement"
+                                    autoComplete="off"
                                     placeholder="Apto, Bloco..."
                                     containerClassName="md:col-span-1"
                                     value={formData.complement}
@@ -389,6 +433,9 @@ const Patients = () => {
                                 />
                                 <Input
                                     label="Bairro"
+                                    id="patientNeighborhood"
+                                    name="neighborhood"
+                                    autoComplete="address-line2"
                                     placeholder="Centro"
                                     containerClassName="md:col-span-2"
                                     value={formData.neighborhood}
@@ -400,6 +447,9 @@ const Patients = () => {
                             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                                 <Input
                                     label="Cidade"
+                                    id="patientCity"
+                                    name="city"
+                                    autoComplete="address-level2"
                                     placeholder="São Paulo"
                                     containerClassName="md:col-span-3"
                                     value={formData.city}
@@ -408,6 +458,9 @@ const Patients = () => {
                                 />
                                 <Input
                                     label="UF"
+                                    id="patientState"
+                                    name="state"
+                                    autoComplete="address-level1"
                                     placeholder="SP"
                                     containerClassName="md:col-span-1"
                                     maxLength={2}
@@ -418,8 +471,10 @@ const Patients = () => {
                             </div>
 
                             <div className="flex flex-col gap-1.5">
-                                <label className="text-sm font-semibold text-slate-700 ml-1">Observações</label>
+                                <label htmlFor="patientObs" className="text-sm font-semibold text-slate-700 ml-1">Observações</label>
                                 <textarea
+                                    id="patientObs"
+                                    name="observations"
                                     className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-200 resize-none"
                                     placeholder="Informações adicionais sobre o paciente..."
                                     rows={3}
@@ -435,12 +490,18 @@ const Patients = () => {
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <Input
                                         label="Nome do Contato"
+                                        id="patientEmName"
+                                        name="emName"
+                                        autoComplete="off"
                                         placeholder="Ex: Cônjuge, Filho, Vizinho..."
                                         value={formData.emergency_contact_name || ''}
                                         onChange={e => setFormData({ ...formData, emergency_contact_name: e.target.value })}
                                     />
                                     <Input
                                         label="Telefone de Emergência"
+                                        id="patientEmPhone"
+                                        name="emPhone"
+                                        autoComplete="off"
                                         placeholder="(00) 00000-0000"
                                         value={formData.emergency_contact_phone || ''}
                                         onChange={e => setFormData({ ...formData, emergency_contact_phone: formatPhone(e.target.value) })}
@@ -449,6 +510,9 @@ const Patients = () => {
                                     <Input
                                         label="Email de Emergência"
                                         type="email"
+                                        id="patientEmEmail"
+                                        name="emEmail"
+                                        autoComplete="off"
                                         placeholder="Email para receber o alerta de localização"
                                         containerClassName="md:col-span-2"
                                         value={formData.emergency_contact_email || ''}
@@ -584,8 +648,16 @@ const Patients = () => {
                                                             </Button>
                                                         )}
 
-                                                        {canEdit && (
+                                                        {canEdit ? (
                                                             <>
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    className="justify-start text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
+                                                                    onClick={() => navigate('/appointments', { state: { patientId: patient.id } })}
+                                                                >
+                                                                    <Calendar size={18} className="mr-2" /> Agendar
+                                                                </Button>
                                                                 <Button
                                                                     variant="ghost"
                                                                     size="sm"
@@ -594,9 +666,6 @@ const Patients = () => {
                                                                 >
                                                                     <Edit2 size={18} className="mr-2" /> Editar
                                                                 </Button>
-                                                                {/* Helper logic: Usually only Owner deletes, but if 'edit' implies full management... 
-                                                                    Let's allow Delete if Can Edit, OR restrict Delete to Owner. 
-                                                                    Safe bet: Restrict Delete to Owner to avoid accidents. */}
                                                                 {isOwner && (
                                                                     <Button
                                                                         variant="ghost"
@@ -608,8 +677,7 @@ const Patients = () => {
                                                                     </Button>
                                                                 )}
                                                             </>
-                                                        )}
-                                                        {!canEdit && (
+                                                        ) : (
                                                             <span className="text-xs text-slate-400 border border-slate-200 px-3 py-1 rounded-full flex items-center">
                                                                 <User size={12} className="mr-1" /> Leitura
                                                             </span>
@@ -617,7 +685,7 @@ const Patients = () => {
                                                     </>
                                                 );
                                             })()}
-                                        </div>
+                                        </div >
                                     </div>
                                 </Card>
                             );

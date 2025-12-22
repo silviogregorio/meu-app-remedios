@@ -128,6 +128,9 @@ const Register = () => {
                     <Input
                         label="Nome Completo"
                         type="text"
+                        id="fullName"
+                        name="fullName"
+                        autoComplete="name"
                         placeholder="João Silva"
                         value={formData.fullName}
                         onChange={e => setFormData({ ...formData, fullName: e.target.value })}
@@ -136,6 +139,9 @@ const Register = () => {
                     <Input
                         label="Email"
                         type="email"
+                        id="email"
+                        name="email"
+                        autoComplete="email"
                         placeholder="seu@email.com"
                         value={formData.email}
                         onChange={e => setFormData({ ...formData, email: e.target.value })}
@@ -146,6 +152,9 @@ const Register = () => {
                             <Input
                                 label="CEP"
                                 type="text"
+                                id="cep"
+                                name="cep"
+                                autoComplete="postal-code"
                                 placeholder="00000-000"
                                 value={formData.cep || ''}
                                 onChange={handleCepChange}
@@ -157,6 +166,9 @@ const Register = () => {
                             <Input
                                 label="Cidade/Estado"
                                 type="text"
+                                id="cityState"
+                                name="cityState"
+                                autoComplete="off"
                                 placeholder="Preenchido automaticamente"
                                 value={formData.city ? `${formData.city}/${formData.state}` : ''}
                                 disabled
@@ -169,6 +181,9 @@ const Register = () => {
                     < Input
                         label="Senha"
                         type="password"
+                        id="password"
+                        name="password"
+                        autoComplete="new-password"
                         placeholder="••••••••"
                         value={formData.password}
                         onChange={e => setFormData({ ...formData, password: e.target.value })}
@@ -177,6 +192,9 @@ const Register = () => {
                     <Input
                         label="Confirmar Senha"
                         type="password"
+                        id="confirmPassword"
+                        name="confirmPassword"
+                        autoComplete="new-password"
                         placeholder="••••••••"
                         value={formData.confirmPassword}
                         onChange={e => setFormData({ ...formData, confirmPassword: e.target.value })}

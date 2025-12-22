@@ -127,8 +127,11 @@ const Medications = () => {
             {/* Search Bar */}
             {!showForm && medications.length > 0 && (
                 <div className="relative">
+                    <label htmlFor="med-search" className="sr-only">Buscar medicamento</label>
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
                     <input
+                        id="med-search"
+                        name="search"
                         type="text"
                         placeholder="Buscar medicamento..."
                         className="w-full pl-12 pr-4 py-3 rounded-2xl border-none bg-white shadow-soft focus:ring-2 focus:ring-primary/20 transition-all"
@@ -206,6 +209,8 @@ const Medications = () => {
                             <div className="flex flex-col gap-1">
                                 <Input
                                     label="Nome do Medicamento"
+                                    id="medName"
+                                    name="name"
                                     placeholder="Ex: Dipirona"
                                     value={medForm.name}
                                     onChange={e => setMedForm({ ...medForm, name: e.target.value })}
@@ -215,6 +220,8 @@ const Medications = () => {
                             <div className="grid grid-cols-2 gap-4">
                                 <Input
                                     label="Dosagem"
+                                    id="medDosage"
+                                    name="dosage"
                                     placeholder="Ex: 500mg"
                                     value={medForm.dosage}
                                     onChange={e => setMedForm({ ...medForm, dosage: e.target.value })}
@@ -222,6 +229,8 @@ const Medications = () => {
                                 />
                                 <Input
                                     label="Tipo"
+                                    id="medType"
+                                    name="type"
                                     placeholder="Ex: Comprimido"
                                     value={medForm.type}
                                     onChange={e => setMedForm({ ...medForm, type: e.target.value })}
@@ -231,6 +240,8 @@ const Medications = () => {
                                 <Input
                                     label="Quantidade Total na Caixa"
                                     type="number"
+                                    id="medUnitQty"
+                                    name="unitQty"
                                     placeholder="Ex: 20"
                                     value={medForm.unitQuantity}
                                     onChange={e => setMedForm({ ...medForm, unitQuantity: e.target.value })}
@@ -238,6 +249,8 @@ const Medications = () => {
                                 <Input
                                     label="Quantidade Atual em Estoque"
                                     type="number"
+                                    id="medStock"
+                                    name="stock"
                                     placeholder="Ex: 15"
                                     value={medForm.quantity}
                                     onChange={e => setMedForm({ ...medForm, quantity: e.target.value })}
@@ -246,8 +259,10 @@ const Medications = () => {
                             </div>
 
                             <div className="flex flex-col gap-2">
-                                <label className="text-sm font-semibold text-slate-700">Observações</label>
+                                <label htmlFor="medObs" className="text-sm font-semibold text-slate-700">Observações</label>
                                 <textarea
+                                    id="medObs"
+                                    name="obs"
                                     className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition-all resize-none min-h-[100px]"
                                     placeholder="Ex: Tomar com água, uso sublingual, etc."
                                     value={medForm.observations || ''}

@@ -12,21 +12,30 @@ const Input = ({
     className,
     containerClassName,
     onBlur,
-    disabled
+    disabled,
+    id,
+    name,
+    autoComplete,
+    ...rest // Capture other props
 }) => {
     const [showPassword, setShowPassword] = useState(false);
     const isPasswordField = type === 'password';
     const inputType = isPasswordField && showPassword ? 'text' : type;
 
+    // Ensure we have an ID for accessibility if label is present
+    const inputId = id || name || undefined;
+
     return (
         <div className={clsx("flex flex-col gap-1.5", containerClassName)}>
             {label && (
-                <label className="text-sm font-semibold text-slate-700 dark:text-slate-300 ml-1">
+                <label htmlFor={inputId} className="text-sm font-semibold text-slate-700 dark:text-slate-300 ml-1">
                     {label} {required && <span className="text-danger">*</span>}
                 </label>
             )}
             <div className="relative">
                 <input
+                    id={inputId}
+                    name={name}
                     type={inputType}
                     className={clsx(
                         "w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500",
@@ -41,6 +50,8 @@ const Input = ({
                     onBlur={onBlur}
                     required={required}
                     disabled={disabled}
+                    autoComplete={autoComplete}
+                    {...rest}
                 />
                 {isPasswordField && (
                     <button
@@ -48,6 +59,7 @@ const Input = ({
                         onClick={() => setShowPassword(!showPassword)}
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
                         tabIndex={-1}
+                        aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
                     >
                         {showPassword ? (
                             <EyeOff size={20} />

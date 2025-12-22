@@ -198,20 +198,7 @@ const Landing = () => {
                     <p className="text-lg md:text-xl text-slate-600 max-w-xl leading-relaxed">
                         Tenha controle total sobre medicamentos, horários e estoque. Receba alertas inteligentes para nunca esquecer uma dose. Tudo isso de forma 100% gratuita.
                     </p>
-                    <div className="flex flex-col sm:flex-row gap-4 pt-4">
-                        <button
-                            onClick={() => navigate('/register')}
-                            className="px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-lg shadow-xl shadow-blue-600/20 transition-all hover:scale-105 flex items-center justify-center gap-2"
-                        >
-                            Começar Agora Grátis <ArrowRight className="w-5 h-5" />
-                        </button>
-                        <button
-                            onClick={() => navigate('/login')}
-                            className="px-8 py-4 bg-white hover:bg-slate-50 text-slate-700 font-bold rounded-xl text-lg border border-slate-200 shadow-sm transition-all hover:border-slate-300 flex items-center justify-center"
-                        >
-                            Já tenho conta
-                        </button>
-                    </div>
+
                 </div>
 
                 {/* Hero Visual Decoration */}
@@ -250,15 +237,15 @@ const Landing = () => {
                 <div className="absolute bottom-20 right-10 w-64 h-64 bg-purple-400/5 rounded-full filter blur-3xl animate-blob animation-delay-2000"></div>
 
                 <div className="max-w-7xl mx-auto relative z-10">
-                    <div className="text-center max-w-3xl mx-auto mb-12 animate-fade-in-up">
-                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 text-indigo-600 text-sm font-bold border border-indigo-100 mb-4 shadow-sm">
+                    <div className="text-center max-w-3xl mx-auto mb-16 animate-fade-in-up space-y-6 px-4">
+                        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-indigo-50 text-indigo-600 text-sm font-bold border border-indigo-100 shadow-sm">
                             <Heart className="w-4 h-4 animate-pulse fill-current" />
                             <span>Cuidar de sua saúde é nossa maior missão.</span>
                         </div>
-                        <h2 className="text-4xl md:text-5xl font-extrabold text-slate-900 mb-4 tracking-tight">
+                        <h2 className="text-2xl md:text-5xl font-extrabold text-slate-900 tracking-tight leading-snug px-2">
                             Sua Saúde e Segurança <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">Levadas a Sério</span>
                         </h2>
-                        <p className="text-slate-600 text-lg md:text-xl leading-relaxed">
+                        <p className="text-sm md:text-xl text-slate-600 leading-relaxed max-w-2xl mx-auto px-2">
                             Uma suíte completa de ferramentas projetada para dar superpoderes ao seu cuidado diário.
                         </p>
                     </div>
@@ -288,16 +275,15 @@ const Landing = () => {
                 </div>
 
                 <div className="max-w-7xl mx-auto px-6 relative z-10">
-                    <div className="text-center max-w-3xl mx-auto mb-20 animate-fade-in-up">
-                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-800 text-blue-400 text-sm font-medium border border-slate-700 mb-6">
+                    <div className="text-center max-w-3xl mx-auto mb-20 animate-fade-in-up space-y-6 px-4">
+                        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-800 text-blue-400 text-sm font-medium border border-slate-700">
                             <Rocket className="w-4 h-4 animate-pulse" />
                             <span>Inovação Digital Avançada</span>
                         </div>
-                        <h2 className="text-4xl md:text-5xl font-extrabold tracking-tight mb-6 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-teal-400 to-white">
-                            Transformamos sua ideia em <br />
-                            Software de Alta Performance
+                        <h2 className="text-2xl md:text-5xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-teal-400 to-white px-2 leading-snug">
+                            Transformamos sua ideia em Software de Alta Performance
                         </h2>
-                        <p className="text-lg text-slate-300 leading-relaxed">
+                        <p className="text-sm md:text-lg text-slate-300 leading-relaxed px-2 max-w-2xl mx-auto">
                             Desenvolvemos aplicativos Web e Nativos sob medida, focados na experiência do usuário e na necessidade real do seu negócio.
                             Design moderno, performance extrema e escalabilidade.
                         </p>

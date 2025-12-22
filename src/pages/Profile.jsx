@@ -7,7 +7,7 @@ import Card, { CardContent } from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Modal from '../components/ui/Modal';
-import { User, Settings, LogOut, Bell, LogIn, Database, Trash2, Mail, Phone, MapPin, Camera, Shield, Share2, Activity, Download, Users } from 'lucide-react';
+import { User, Settings, LogOut, Bell, LogIn, Database, Trash2, Mail, Phone, MapPin, Camera, Shield, Share2, Activity, Download, Users, Umbrella } from 'lucide-react';
 import { downloadJSON, prepareBackupData } from '../utils/dataExporter';
 
 const Profile = () => {
@@ -16,7 +16,8 @@ const Profile = () => {
         patients, medications, prescriptions, consumptionLog, healthLogs, // Data for backup
         showToast, runCaregiverCheck, logout,
         accountShares, shareAccount, unshareAccount, // Account Sharing
-        accessibility, updateAccessibility
+        accessibility, updateAccessibility,
+        vacationMode, updateVacationMode
     } = useApp(); // AppContext for app features
     const navigate = useNavigate();
 
@@ -360,6 +361,26 @@ const Profile = () => {
                 </div>
                 <div className="p-6">
                     <div className="flex flex-col gap-4">
+                        {/* Vacation Mode Toggle */}
+                        <div className="flex items-center justify-between p-4 bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-200 dark:border-amber-800">
+                            <div className="flex items-center gap-3">
+                                <Umbrella className="text-amber-600 dark:text-amber-400" size={24} />
+                                <div>
+                                    <h4 className="font-semibold text-amber-900 dark:text-amber-100">Modo Férias</h4>
+                                    <p className="text-sm text-amber-700 dark:text-amber-300">Suspender todos os meus lembretes temporariamente.</p>
+                                </div>
+                            </div>
+                            <label className="relative inline-flex items-center cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={vacationMode}
+                                    onChange={(e) => updateVacationMode(e.target.checked)}
+                                    className="sr-only peer"
+                                />
+                                <div className="w-14 h-7 bg-amber-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-amber-300 dark:peer-focus:ring-amber-800 rounded-full peer dark:bg-amber-900/50 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-white after:border-amber-300 after:border after:rounded-full after:h-5 after:w-6 after:transition-all dark:border-amber-600 peer-checked:bg-amber-500"></div>
+                            </label>
+                        </div>
+
                         <div className="flex items-start gap-3 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-800">
                             <Bell className="text-blue-600 dark:text-blue-400 mt-1" size={20} />
                             <div>
@@ -571,6 +592,9 @@ const Profile = () => {
                 <div className="flex flex-col gap-4">
                     <Input
                         label="Nome Completo"
+                        id="profileName"
+                        name="name"
+                        autoComplete="name"
                         value={editForm.name || ''}
                         onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
                         placeholder="Seu nome"
@@ -579,6 +603,9 @@ const Profile = () => {
                     <Input
                         label="Email"
                         type="email"
+                        id="profileEmail"
+                        name="email"
+                        autoComplete="email"
                         value={editForm.email || ''}
                         onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
                         placeholder="seu@email.com"
@@ -586,6 +613,9 @@ const Profile = () => {
 
                     <Input
                         label="Telefone"
+                        id="profilePhone"
+                        name="phone"
+                        autoComplete="tel"
                         value={editForm.phone || ''}
                         onChange={(e) => setEditForm({ ...editForm, phone: formatPhone(e.target.value) })}
                         placeholder="(11) 99999-9999"
@@ -594,6 +624,9 @@ const Profile = () => {
 
                     <Input
                         label="CEP"
+                        id="profileCep"
+                        name="cep"
+                        autoComplete="postal-code"
                         value={editForm.cep || ''}
                         onChange={async (e) => {
                             let value = e.target.value.replace(/\D/g, '');
@@ -627,6 +660,9 @@ const Profile = () => {
                     <div className="flex gap-4">
                         <Input
                             label="Rua / Logradouro"
+                            id="profileStreet"
+                            name="street"
+                            autoComplete="address-line1"
                             value={editForm.street || ''}
                             onChange={(e) => setEditForm({ ...editForm, street: e.target.value })}
                             placeholder="Rua das Flores"
@@ -634,6 +670,9 @@ const Profile = () => {
                         />
                         <Input
                             label="Número"
+                            id="profileNumber"
+                            name="number"
+                            autoComplete="off"
                             value={editForm.number || ''}
                             onChange={(e) => setEditForm({ ...editForm, number: e.target.value })}
                             placeholder="123"
@@ -643,6 +682,9 @@ const Profile = () => {
 
                     <Input
                         label="Bairro"
+                        id="profileNeighborhood"
+                        name="neighborhood"
+                        autoComplete="address-line2"
                         value={editForm.neighborhood || ''}
                         onChange={(e) => setEditForm({ ...editForm, neighborhood: e.target.value })}
                         placeholder="Centro"
@@ -650,6 +692,9 @@ const Profile = () => {
 
                     <Input
                         label="Cidade"
+                        id="profileCity"
+                        name="city"
+                        autoComplete="address-level2"
                         value={editForm.city ? `${editForm.city} - ${editForm.state}` : ''}
                         disabled
                         className="bg-slate-50"
@@ -663,12 +708,18 @@ const Profile = () => {
                         <div className="flex flex-col gap-4">
                             <Input
                                 label="Nome do Contato"
+                                id="emName"
+                                name="emName"
+                                autoComplete="off"
                                 placeholder="Pessoa de confiança"
                                 value={editForm.emergency_contact_name || ''}
                                 onChange={(e) => setEditForm({ ...editForm, emergency_contact_name: e.target.value })}
                             />
                             <Input
                                 label="Telefone de Emergência"
+                                id="emPhone"
+                                name="emPhone"
+                                autoComplete="off"
                                 placeholder="(00) 00000-0000"
                                 value={editForm.emergency_contact_phone || ''}
                                 onChange={(e) => setEditForm({ ...editForm, emergency_contact_phone: formatPhone(e.target.value) })}
@@ -677,6 +728,9 @@ const Profile = () => {
                             <Input
                                 label="Email de Emergência"
                                 type="email"
+                                id="emEmail"
+                                name="emEmail"
+                                autoComplete="off"
                                 placeholder="Receberá todos os seus alertas SOS"
                                 value={editForm.emergency_contact_email || ''}
                                 onChange={(e) => setEditForm({ ...editForm, emergency_contact_email: e.target.value })}
@@ -693,6 +747,9 @@ const Profile = () => {
                             <Input
                                 label="Senha Atual"
                                 type="password"
+                                id="profileCurrentPwd"
+                                name="pwd"
+                                autoComplete="current-password"
                                 value={editForm.currentPassword}
                                 onChange={(e) => setEditForm({ ...editForm, currentPassword: e.target.value })}
                                 placeholder="Digite sua senha"

@@ -28,14 +28,14 @@ self.addEventListener('push', (event) => {
     const notification = payload.notification || {};
     const data = payload.data || {};
 
-    const title = notification.title || data.title || '🚨 EMERGÊNCIA SOS';
-    const body = notification.body || data.body || 'Clique aqui para abrir o mapa e ver a localização';
+    const title = notification.title || data.title || (data.type === 'reminder' ? '🔔 Lembrete de Cuidado' : '🚨 EMERGÊNCIA SOS');
+    const body = notification.body || data.body || (data.type === 'reminder' ? '💊 Já tomou o seu remédio? Não deixe passar do horário!' : 'Clique aqui para ver a localização');
 
     // Configs
     const rawPhone = data.phone || '';
     const phone = rawPhone.replace(/\D/g, '');
     const mapUrl = data.mapUrl || 'https://sigremedios.vercel.app';
-    const appUrl = data.appUrl || 'https://sigremedios.vercel.app/'; // Navigation target for Body Click
+    const appUrl = data.appUrl || 'https://sigremedios.vercel.app/';
     const icon = 'https://sigremedios.vercel.app/logo192.png';
 
     // Broadcast to foreground
@@ -43,7 +43,7 @@ self.addEventListener('push', (event) => {
 
     // Actions
     const actions = [];
-    if (phone) {
+    if (phone && data.type !== 'reminder') {
         actions.push({ action: 'zap', title: '💬 Zap' });
     }
 
@@ -51,10 +51,10 @@ self.addEventListener('push', (event) => {
         body: body,
         icon: icon,
         badge: icon,
-        vibrate: [300, 100, 300, 100, 300],
-        tag: 'sos-emergency',
+        vibrate: data.type === 'reminder' ? [100, 50, 100] : [300, 100, 300, 100, 300],
+        tag: data.type === 'reminder' ? `reminder-${data.prescriptionIds || 'med'}` : 'sos-emergency',
         renotify: true,
-        requireInteraction: true,
+        requireInteraction: data.type !== 'reminder',
         silent: false,
         data: {
             appUrl: appUrl,

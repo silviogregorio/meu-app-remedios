@@ -3,7 +3,10 @@ import { useApp } from '../context/AppContext';
 import Card, { CardContent } from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import Pagination from '../components/ui/Pagination';
-import { Check, Clock, AlertCircle, Calendar, User, Pill, X, Bell, Calendar as CalendarIcon, DownloadCloud, CircleHelp, Trophy, Zap, Flame, Activity, Star, ShieldCheck, ThumbsUp, Medal, Sparkles } from 'lucide-react';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { useNavigate } from 'react-router-dom';
+import { Check, Clock, AlertCircle, Calendar, User, Pill, X, Bell, Calendar as CalendarIcon, DownloadCloud, CircleHelp, Trophy, Zap, Flame, Activity, Star, ShieldCheck, ThumbsUp, Medal, Sparkles, Stethoscope, ChevronRight } from 'lucide-react';
 import { formatDate, formatTime, formatDateFull } from '../utils/dateFormatter';
 import clsx from 'clsx';
 import { useNotifications } from '../hooks/useNotifications';
@@ -23,7 +26,8 @@ import { MedicationCardShimmer, HeroCardShimmer, StatsCardShimmer } from '../com
 const ITEMS_PER_PAGE = 6;
 
 const Home = () => {
-    const { user, prescriptions, medications, patients, consumptionLog, logConsumption, removeConsumption, pendingShares, calculateStockDays } = useApp();
+    const navigate = useNavigate();
+    const { user, prescriptions, medications, patients, consumptionLog, logConsumption, removeConsumption, pendingShares, calculateStockDays, appointments } = useApp();
     const { permission, requestPermission } = useNotifications();
     const [todaysSchedule, setTodaysSchedule] = useState([]);
     const [offersError, setOffersError] = useState(null);
@@ -193,6 +197,11 @@ const Home = () => {
 
         filterSchedule();
     }, [selectedDate, selectedPatient, selectedMedication, selectedStatus, prescriptions, consumptionLog, medications, patients]);
+
+    // Proxima Consulta
+    const nextAppointment = appointments
+        .filter(a => a.status === 'scheduled' && new Date(a.appointmentDate) >= new Date())
+        .sort((a, b) => new Date(a.appointmentDate) - new Date(b.appointmentDate))[0];
 
     // Disable loading once data is available (with minimum visible time)
     useEffect(() => {
@@ -534,6 +543,72 @@ const Home = () => {
                         </Card>
                     </>
                 )}
+
+                {/* Card de Próxima Consulta */}
+                <Card className="bg-white border-slate-200 shadow-sm relative overflow-hidden group">
+                    <CardContent className="p-3 flex flex-col gap-2 relative z-10">
+                        <div className="flex items-center justify-between mb-1">
+                            <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm flex items-center gap-2">
+                                <Stethoscope className="text-emerald-500" size={16} />
+                                Consultas
+                            </h3>
+                            <button onClick={() => navigate('/appointments')} className="text-slate-400 hover:text-emerald-500 transition-colors">
+                                <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform" />
+                            </button>
+                        </div>
+
+                        {nextAppointment ? (
+                            <div className="flex flex-col gap-1.5">
+                                <div className="text-lg font-black text-slate-900 leading-tight line-clamp-1">
+                                    {nextAppointment.doctorName}
+                                </div>
+                                <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
+                                    <Clock size={12} className="text-emerald-500" />
+                                    {format(new Date(nextAppointment.appointmentDate), "dd/MM 'às' HH:mm", { locale: ptBR })}
+                                </div>
+                                <div className="flex items-center justify-between mt-1">
+                                    <div className="text-[10px] text-emerald-600 font-bold uppercase tracking-wider bg-emerald-50 px-2 py-0.5 rounded-md inline-block">
+                                        {nextAppointment.specialty || 'Geral'}
+                                    </div>
+                                </div>
+
+                                {nextAppointment.address && (
+                                    <div className="flex gap-2 mt-2">
+                                        <a
+                                            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(nextAppointment.address + (nextAppointment.locationName ? ' ' + nextAppointment.locationName : ''))}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="flex-1 flex items-center justify-center gap-1.5 text-[10px] font-bold py-2 rounded-lg bg-slate-50 text-slate-600 border border-slate-100 hover:bg-slate-100 transition-colors"
+                                            title="Google Maps"
+                                        >
+                                            <MapPinIcon size={12} />
+                                            Maps
+                                        </a>
+                                        <a
+                                            href={`https://waze.com/ul?q=${encodeURIComponent(nextAppointment.address)}&navigate=yes`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="flex-1 flex items-center justify-center gap-1.5 text-[10px] font-bold py-2 rounded-lg bg-[#33ccff]/10 text-[#0582ad] border border-[#33ccff]/30 hover:bg-[#33ccff]/20 transition-colors"
+                                            title="Waze"
+                                        >
+                                            <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor">
+                                                <path d="M18.503 13.068a2.501 2.501 0 0 1-5.003 0c0-.14.01-.277.032-.41l-2.028-.671a2.501 2.501 0 0 1-5.006 0 2.5 2.5 0 0 1 1.708-2.37l1.411-3.692A7.135 7.135 0 0 1 12 5.068c3.94 0 7.135 3.194 7.135 7.135 0 .23-.01.458-.032.682l1.638.541a.5.5 0 0 1 .163.844l-2.401 1.831c.022-.249.034-.5.034-.755a8.136 8.136 0 0 0-8.135-8.135 8.136 8.136 0 0 0-8.136 8.135c0 1.25.28 2.433.784 3.492l-1.018 2.665a1 1 0 0 0 1.266 1.266l2.665-1.018a8.12 8.12 0 0 0 4.439 1.295c4.493 0 8.135-3.642 8.135-8.135 0-.173-.005-.345-.015-.516l2.13.705a1.5 1.5 0 0 0 .49-2.532l-3.361-2.563a3.502 3.502 0 0 0-2.39-4.862l-1.41-3.693a1 1 0 0 0-1.88 0l-1.411 3.693a3.502 3.502 0 0 0-2.39 4.862l-3.36 2.563a1.5 1.5 0 0 0 .489 2.532l2.13-.705c-.01.171-.015.343-.015.516 0 4.493 3.642 8.135 8.135 8.135.804 0 1.583-.116 2.316-.334l.684.26a1 1 0 0 0 1.266-1.266l-.26-.684c.677-.732 1.21-1.579 1.576-2.51l3.053 1.012a.5.5 0 0 0 .61-.643l-1.442-3.771a3.501 3.501 0 0 0 2.215-3.32z" />
+                                            </svg>
+                                            Waze
+                                        </a>
+                                    </div>
+                                )}
+                            </div>
+                        ) : (
+                            <div className="flex flex-col items-center justify-center py-2">
+                                <p className="text-[10px] text-slate-400 text-center italic">
+                                    Nenhuma consulta agendada
+                                </p>
+                            </div>
+                        )}
+                    </CardContent>
+                    <div className="absolute -bottom-6 -right-6 w-20 h-20 bg-emerald-50 rounded-full blur-xl opacity-50 group-hover:scale-150 transition-transform"></div>
+                </Card>
             </div>
 
             {/* Sponsor Display (Banner) */}
