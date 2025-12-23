@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Outlet } from 'react-router-dom';
+import { useNavigate, useLocation, Outlet } from 'react-router-dom'; // updated import
 import Header from './Header';
 import Sidebar from '../ui/Sidebar';
+import { ChevronLeft } from 'lucide-react'; // Added icon
 
 import { useApp } from '../../context/AppContext';
 import { setupOnMessageListener } from '../../utils/firebase';
@@ -13,6 +14,13 @@ const Layout = () => {
         const saved = localStorage.getItem('sidebarPinned');
         return saved === 'true';
     });
+
+    const navigate = useNavigate();
+    const location = useLocation();
+
+    // ... (keep existing state and effects up to togglePin) ...
+
+    const showBackButton = location.pathname !== '/' && location.pathname !== '/app';
 
     // Use ref to avoid recreating listener when showToast changes
     const showToastRef = useRef(showToast);
@@ -143,6 +151,19 @@ const Layout = () => {
                 />
 
                 <main className="pt-[80px] px-4 pb-5 max-w-5xl mx-auto relative z-10">
+                    {showBackButton && (
+                        <div className="mb-4">
+                            <button
+                                onClick={() => navigate(-1)}
+                                className="flex items-center gap-2 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 transition-colors py-2 px-1 group"
+                            >
+                                <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center group-hover:bg-slate-200 dark:group-hover:bg-slate-700 transition-colors ring-1 ring-slate-200 dark:ring-slate-700">
+                                    <ChevronLeft size={20} />
+                                </div>
+                                <span className="font-semibold text-sm">Voltar</span>
+                            </button>
+                        </div>
+                    )}
                     <Outlet />
                 </main>
             </div>

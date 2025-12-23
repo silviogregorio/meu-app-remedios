@@ -30,7 +30,35 @@ const SOSCard = ({ onClose }) => {
         patients.length > 0 ? patients[0].id : null
     );
 
+    useEffect(() => {
+        if (!selectedPatientId && patients.length > 0) {
+            setSelectedPatientId(patients[0].id);
+        }
+    }, [patients, selectedPatientId]);
+
     const selectedPatient = patients.find(p => p.id === selectedPatientId);
+
+    if (!selectedPatient) {
+        // Fallback UI or Loading
+        return createPortal(
+            <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+                <div className="bg-white p-6 rounded-2xl max-w-sm w-full text-center shadow-2xl relative">
+                    <div className="absolute top-2 right-2">
+                        <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full">
+                            <X size={20} />
+                        </Button>
+                    </div>
+                    <div className="mb-4 text-amber-500 flex justify-center">
+                        <AlertTriangle size={48} />
+                    </div>
+                    <h3 className="text-lg font-bold text-slate-900 mb-2">Nenhum Paciente Encontrado</h3>
+                    <p className="text-slate-500 mb-6 text-sm">Cadastre um paciente ou aguarde o carregamento dos dados para gerar o Cartão SOS.</p>
+                    <Button onClick={onClose} className="w-full">Fechar</Button>
+                </div>
+            </div>,
+            document.body
+        );
+    }
 
     // Filter Active Prescriptions for this patient
     const activePrescriptions = prescriptions.filter(p => {

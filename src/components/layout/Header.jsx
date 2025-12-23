@@ -12,15 +12,17 @@ const Header = ({ onMenuClick, isPinned }) => {
     const { user, pendingShares, logout, patients, triggerPanicAlert, showToast } = useApp();
     const { theme, setTheme } = useTheme();
     const navigate = useNavigate();
-    const [themeState, setThemeState] = useState(localStorage.getItem('theme') || 'light'); // Fallback if context fails, but mostly unused if useTheme works
+    const [themeState, setThemeState] = useState(localStorage.getItem('theme') || 'light');
     const [showNotifications, setShowNotifications] = useState(false);
     const [showSOS, setShowSOS] = useState(false);
-    const [showSearch, setShowSearch] = useState(false); // Added State
+    const [showSearch, setShowSearch] = useState(false);
     const [isTriggeringPanic, setIsTriggeringPanic] = useState(false);
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
-    const [showPanicConfirm, setShowPanicConfirm] = useState(false); // Novo estado para confirmação
+    const [showPanicConfirm, setShowPanicConfirm] = useState(false);
 
     const targetPatient = patients && patients.length > 0 ? patients[0] : null;
+
+    // ... (keep handlePanicClick and confirmedPanicAlert) ...
 
     const handlePanicClick = async () => {
         console.log('🚨 Panic Button Clicked. Patients count:', patients?.length);

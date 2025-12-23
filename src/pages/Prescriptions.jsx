@@ -7,8 +7,9 @@ import Input from '../components/ui/Input';
 import Modal from '../components/ui/Modal';
 import ConfirmationModal from '../components/ui/ConfirmationModal';
 import Pagination from '../components/ui/Pagination';
-import { Plus, Edit2, Trash2, X, Search, ClipboardList, Clock, User, Pill, Calendar, Camera } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, Search, ClipboardList, Clock, User, Pill, Calendar, Camera, AlertTriangle, Info } from 'lucide-react';
 import { formatDate } from '../utils/dateFormatter';
+import { checkInteractions } from '../data/drugInteractions';
 
 const ITEMS_PER_PAGE = 6;
 
@@ -60,6 +61,8 @@ const Prescriptions = () => {
         doseAmount: '1'
     });
 
+    const [interactions, setInteractions] = useState(null);
+
     // Filter Logic
     const filteredPrescriptions = prescriptions.filter(presc => {
         const patient = patients.find(p => p.id === presc.patientId);
@@ -82,6 +85,33 @@ const Prescriptions = () => {
     useEffect(() => {
         setCurrentPage(1);
     }, [searchTerm]);
+
+    // Drug Interaction Check
+    useEffect(() => {
+        if (formData.medicationId && formData.patientId) {
+            const today = new Date().toISOString().split('T')[0];
+            const selectedMed = medications.find(m => m.id === formData.medicationId);
+
+            // Filter only ACTIVE prescriptions (Continuous or EndDate >= Today)
+            const patientPrescriptions = prescriptions.filter(p =>
+                p.patientId === formData.patientId &&
+                p.id !== editingId &&
+                (p.continuousUse || (p.endDate && p.endDate >= today))
+            );
+
+            const currentMeds = patientPrescriptions.map(p => {
+                const med = medications.find(m => m.id === p.medicationId);
+                return med ? { name: med.name, id: med.id } : null;
+            }).filter(Boolean);
+
+            if (selectedMed) {
+                const found = checkInteractions(selectedMed.name, currentMeds);
+                setInteractions(found);
+            }
+        } else {
+            setInteractions(null);
+        }
+    }, [formData.medicationId, formData.patientId, prescriptions, medications, editingId]);
 
     const handleEdit = (prescription) => {
         // Calculate duration logic
@@ -117,6 +147,7 @@ const Prescriptions = () => {
     const handleCancel = () => {
         setShowForm(false);
         setEditingId(null);
+        setInteractions(null); // Clear interactions when canceling
         setFormData({
             patientId: '',
             medicationId: '',
@@ -360,6 +391,45 @@ const Prescriptions = () => {
                                     ))}
                                 </select>
                             </div>
+
+                            {/* Interaction Alerts */}
+                            {interactions && (
+                                <div className="space-y-3 animate-in fade-in slide-in-from-top-2">
+                                    {interactions.map((interaction, idx) => (
+                                        <div
+                                            key={idx}
+                                            className={`p-4 rounded-xl border-2 flex flex-col gap-3 shadow-md
+                                                ${interaction.severity === 'high'
+                                                    ? 'bg-rose-50 border-rose-200 text-rose-900'
+                                                    : interaction.severity === 'medium'
+                                                        ? 'bg-amber-50 border-amber-200 text-amber-900'
+                                                        : 'bg-blue-50 border-blue-200 text-blue-900'
+                                                }`}
+                                        >
+                                            <div className="flex items-start gap-3">
+                                                <div className={`p-2 rounded-full shrink-0 
+                                                    ${interaction.severity === 'high' ? 'bg-rose-100' : interaction.severity === 'medium' ? 'bg-amber-100' : 'bg-blue-100'}`}>
+                                                    <AlertTriangle size={20} className={interaction.severity === 'high' ? 'text-rose-600' : interaction.severity === 'medium' ? 'text-amber-600' : 'text-blue-600'} />
+                                                </div>
+                                                <div className="flex-1">
+                                                    <p className="font-bold text-sm leading-tight mb-1">
+                                                        ⚠️ Possível Interação: {medications.find(m => m.id === formData.medicationId)?.name} + {interaction.offendingMed}
+                                                    </p>
+                                                    <p className="text-sm opacity-90 leading-relaxed font-medium">
+                                                        {interaction.message}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-2 bg-white/50 p-2 rounded-lg border border-current/10">
+                                                <Info size={14} className="shrink-0" />
+                                                <p className="text-[11px] font-bold uppercase tracking-wider opacity-80">
+                                                    Importante: A palavra final é sempre do seu médico.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
 
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <div className="md:col-span-2">

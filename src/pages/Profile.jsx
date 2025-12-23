@@ -7,7 +7,7 @@ import Card, { CardContent } from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Modal from '../components/ui/Modal';
-import { User, Settings, LogOut, Bell, LogIn, Database, Trash2, Mail, Phone, MapPin, Camera, Shield, Share2, Activity, Download, Users, Umbrella } from 'lucide-react';
+import { User, Settings, LogOut, Bell, LogIn, Database, Trash2, Mail, Phone, MapPin, Camera, Shield, ShieldCheck, Share2, Activity, Download, Users, Umbrella } from 'lucide-react';
 import { downloadJSON, prepareBackupData } from '../utils/dataExporter';
 
 const Profile = () => {
@@ -17,7 +17,8 @@ const Profile = () => {
         showToast, runCaregiverCheck, logout,
         accountShares, shareAccount, unshareAccount, // Account Sharing
         accessibility, updateAccessibility,
-        vacationMode, updateVacationMode
+        vacationMode, updateVacationMode,
+        userPreferences, updateUserPreferences // Generic Prefs
     } = useApp(); // AppContext for app features
     const navigate = useNavigate();
 
@@ -425,6 +426,40 @@ const Profile = () => {
                 </div>
                 <div className="p-6">
                     <div className="flex flex-col gap-4">
+                        {/* Simplified Mode Toggle (Elderly Mode) */}
+                        <div className="flex items-center justify-between p-4 bg-emerald-50 dark:bg-emerald-900/30 rounded-xl border border-emerald-200 dark:border-emerald-700">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-emerald-100 dark:bg-emerald-800 rounded-lg">
+                                    <ShieldCheck className="text-emerald-600 dark:text-emerald-300" size={24} />
+                                </div>
+                                <div>
+                                    <h4 className="font-bold text-lg text-emerald-900 dark:text-emerald-100">Modo Simplificado</h4>
+                                    <p className="text-sm text-emerald-700 dark:text-emerald-300">
+                                        Interface simplificada com botões grandes e poucas opções. Ideal para idosos.
+                                    </p>
+                                </div>
+                            </div>
+                            <label className="relative inline-flex items-center cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={userPreferences?.simplified_mode || false}
+                                    onChange={(e) => {
+                                        const newValue = e.target.checked;
+                                        // Update immediately without blocking confirm
+                                        updateUserPreferences({ simplified_mode: newValue });
+                                        if (newValue) {
+                                            showToast('Modo Simplificado ativado!', 'success');
+                                            setTimeout(() => navigate('/'), 500);
+                                        } else {
+                                            showToast('Modo Simplificado desativado.', 'info');
+                                        }
+                                    }}
+                                    className="sr-only peer"
+                                />
+                                <div className="w-14 h-7 bg-emerald-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-emerald-300 dark:peer-focus:ring-emerald-800 rounded-full peer dark:bg-emerald-900/50 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-white after:border-emerald-300 after:border after:rounded-full after:h-5 after:w-6 after:transition-all dark:border-emerald-600 peer-checked:bg-emerald-500"></div>
+                            </label>
+                        </div>
+
                         {/* High Contrast Toggle */}
                         <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-700">
                             <div className="flex items-center gap-3">

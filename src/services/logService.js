@@ -39,6 +39,48 @@ export const LogService = {
                     .single();
 
                 if (existing) {
+                    // Update existing record if not already 'taken'
+                    if (existing.status !== 'taken') {
+                        const { data: updated, error: updateError } = await supabase
+                            .from('consumption_log')
+                            .update({
+                                status: 'taken',
+                                taken_at: new Date().toISOString(),
+                                taken_by: userId
+                            })
+                            .eq('id', existing.id)
+                            .select('*, profiles:taken_by(full_name)')
+                            .single();
+
+                        if (updateError) throw updateError;
+
+                        // Decrement Stock Logic (moved out of main flow to support update)
+                        if (prescription && medication && medication.quantity > 0) {
+                            const dose = parseFloat(prescription.doseAmount) || 1;
+                            const newQuantity = (parseFloat(medication.quantity) || 0) - dose;
+
+                            await supabase
+                                .from('medications')
+                                .update({ quantity: newQuantity })
+                                .eq('id', medication.id);
+
+                            await supabase.from('stock_history').insert([{
+                                user_id: userId,
+                                patient_id: prescription.patientId,
+                                medication_id: medication.id,
+                                quantity_change: -dose,
+                                previous_balance: parseFloat(medication.quantity),
+                                new_balance: newQuantity,
+                                reason: 'consumption',
+                                notes: `Dose tomada (atualização): ${prescription.doseAmount || '1'}`
+                            }]);
+
+                            updatedMedication = { ...medication, quantity: newQuantity };
+                        }
+
+                        return { newLog: LogService.transform(updated), updatedMedication };
+                    }
+
                     return { newLog: LogService.transform(existing), updatedMedication: null };
                 }
             }

@@ -6,7 +6,7 @@ import Pagination from '../components/ui/Pagination';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useNavigate } from 'react-router-dom';
-import { Check, Clock, AlertCircle, Calendar, User, Pill, X, Bell, Calendar as CalendarIcon, DownloadCloud, CircleHelp, Trophy, Zap, Flame, Activity, Star, ShieldCheck, ThumbsUp, Medal, Sparkles, Stethoscope, ChevronRight } from 'lucide-react';
+import { Check, Clock, AlertCircle, Calendar, User, Pill, X, Bell, Calendar as CalendarIcon, DownloadCloud, CircleHelp, Trophy, Zap, Flame, Activity, Star, ShieldCheck, ThumbsUp, Medal, Sparkles, Stethoscope, ChevronRight, Armchair } from 'lucide-react';
 import { formatDate, formatTime, formatDateFull } from '../utils/dateFormatter';
 import clsx from 'clsx';
 import { useNotifications } from '../hooks/useNotifications';
@@ -22,12 +22,15 @@ import LocalOffersCarousel from '../components/features/LocalOffersCarousel';
 import { fetchActiveWeightedOffers } from '../services/offerService';
 import { OfferCard } from '../components/features/OfferCard';
 import { MedicationCardShimmer, HeroCardShimmer, StatsCardShimmer } from '../components/ui/Shimmer';
+import SimplifiedHome from '../components/features/SimplifiedHome';
+import ConfirmationModal from '../components/ui/ConfirmationModal';
+
 
 const ITEMS_PER_PAGE = 6;
 
 const Home = () => {
     const navigate = useNavigate();
-    const { user, prescriptions, medications, patients, consumptionLog, logConsumption, removeConsumption, pendingShares, calculateStockDays, appointments } = useApp();
+    const { user, prescriptions, medications, patients, consumptionLog, logConsumption, removeConsumption, pendingShares, calculateStockDays, appointments, updateUserPreferences, userPreferences } = useApp();
     const { permission, requestPermission } = useNotifications();
     const [todaysSchedule, setTodaysSchedule] = useState([]);
     const [offersError, setOffersError] = useState(null);
@@ -42,6 +45,7 @@ const Home = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const [startTour, setStartTour] = useState(false);
     const [animatedPercentage, setAnimatedPercentage] = useState(0);
+    const [showElderlyConfirm, setShowElderlyConfirm] = useState(false);
 
     // Derived state
     const hasActiveFilters = selectedPatient !== 'all' || selectedMedication !== 'all' || selectedStatus !== 'all' || selectedDate !== new Date().toISOString().split('T')[0];
@@ -242,6 +246,14 @@ const Home = () => {
     //     loadOffers();
     // }, [user]); // Removed
 
+    // ... (existing hooks)
+
+    // Simplified Mode Check - userPreferences is now from top scope
+
+    if (userPreferences?.simplified_mode) {
+        return <SimplifiedHome />;
+    }
+
     return (
         <div className="flex flex-col gap-4 pb-12">
             {/* ... Header ... */}
@@ -254,14 +266,24 @@ const Home = () => {
                         Vamos cuidar da sua saúde hoje?
                     </p>
                 </div>
-                <button
-                    onClick={() => setStartTour(true)}
-                    className="flex items-center gap-2 px-3 py-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition-colors text-sm font-medium"
-                >
-                    <CircleHelp size={18} />
-                    <span className="font-semibold block sm:hidden">Manual</span>
-                    <span className="font-semibold hidden sm:block">Como usar</span>
-                </button>
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={() => updateUserPreferences({ simplified_mode: true })}
+                        className="flex items-center gap-2 px-3 py-2 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 transition-colors text-sm font-medium"
+                        title="Modo Simplificado"
+                    >
+                        <Armchair size={20} />
+                        <span className="hidden sm:inline">Modo Idoso</span>
+                    </button>
+                    <button
+                        onClick={() => setStartTour(true)}
+                        className="flex items-center gap-2 px-3 py-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition-colors text-sm font-medium"
+                    >
+                        <CircleHelp size={18} />
+                        <span className="font-semibold block sm:hidden">Manual</span>
+                        <span className="font-semibold hidden sm:block">Como usar</span>
+                    </button>
+                </div>
             </div>
             {/* {!offersLoading && offers.length > 0 && ( // Removed
                 <section className="offers-section my-8">
@@ -896,6 +918,20 @@ const Home = () => {
                     />
                 )
             }
+            {/* Confirmation Modal for Elderly Mode */}
+            <ConfirmationModal
+                isOpen={showElderlyConfirm}
+                onClose={() => setShowElderlyConfirm(false)}
+                onConfirm={() => {
+                    updateUserPreferences({ simplified_mode: true });
+                    setShowElderlyConfirm(false);
+                }}
+                title="Ativar Modo Idoso?"
+                description="A interface ficará simplificada com textos maiores e foco nos remédios do dia. Você pode voltar ao normal a qualquer momento."
+                confirmText="Sim, Ativar"
+                cancelText="Cancelar"
+                variant="primary"
+            />
         </div >
     );
 };

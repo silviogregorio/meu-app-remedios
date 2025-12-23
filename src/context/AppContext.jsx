@@ -29,6 +29,7 @@ export const AppProvider = ({ children }) => {
     const [pendingShares, setPendingShares] = useState([]);
     const [accountShares, setAccountShares] = useState([]);
     const [healthLogs, setHealthLogs] = useState([]);
+    const [symptomLogs, setSymptomLogs] = useState([]); // New state for symptoms
     const [toast, setToast] = useState(null);
     const [loadingData, setLoadingData] = useState(false);
     const [accessibility, setAccessibility] = useState({
@@ -37,6 +38,30 @@ export const AppProvider = ({ children }) => {
         voiceEnabled: false
     });
     const [vacationMode, setVacationMode] = useState(false);
+    const [userPreferences, setUserPreferences] = useState({});
+
+    // Update User Preferences (Generic)
+    const updateUserPreferences = async (newPrefs) => {
+        if (!user) return;
+        try {
+            // Optimistic Update
+            setUserPreferences(prev => ({ ...prev, ...newPrefs }));
+
+            const { error } = await supabase
+                .from('profiles')
+                .update({
+                    preferences: { ...userPreferences, ...newPrefs }
+                })
+                .eq('id', user.id);
+
+            if (error) throw error;
+            showToast('Preferências atualizadas!');
+        } catch (error) {
+            console.error('Erro ao salvar preferências:', error);
+            showToast('Erro ao salvar preferências', 'error');
+            // Revert on error could be implemented here
+        }
+    };
 
 
     // Helper de Toast (supports optional duration)
@@ -154,15 +179,31 @@ export const AppProvider = ({ children }) => {
                 setHealthLogs(healthData);
             }
 
+            // 7.1 Buscar Diário de Sintomas
+            const { data: symptomData, error: symptomError } = await supabase
+                .from('symptom_logs')
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            if (symptomError) {
+                console.warn('Tabela symptom_logs pode não existir ainda:', symptomError.message);
+            } else {
+                setSymptomLogs(symptomData);
+            }
+
             // 8. Buscar Configurações de Acessibilidade (Safe Fetch)
             if (user?.id) {
                 try {
                     // Buscando configurações de acessibilidade silenciosamente
-                    const { data: profileData } = await supabase
+                    const { data: profileData, error: profileError } = await supabase
                         .from('profiles')
                         .select('*')
                         .eq('id', user.id)
                         .single();
+
+                    if (profileError) {
+                        throw profileError;
+                    }
 
                     if (profileData) {
                         if (profileData.accessibility_settings) {
@@ -171,9 +212,13 @@ export const AppProvider = ({ children }) => {
                         if (profileData.vacation_mode !== undefined) {
                             setVacationMode(profileData.vacation_mode);
                         }
+                        // Load User Preferences (Elderly Mode, etc)
+                        if (profileData.preferences) {
+                            setUserPreferences(profileData.preferences);
+                        }
                     }
                 } catch (accError) {
-                    console.warn('Aviso: Coluna de acessibilidade pode não existir ainda.', accError);
+                    console.warn('Aviso: Erro ao carregar perfil extra.', accError);
                     // Silently fail to defaults
                 }
             }
@@ -788,6 +833,48 @@ export const AppProvider = ({ children }) => {
             showToast('Erro ao salvar registro', 'error');
         }
     };
+    // --- Symptom Logs ---
+    const logSymptom = async (symptomData) => {
+        try {
+            const newLog = { ...symptomData, user_id: user.id };
+            // Optimistic
+            setSymptomLogs(prev => [newLog, ...prev]);
+
+            const { data, error } = await supabase
+                .from('symptom_logs')
+                .insert([newLog])
+                .select()
+                .single();
+
+            if (error) throw error;
+            // Update with real ID
+            setSymptomLogs(prev => prev.map(l => l === newLog ? data : l));
+            showToast('Sintoma registrado!');
+            return data;
+        } catch (error) {
+            console.error('Erro ao registrar sintoma:', error);
+            showToast('Erro ao registrar sintoma', 'error');
+            // Revert
+            setSymptomLogs(prev => prev.filter(l => l !== symptomData)); // Basic revert strategy
+        }
+    };
+
+    const removeSymptom = async (id) => {
+        try {
+            setSymptomLogs(prev => prev.filter(l => l.id !== id));
+            const { error } = await supabase
+                .from('symptom_logs')
+                .delete()
+                .eq('id', id);
+
+            if (error) throw error;
+            showToast('Sintoma removido.');
+        } catch (error) {
+            console.error('Erro ao remover sintoma:', error);
+            showToast('Erro ao remover sintoma', 'error');
+            fetchAllData(true); // Refresh to restore
+        }
+    };
 
     const deleteHealthLog = async (id) => {
         try {
@@ -1250,7 +1337,10 @@ export const AppProvider = ({ children }) => {
             vacationMode, updateVacationMode,
 
             accountShares, shareAccount, unshareAccount,
+            accountShares, shareAccount, unshareAccount,
             healthLogs, addHealthLog, updateHealthLog, deleteHealthLog,
+            // Sintomas
+            symptomLogs, logSymptom, removeSymptom,
             runCaregiverCheck,
             checkLowStock,
             triggerPanicAlert,
@@ -1261,7 +1351,11 @@ export const AppProvider = ({ children }) => {
             specialties,
             addAppointment,
             updateAppointment,
-            deleteAppointment
+            deleteAppointment,
+
+            // Preferências do Usuário
+            userPreferences,
+            updateUserPreferences
         }}>
             {children}
             {toast && <Toast message={toast.message} type={toast.type} duration={toast.duration} onClose={() => setToast(null)} />}

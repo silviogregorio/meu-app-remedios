@@ -6,7 +6,7 @@ import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Modal from '../components/ui/Modal';
 import ConfirmationModal from '../components/ui/ConfirmationModal';
-import { Trash2, Edit2, Plus, Calendar as CalendarIcon, FileDown, Share2, Clock, CheckCircle2, XCircle, AlertCircle, Circle, Printer, Mail, MessageCircle, FileText, Activity, Heart, Weight, Thermometer, Edit, Pill } from 'lucide-react';
+import { Trash2, Edit2, Plus, Calendar as CalendarIcon, FileDown, Share2, Clock, CheckCircle2, XCircle, AlertCircle, Circle, Printer, Mail, MessageCircle, FileText, Activity, Heart, Weight, Thermometer, Edit, Pill, SmilePlus, Frown, X, Info, RotateCcw, Brain, Zap, Coffee, HeartPulse } from 'lucide-react';
 import { formatDate, formatDateTime, formatTime } from '../utils/dateFormatter';
 import { generatePDFHealthDiary } from '../utils/pdfGenerator';
 import { format } from 'date-fns';
@@ -16,6 +16,7 @@ import Pagination from '../components/ui/Pagination';
 import { useNavigate } from 'react-router-dom';
 import confetti from 'canvas-confetti';
 import { getApiEndpoint } from '../config/api';
+import SymptomSelector from '../components/features/SymptomSelector'; // Imported Component
 import {
     LineChart,
     Line,
@@ -28,11 +29,11 @@ import {
 } from 'recharts';
 
 const HealthDiary = () => {
-    const { patients, healthLogs, addHealthLog, updateHealthLog, deleteHealthLog, user, showToast, prescriptions, consumptionLog, medications, logConsumption, removeConsumption } = useApp();
+    const { patients, healthLogs, addHealthLog, updateHealthLog, deleteHealthLog, user, showToast, prescriptions, consumptionLog, medications, logConsumption, removeConsumption, symptomLogs, removeSymptom } = useApp();
     const navigate = useNavigate();
 
     const [showForm, setShowForm] = useState(false);
-    const [activeTab, setActiveTab] = useState('adherence'); // 'adherence' | 'list' | 'charts'
+    const [activeTab, setActiveTab] = useState('adherence'); // 'adherence' | 'list' | 'charts' | 'symptoms'
     const [selectedPatientId, setSelectedPatientId] = useState('all');
     const [filterCategory, setFilterCategory] = useState('all');
     const [currentPage, setCurrentPage] = useState(1);
@@ -40,6 +41,16 @@ const HealthDiary = () => {
 
     const [viewDate, setViewDate] = useState(format(new Date(), 'yyyy-MM-dd'));
     const [editingLogId, setEditingLogId] = useState(null);
+
+    // Auto-scroll when switching tabs
+    React.useEffect(() => {
+        // Scroll to form or top of content
+        // Finding the container or just generic window scroll
+        const offset = 100; // Offset for sticky headers if any, or just breathing room
+        const bodyRect = document.body.getBoundingClientRect().top;
+        // Try to find the tab container or just scroll window
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }, [activeTab]);
 
     // Dose Management Modal
     const [doseModalOpen, setDoseModalOpen] = useState(false);
@@ -57,6 +68,7 @@ const HealthDiary = () => {
             if (isTaken) {
                 // If it is taken, we want to REMOVE it (untake)
                 await removeConsumption(selectedPrescriptionForDosing.id, time, viewDate);
+                showToast(`Dose das ${time} marcada como NÃO tomada`, 'info');
             } else {
                 // If not taken, we want to LOG it (take)
                 await logConsumption({
@@ -67,7 +79,9 @@ const HealthDiary = () => {
                     takenBy: user?.id,
                     status: 'taken'
                 });
+                showToast(`Dose das ${time} confirmada com sucesso!`, 'success');
             }
+            setDoseModalOpen(false);
         } catch (error) {
             console.error(error);
             showToast('Erro ao atualizar dose', 'error');
@@ -128,11 +142,11 @@ const HealthDiary = () => {
     const maxDate = format(new Date(), "yyyy-MM-dd'T'HH:mm");
 
     const categories = [
-        { id: 'pressure', label: 'Pressão Arterial', unit: 'mmHg', icon: Heart, color: '#ef4444' },
-        { id: 'glucose', label: 'Glicemia', unit: 'mg/dL', icon: Activity, color: '#3b82f6' },
-        { id: 'weight', label: 'Peso', unit: 'kg', icon: Weight, color: '#fbbf24' },
-        { id: 'temperature', label: 'Temperatura', unit: '°C', icon: Thermometer, color: '#f97316' },
-        { id: 'heart_rate', label: 'Batimentos', unit: 'bpm', icon: Heart, color: '#ec4899' },
+        { id: 'pressure', label: 'Pressão Arterial', emoji: '🩺', unit: 'mmHg', icon: Heart, color: '#ef4444' },
+        { id: 'glucose', label: 'Glicemia', emoji: '🩸', unit: 'mg/dL', icon: Activity, color: '#3b82f6' },
+        { id: 'weight', label: 'Peso', emoji: '⚖️', unit: 'kg', icon: Weight, color: '#fbbf24' },
+        { id: 'temperature', label: 'Temperatura', emoji: '🌡️', unit: '°C', icon: Thermometer, color: '#f97316' },
+        { id: 'heart_rate', label: 'Batimentos', emoji: '💓', unit: 'bpm', icon: Heart, color: '#ec4899' },
     ];
 
     const getCategoryInfo = (catId) => categories.find(c => c.id === catId) || { label: 'Outro', unit: '', icon: Activity, color: '#64748b' };
@@ -621,43 +635,129 @@ const HealthDiary = () => {
     };
 
     return (
-        <div className="flex flex-col gap-8 pb-24 animate-in fade-in duration-500">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 no-print">
-                <div>
-                    <h2 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Diário de Saúde</h2>
-                    <p className="text-slate-500 dark:text-slate-400 mt-1">Registre e acompanhe sua pressão, glicemia e mais.</p>
+        <div className="flex flex-col gap-8 pb-24 animate-in fade-in duration-500 max-w-6xl mx-auto w-full px-4 md:px-6">
+            {activeTab !== 'symptoms' && (
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 no-print">
+                    <div>
+                        <h2 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Diário de Saúde</h2>
+                        <p className="text-slate-500 dark:text-slate-400 mt-1">Registre e acompanhe sua pressão, glicemia e mais.</p>
+                    </div>
+                    {!showForm && (
+                        <Button onClick={() => setShowForm(true)} className="shadow-xl shadow-primary/20">
+                            <Plus size={20} className="mr-2" />
+                            Novo Registro
+                        </Button>
+                    )}
                 </div>
-                {!showForm && (
-                    <Button onClick={() => setShowForm(true)} className="shadow-xl shadow-primary/20">
-                        <Plus size={20} className="mr-2" />
-                        Novo Registro
-                    </Button>
-                )}
-            </div>
+            )}
 
             {!showForm && (
-                <Card className="no-print">
-                    <CardContent className="pt-6">
-                        <div className="flex flex-col md:flex-row gap-4">
-                            <select
-                                className="flex-1 px-4 py-3 rounded-xl border border-slate-200"
-                                value={selectedPatientId}
-                                onChange={e => setSelectedPatientId(e.target.value)}
+                <>
+                    {/* 1. ABAS DE NAVEGAÇÃO (Topo) */}
+                    {activeTab !== 'symptoms' ? (
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6 no-print">
+                            <button
+                                onClick={() => setActiveTab('adherence')}
+                                className={`flex items-center justify-center gap-3 p-4 rounded-xl border-2 transition-all active:scale-95 text-sm md:text-base font-bold
+                                    ${activeTab === 'adherence'
+                                        ? 'border-indigo-600 bg-indigo-50 text-indigo-700 shadow-sm'
+                                        : 'border-slate-200 bg-white text-slate-600 hover:border-indigo-200 hover:bg-slate-50'
+                                    }`}
                             >
-                                <option value="all">Todos os Pacientes</option>
-                                {patients.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                            </select>
-                            <select
-                                className="flex-1 px-4 py-3 rounded-xl border border-slate-200"
-                                value={filterCategory}
-                                onChange={e => setFilterCategory(e.target.value)}
+                                <CalendarIcon size={20} />
+                                Frequência
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('list')}
+                                className={`flex items-center justify-center gap-3 p-4 rounded-xl border-2 transition-all active:scale-95 text-sm md:text-base font-bold
+                                    ${activeTab === 'list'
+                                        ? 'border-indigo-600 bg-indigo-50 text-indigo-700 shadow-sm'
+                                        : 'border-slate-200 bg-white text-slate-600 hover:border-indigo-200 hover:bg-slate-50'
+                                    }`}
                             >
-                                <option value="all">Todas as Categorias</option>
-                                {categories.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
-                            </select>
+                                <FileText size={20} />
+                                Sinais Vitais
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('symptoms')}
+                                className={`flex items-center justify-center gap-3 p-4 rounded-xl border-2 transition-all active:scale-95 text-sm md:text-base font-bold
+                                    ${activeTab === 'symptoms'
+                                        ? 'border-indigo-600 bg-indigo-50 text-indigo-700 shadow-sm'
+                                        : 'border-slate-200 bg-white text-slate-600 hover:border-indigo-200 hover:bg-slate-50'
+                                    }`}
+                            >
+                                <SmilePlus size={20} />
+                                Sintomas
+                            </button>
                         </div>
-                    </CardContent>
-                </Card>
+                    ) : (
+                        <div className="mb-6 no-print animate-in slide-in-from-right-4">
+
+
+                            <div className="flex items-center justify-between bg-gradient-to-r from-indigo-600 to-violet-600 p-6 rounded-2xl shadow-lg shadow-indigo-100">
+                                <div className="flex items-center gap-4 text-white">
+                                    <div className="bg-white/20 p-2 rounded-xl backdrop-blur-sm">
+                                        <SmilePlus size={28} />
+                                    </div>
+                                    <div>
+                                        <h2 className="text-xl font-bold leading-none">Meus Sintomas</h2>
+                                        <p className="text-indigo-100 text-sm mt-1 opacity-80">Registre como você está se sentindo agora</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* 2. BARRA DE FERRAMENTAS (Filtros + Ações) - Apenas se não for Sintomas */}
+                    {!showForm && activeTab !== 'symptoms' && (
+                        <Card className="no-print mb-6">
+                            <CardContent className="pt-6">
+                                <div className="flex flex-col gap-6">
+                                    {/* Filtros */}
+                                    <div className="flex flex-col md:flex-row gap-4 w-full">
+                                        <select
+                                            id="filter-patient-select"
+                                            name="selectedPatientId"
+                                            className="flex-1 px-4 py-3 rounded-xl border border-slate-200 text-sm"
+                                            value={selectedPatientId}
+                                            onChange={e => setSelectedPatientId(e.target.value)}
+                                        >
+                                            <option value="all">Todos os Pacientes</option>
+                                            {patients.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                                        </select>
+                                        <select
+                                            id="filter-category-select"
+                                            name="filterCategory"
+                                            className="flex-1 px-4 py-3 rounded-xl border border-slate-200 text-sm"
+                                            value={filterCategory}
+                                            onChange={e => setFilterCategory(e.target.value)}
+                                        >
+                                            <option value="all">📂 Todas as Categorias</option>
+                                            {categories.map(c => (
+                                                <option key={c.id} value={c.id}>
+                                                    {c.emoji} {c.label}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    {/* Ações (Centralizadas e Flutuantes) - 'Zap' Renomeado + Padding Lateral */}
+                                    <div className="flex justify-center gap-4 px-4 sm:px-0">
+                                        <Button variant="outline" size="sm" onClick={() => setShowEmailModal(true)} title="Enviar por Email" className="h-9 hover:bg-slate-50 shadow-sm border-slate-200">
+                                            <Mail size={16} className="mr-2 text-slate-500" /> <span className="text-slate-600">Email</span>
+                                        </Button>
+                                        <Button variant="outline" size="sm" onClick={handlePrint} title="Imprimir PDF" className="h-9 hover:bg-slate-50 shadow-sm border-slate-200">
+                                            <Printer size={16} className="mr-2 text-slate-500" /> <span className="text-slate-600">Imprimir</span>
+                                        </Button>
+                                        <Button variant="outline" size="sm" onClick={handleWhatsApp} title="Enviar no WhatsApp" className="h-9 hover:bg-slate-50 shadow-sm border-slate-200">
+                                            <MessageCircle size={16} className="mr-2 text-slate-500" /> <span className="text-slate-600">Zap</span>
+                                        </Button>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    )}
+                </>
             )}
 
             {showForm && (
@@ -670,6 +770,8 @@ const HealthDiary = () => {
                         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <select
+                                    id="patient-select"
+                                    name="patientId"
                                     className="px-4 py-3 rounded-xl border border-slate-200"
                                     value={formData.patientId}
                                     onChange={e => setFormData({ ...formData, patientId: e.target.value })}
@@ -681,18 +783,26 @@ const HealthDiary = () => {
                                     ))}
                                 </select>
                                 <select
+                                    id="category-select"
+                                    name="category"
                                     className="px-4 py-3 rounded-xl border border-slate-200"
                                     value={formData.category}
                                     onChange={e => setFormData({ ...formData, category: e.target.value })}
                                 >
-                                    {categories.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
+                                    {categories.map(c => (
+                                        <option key={c.id} value={c.id}>
+                                            {c.emoji} {c.label}
+                                        </option>
+                                    ))}
                                 </select>
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="text-sm font-bold text-slate-700">Valor Principal</label>
+                                    <label htmlFor="value-input" className="text-sm font-bold text-slate-700">Valor Principal</label>
                                     <Input
+                                        id="value-input"
+                                        name="value"
                                         type="number"
                                         step="0.1"
                                         placeholder="Ex: 120 (Sistólica) ou 98 (Glicemia)"
@@ -703,8 +813,10 @@ const HealthDiary = () => {
                                 </div>
                                 {formData.category === 'pressure' && (
                                     <div>
-                                        <label className="text-sm font-bold text-slate-700">Valor Secundário</label>
+                                        <label htmlFor="value-secondary-input" className="text-sm font-bold text-slate-700">Valor Secundário</label>
                                         <Input
+                                            id="value-secondary-input"
+                                            name="valueSecondary"
                                             type="number"
                                             step="0.1"
                                             placeholder="Ex: 80 (Diastólica)"
@@ -717,6 +829,8 @@ const HealthDiary = () => {
                             </div>
 
                             <Input
+                                id="measured-at-input"
+                                name="measuredAt"
                                 type="datetime-local"
                                 label="Data e Hora"
                                 value={formData.measuredAt}
@@ -726,6 +840,8 @@ const HealthDiary = () => {
                             />
 
                             <Input
+                                id="notes-input"
+                                name="notes"
                                 label="Observações"
                                 placeholder="Ex: Sentiu tontura, Jejum, etc."
                                 value={formData.notes}
@@ -743,50 +859,9 @@ const HealthDiary = () => {
 
             {!showForm && (
                 <>
-                    <div className="flex flex-col md:flex-row gap-4 border-b border-slate-200 no-print justify-between items-center mb-6">
-                        <div className="flex gap-4 overflow-x-auto w-full md:w-auto">
-                            <button
-                                onClick={() => setActiveTab('adherence')}
-                                className={`pb-4 px-2 font-medium text-sm border-b-2 transition-colors whitespace-nowrap flex items-center gap-2 ${activeTab === 'adherence' ? 'border-primary text-primary' : 'border-transparent text-slate-500'}`}
-                            >
-                                <CalendarIcon size={16} />
-                                Frequência (Calendário)
-                            </button>
-                            <button
-                                onClick={() => setActiveTab('list')}
-                                className={`pb-4 px-2 font-medium text-sm border-b-2 transition-colors whitespace-nowrap flex items-center gap-2 ${activeTab === 'list' ? 'border-primary text-primary' : 'border-transparent text-slate-500'}`}
-                            >
-                                <FileText size={16} />
-                                Sinais Vitais
-                            </button>
-                            <button
-                                onClick={() => setActiveTab('charts')}
-                                className={`pb-4 px-2 font-medium text-sm border-b-2 transition-colors whitespace-nowrap flex items-center gap-2 ${activeTab === 'charts' ? 'border-primary text-primary' : 'border-transparent text-slate-500'}`}
-                            >
-                                <Activity size={16} />
-                                Gráficos
-                            </button>
-                        </div>
 
-                        <div className="flex flex-col items-end gap-1 no-print">
-                            <div className="flex gap-2 bg-white/50 p-1 rounded-lg border border-slate-100">
-                                <Button variant="outline" size="sm" onClick={() => setShowEmailModal(true)} title="Enviar por Email">
-                                    <Mail size={16} className="mr-2" /> Email
-                                </Button>
-                                <Button variant="outline" size="sm" onClick={handlePrint} title="Imprimir PDF">
-                                    <Printer size={16} className="mr-2" /> Imprimir
-                                </Button>
-                                <Button variant="outline" size="sm" onClick={handleWhatsApp} title="Enviar no WhatsApp">
-                                    <MessageCircle size={16} className="mr-2" /> WhatsApp
-                                </Button>
-                            </div>
-                            <p className="text-[10px] text-slate-400 italic pr-1">
-                                Selecione um dia no calendário para gerar os relatórios.
-                            </p>
-                        </div>
-                    </div>
 
-                    {activeTab === 'adherence' ? (
+                    {activeTab === 'adherence' && (
                         <div className="animate-in fade-in slide-in-from-bottom-2">
                             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                                 <div className="lg:col-span-2">
@@ -900,10 +975,14 @@ const HealthDiary = () => {
                                                         </div>
 
                                                         <div className="mt-6 border-t border-slate-100 pt-4">
-                                                            <h4 className="text-slate-800 font-bold mb-3 text-sm flex items-center gap-2 uppercase tracking-wide">
+                                                            <h4 className="text-slate-800 font-bold mb-1 text-sm flex items-center gap-2 uppercase tracking-wide">
                                                                 <Pill size={16} className="text-primary" />
                                                                 Medicamentos ({formatDate(viewDate)})
                                                             </h4>
+                                                            <p className="text-xs text-slate-500 mb-4 bg-blue-50 text-blue-700 px-3 py-2 rounded-lg border border-blue-100 flex items-center gap-2">
+                                                                <Info size={14} />
+                                                                Clique no cartão do medicamento abaixo para confirmar a dose.
+                                                            </p>
 
                                                             <div className="flex flex-col gap-2">
                                                                 {prescriptions.filter(p => {
@@ -1051,7 +1130,9 @@ const HealthDiary = () => {
                                 </div>
                             </div>
                         </div>
-                    ) : activeTab === 'list' ? (
+                    )}
+
+                    {activeTab === 'list' && (
                         <div className="flex flex-col gap-4">
                             {filteredLogs.length === 0 ? (
                                 <div className="text-center py-12 text-slate-500 bg-white rounded-xl border border-dashed">
@@ -1070,7 +1151,7 @@ const HealthDiary = () => {
                                                 <div className="flex-1">
                                                     <div className="flex justify-between items-start">
                                                         <div>
-                                                            <h4 className="font-bold text-slate-900">{info.label}</h4>
+                                                            <h4 className="font-bold text-slate-900">{info.emoji} {info.label}</h4>
                                                             <p className="text-xs text-slate-500">{formatDateTime(log.measured_at)}</p>
                                                         </div>
                                                         <div className="text-right">
@@ -1113,7 +1194,9 @@ const HealthDiary = () => {
                                 />
                             )}
                         </div>
-                    ) : (
+                    )}
+
+                    {activeTab === 'charts' && (
                         <Card>
                             <CardContent className="h-96 pt-6">
                                 {filteredLogs.length > 0 ? (
@@ -1154,6 +1237,87 @@ const HealthDiary = () => {
                 </>
             )
             }
+
+            {
+                activeTab === 'symptoms' && (
+                    <div className="animate-in fade-in slide-in-from-bottom-2 grid grid-cols-1 lg:grid-cols-5 gap-6">
+                        <div className="lg:col-span-2">
+                            <SymptomSelector />
+                        </div>
+                        <div className="lg:col-span-3">
+                            <Card>
+                                <CardHeader>
+                                    <h3 className="font-bold text-lg flex items-center gap-2">
+                                        <FileText className="text-primary" size={20} />
+                                        Histórico de Sintomas
+                                    </h3>
+                                </CardHeader>
+                                <CardContent>
+                                    {symptomLogs && symptomLogs.length > 0 ? (
+                                        <div className="space-y-3">
+                                            {symptomLogs.map((log) => (
+                                                <div key={log.id} className="flex items-start justify-between p-3 rounded-lg border border-slate-100 hover:bg-slate-50 transition-colors">
+                                                    <div className="flex gap-3">
+                                                        <div className={`p-2 rounded-full h-fit mt-1 
+                                                        ${log.intensity <= 2 ? 'bg-green-100 text-green-600' :
+                                                                log.intensity <= 3 ? 'bg-yellow-100 text-yellow-600' :
+                                                                    'bg-red-100 text-red-600'
+                                                            }`}>
+                                                            {log.symptom === 'Dor de Cabeça' && <Brain size={18} />}
+                                                            {log.symptom === 'Enjoo' && <Frown size={18} />}
+                                                            {log.symptom === 'Tontura' && <Activity size={18} />}
+                                                            {log.symptom === 'Cansaço' && <Coffee size={18} />}
+                                                            {log.symptom === 'Febre' && <Thermometer size={18} />}
+                                                            {log.symptom === 'Dor no Corpo' && <Zap size={18} />}
+                                                            {log.symptom === 'Cólicas' && <AlertCircle size={18} />}
+                                                            {log.symptom === 'Palpitação' && <HeartPulse size={18} />}
+                                                            {/* Fallback Icon */}
+                                                            {!['Dor de Cabeça', 'Enjoo', 'Tontura', 'Cansaço', 'Febre', 'Dor no Corpo', 'Cólicas', 'Palpitação'].includes(log.symptom) && <Activity size={18} />}
+                                                        </div>
+                                                        <div>
+                                                            <p className="font-bold text-slate-800">{log.symptom}</p>
+                                                            <div className="flex items-center gap-2 text-xs text-slate-500 mt-1">
+                                                                <span className="font-medium bg-slate-100 px-1.5 py-0.5 rounded">
+                                                                    Nível {log.intensity}
+                                                                </span>
+                                                                <span>•</span>
+                                                                <span>{formatDateTime(log.created_at)}</span>
+                                                            </div>
+                                                            {log.notes && (
+                                                                <p className="text-sm text-slate-600 mt-2 bg-slate-50 p-2 rounded-md italic">
+                                                                    "{log.notes}"
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                    <button
+                                                        onClick={() => {
+                                                            if (window.confirm('Excluir este sintoma?')) {
+                                                                removeSymptom(log.id);
+                                                            }
+                                                        }}
+                                                        className="text-slate-400 hover:text-rose-500 p-2 transition-colors"
+                                                        title="Excluir"
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div className="text-center py-12 text-slate-400">
+                                            <SmilePlus size={48} className="mx-auto mb-3 opacity-20" />
+                                            <p>Nenhum sintoma registrado.</p>
+                                            <p className="text-sm">Selecione um ícone ao lado para começar.</p>
+                                        </div>
+                                    )}
+                                </CardContent>
+                            </Card>
+                        </div>
+                    </div>
+                )
+            }
+
 
             <Modal
                 isOpen={showEmailModal}
@@ -1208,8 +1372,10 @@ const HealthDiary = () => {
                                 </p>
                             </div>
 
-                            <div className="space-y-3">
-                                <p className="text-xs font-bold text-slate-400 uppercase tracking-wide">Horários Agendados</p>
+                            <div className="space-y-4">
+                                <p className="text-sm font-bold text-slate-700 uppercase tracking-wide border-b pb-2">
+                                    Horários Agendados
+                                </p>
                                 {selectedPrescriptionForDosing.times?.map(time => {
                                     // Check if taken
                                     const isTaken = consumptionLog.some(l =>
@@ -1221,15 +1387,14 @@ const HealthDiary = () => {
 
                                     // Calculate Status Detail
                                     let statusLabel = 'Pendente';
-                                    let statusColorClass = 'bg-slate-100 text-slate-500 hover:bg-slate-200';
-                                    let StatusIcon = Circle; // Assuming Circle is imported from 'lucide-react'
+                                    let statusBg = 'bg-slate-100 text-slate-500';
+                                    let StatusIcon = Circle;
 
                                     if (isTaken) {
                                         statusLabel = 'Tomado';
-                                        statusColorClass = 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200';
-                                        StatusIcon = CheckCircle2; // Assuming CheckCircle2 is imported from 'lucide-react'
+                                        statusBg = 'bg-emerald-100 text-emerald-700';
+                                        StatusIcon = CheckCircle2;
                                     } else {
-                                        // Not taken logic
                                         const now = new Date();
                                         const viewDateObj = new Date(viewDate + 'T00:00:00');
                                         const today = new Date();
@@ -1242,49 +1407,68 @@ const HealthDiary = () => {
 
                                         if (viewDateObj < today) {
                                             statusLabel = 'Não Tomado';
-                                            statusColorClass = 'bg-rose-100 text-rose-700 hover:bg-rose-200';
-                                            StatusIcon = XCircle; // Assuming XCircle is imported from 'lucide-react'
+                                            statusBg = 'bg-rose-100 text-rose-700';
+                                            StatusIcon = XCircle;
                                         } else if (viewDateObj.getTime() === today.getTime()) {
-                                            // If today, check time with 30min tolerance
                                             const diffMins = (now - scheduledDate) / (1000 * 60);
                                             if (diffMins > 30) {
                                                 statusLabel = 'Atrasado';
-                                                statusColorClass = 'bg-amber-100 text-amber-700 hover:bg-amber-200';
-                                                StatusIcon = AlertCircle; // Assuming AlertCircle is imported from 'lucide-react'
+                                                statusBg = 'bg-amber-100 text-amber-700';
+                                                StatusIcon = AlertCircle;
                                             }
                                         }
                                     }
 
                                     return (
-                                        <div key={time} className="flex items-center justify-between p-3 rounded-lg border border-slate-100 hover:bg-slate-50 transition-colors">
-                                            <div className="flex items-center gap-3">
-                                                <Clock size={16} className="text-slate-400" />
-                                                <span className="font-bold text-slate-700">{time}</span>
+                                        <div key={time} className="flex flex-col gap-3 p-4 rounded-xl border border-slate-200 bg-white shadow-sm">
+                                            {/* Row 1: Time and Status Label */}
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-2">
+                                                    <Clock size={20} className="text-slate-400" />
+                                                    <span className="text-xl font-bold text-slate-800">{time}</span>
+                                                </div>
+                                                <div className={`px-3 py-1 rounded-full flex items-center gap-1.5 text-sm font-bold ${statusBg}`}>
+                                                    <StatusIcon size={16} />
+                                                    {statusLabel}
+                                                </div>
                                             </div>
 
-                                            <button
-                                                onClick={() => handleToggleDose(time, isTaken)}
-                                                className={`
-                                                     flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-all
-                                                     ${statusColorClass}
-                                                 `}
-                                                title={isTaken ? 'Clique para desmarcar' : 'Clique para marcar como Tomado'}
-                                            >
-                                                <StatusIcon size={16} />
-                                                {statusLabel}
-                                            </button>
+                                            {/* Row 2: Large Action Button */}
+                                            <div className="pt-2">
+                                                {isTaken ? (
+                                                    <button
+                                                        onClick={() => handleToggleDose(time, isTaken)}
+                                                        className="w-full flex items-center justify-center gap-2 p-3 rounded-xl border-2 border-rose-300 bg-rose-50 text-rose-700 hover:bg-rose-100 font-bold transition-all active:scale-[0.98]"
+                                                    >
+                                                        <RotateCcw size={20} />
+                                                        DESFAZER (Marcar como não tomado)
+                                                    </button>
+                                                ) : (
+                                                    <button
+                                                        onClick={() => handleToggleDose(time, isTaken)}
+                                                        className="w-full flex items-center justify-center gap-2 p-4 rounded-xl bg-emerald-600 text-white shadow-md hover:bg-emerald-700 font-bold text-lg transition-all active:scale-[0.98]"
+                                                    >
+                                                        <CheckCircle2 size={24} />
+                                                        CONFIRMAR QUE TOMEI
+                                                    </button>
+                                                )}
+                                            </div>
+
+                                            {/* Helper Text */}
+                                            <p className="text-center text-xs text-slate-400">
+                                                {isTaken
+                                                    ? "Clique acima se você marcou por engano."
+                                                    : "Clique no botão verde para confirmar a dose."}
+                                            </p>
                                         </div>
                                     );
                                 })}
                             </div>
-                            <p className="text-xs text-center text-slate-400 mt-2">
-                                Clique no status (Pendente/Tomado) para alterar.
-                            </p>
                         </div>
                     );
                 })()}
             </Modal>
-        </div>
+        </div >
     );
 };
 

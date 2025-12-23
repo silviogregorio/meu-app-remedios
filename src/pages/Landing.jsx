@@ -242,7 +242,7 @@ const Landing = () => {
                             <Heart className="w-4 h-4 animate-pulse fill-current" />
                             <span>Cuidar de sua saúde é nossa maior missão.</span>
                         </div>
-                        <h2 className="text-2xl md:text-5xl font-extrabold text-slate-900 tracking-tight leading-snug px-2">
+                        <h2 className="text-2xl md:text-5xl font-extrabold text-slate-900 tracking-tight leading-tight px-2">
                             Sua Saúde e Segurança <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">Levadas a Sério</span>
                         </h2>
                         <p className="text-sm md:text-xl text-slate-600 leading-relaxed max-w-2xl mx-auto px-2">
@@ -280,7 +280,7 @@ const Landing = () => {
                             <Rocket className="w-4 h-4 animate-pulse" />
                             <span>Inovação Digital Avançada</span>
                         </div>
-                        <h2 className="text-2xl md:text-5xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-teal-400 to-white px-2 leading-snug">
+                        <h2 className="text-2xl md:text-5xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-teal-400 to-white px-2 leading-tight">
                             Transformamos sua ideia em Software de Alta Performance
                         </h2>
                         <p className="text-sm md:text-lg text-slate-300 leading-relaxed px-2 max-w-2xl mx-auto">
