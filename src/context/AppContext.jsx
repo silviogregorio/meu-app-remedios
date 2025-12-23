@@ -282,8 +282,6 @@ export const AppProvider = ({ children }) => {
                 if (token) {
                     try {
                         // STRATEGY: Upsert token - preserves other device tokens for this user
-                        // Each device has its own unique token, so we upsert by token
-                        // This allows the same user to receive push on multiple devices
                         const { error: upsertError } = await supabase
                             .from('fcm_tokens')
                             .upsert({
@@ -293,7 +291,26 @@ export const AppProvider = ({ children }) => {
                             }, { onConflict: 'token' });
 
                         if (upsertError) {
-                            console.warn('Erro ao salvar token FCM:', upsertError.message);
+                            // If RLS blocks the update (token belongs to another user), 
+                            // we clear the old mapping and try again
+                            if (upsertError.code === '42501' || upsertError.message.includes('row-level security')) {
+                                console.log('🔄 Token pertence a outro usuário. Limpando e reassinando...');
+                                await supabase
+                                    .from('fcm_tokens')
+                                    .delete()
+                                    .eq('token', token);
+
+                                // Try again after clearing
+                                await supabase
+                                    .from('fcm_tokens')
+                                    .insert({
+                                        user_id: user.id,
+                                        token: token,
+                                        last_seen: new Date().toISOString()
+                                    });
+                            } else {
+                                console.warn('Erro ao salvar token FCM:', upsertError.message);
+                            }
                         } else {
                             console.log('✅ Token FCM registrado com sucesso');
                         }
