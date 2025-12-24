@@ -278,45 +278,48 @@ export const AppProvider = ({ children }) => {
     useEffect(() => {
         const setupNotifications = async () => {
             if (user?.id) {
-                const token = await requestForToken();
-                if (token) {
-                    try {
-                        // STRATEGY: Upsert token - preserves other device tokens for this user
-                        const { error: upsertError } = await supabase
-                            .from('fcm_tokens')
-                            .upsert({
-                                user_id: user.id,
-                                token: token,
-                                last_seen: new Date().toISOString()
-                            }, { onConflict: 'token' });
+                try {
+                    const token = await requestForToken();
+                    if (!token) return;
 
-                        if (upsertError) {
-                            // If RLS blocks the update (token belongs to another user), 
-                            // we clear the old mapping and try again
-                            if (upsertError.code === '42501' || upsertError.message.includes('row-level security')) {
-                                console.log('🔄 Token pertence a outro usuário. Limpando e reassinando...');
-                                await supabase
-                                    .from('fcm_tokens')
-                                    .delete()
-                                    .eq('token', token);
+                    // Estratégia Robusta: Tentar salvar diretamente
+                    const { error: upsertError } = await supabase
+                        .from('fcm_tokens')
+                        .upsert({
+                            user_id: user.id,
+                            token: token,
+                            last_seen: new Date().toISOString()
+                        }, { onConflict: 'token' });
 
-                                // Try again after clearing
-                                await supabase
-                                    .from('fcm_tokens')
-                                    .insert({
-                                        user_id: user.id,
-                                        token: token,
-                                        last_seen: new Date().toISOString()
-                                    });
-                            } else {
-                                console.warn('Erro ao salvar token FCM:', upsertError.message);
-                            }
+                    if (upsertError) {
+                        // Se erro de RLS ou Conflito (token pertence a outro usuário)
+                        if (upsertError.code === '42501' || upsertError.code === 'P0001' || upsertError.message.includes('row-level security')) {
+                            console.log('🔄 Token em uso por outro perfil. Reassolvendo vínculo...');
+
+                            // 1. Limpar vínculo antigo (permitido por política DELETE USING true na coluna token)
+                            await supabase
+                                .from('fcm_tokens')
+                                .delete()
+                                .eq('token', token);
+
+                            // 2. Tentar inserir novamente para o usuário atual
+                            await supabase
+                                .from('fcm_tokens')
+                                .insert({
+                                    user_id: user.id,
+                                    token: token,
+                                    last_seen: new Date().toISOString()
+                                });
+
+                            console.log('✅ Token FCM reassinado com sucesso');
                         } else {
-                            console.log('✅ Token FCM registrado com sucesso');
+                            console.warn('Aviso: Falha ao registrar token FCM:', upsertError.message);
                         }
-                    } catch (err) {
-                        console.error('Falha ao registrar token FCM:', err);
+                    } else {
+                        console.log('✅ Token FCM registrado com sucesso');
                     }
+                } catch (err) {
+                    console.error('Erro geral no setup de notificações:', err);
                 }
             }
         };
@@ -1353,7 +1356,6 @@ export const AppProvider = ({ children }) => {
             // Modo Férias
             vacationMode, updateVacationMode,
 
-            accountShares, shareAccount, unshareAccount,
             accountShares, shareAccount, unshareAccount,
             healthLogs, addHealthLog, updateHealthLog, deleteHealthLog,
             // Sintomas

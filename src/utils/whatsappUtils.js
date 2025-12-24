@@ -66,3 +66,63 @@ export const formatLowStockMessage = (medicationName, daysRemaining) => {
         return `⚠️ Estoque de ${medicationName} acaba em ${daysInt} dias`;
     }
 };
+/**
+ * Gera mensagem de texto para o resumo semanal de saúde.
+ * 
+ * @param {Object} allStats Estatísticas de todos os pacientes (geradas pelo summaryService)
+ * @returns {string} Texto formatado para WhatsApp
+ */
+export const generateWeeklySummaryMessage = (allStats) => {
+    // Usando Unicode escapes para garantir codificação UTF-8 correta em qualquer ambiente
+    const emojiChart = '\u{1F4CA}'; // 📊
+    const emojiUser = '\u{1F464}';  // 👤
+    const emojiCheck = '\u{2705}';  // ✅
+    const emojiPill = '\u{1F48A}';  // 💊
+    const emojiHeart = '\u{1F493}'; // 💓
+    const emojiDrop = '\u{1F64F}';  // 🙏 (ou use outro para glicemia)
+    const emojiBlood = '\u{1FA78}'; // 🩸
+
+    let text = `*${emojiChart} RESUMO SEMANAL DE SAÚDE*\n`;
+    text += '============================\n\n';
+
+    const patientIds = Object.keys(allStats);
+
+    if (patientIds.length === 0) {
+        text += 'Nenhum dado registrado nesta semana.\n';
+    } else {
+        patientIds.forEach((id, index) => {
+            const stats = allStats[id];
+
+            text += `*${emojiUser} Paciente:* ${stats.patientName}\n`;
+
+            if (stats.adherenceRate !== null) {
+                text += `${emojiCheck} *Adesão:* ${stats.adherenceRate}%\n`;
+                text += `${emojiPill} *Remédios:* ${stats.takenDoses} tomados`;
+                if (stats.forgottenDoses > 0) {
+                    text += `, ${stats.forgottenDoses} esquecidos`;
+                }
+                text += '\n';
+            } else {
+                text += `${emojiPill} Sem registros de medicamentos\n`;
+            }
+
+            if (stats.avgPressure) {
+                text += `${emojiHeart} *Pressão Média:* ${stats.avgPressure} mmHg\n`;
+            }
+
+            if (stats.avgGlucose) {
+                text += `${emojiBlood} *Glicemia Média:* ${stats.avgGlucose} mg/dL\n`;
+            }
+
+            if (index < patientIds.length - 1) {
+                text += '\n----------------------------\n\n';
+            }
+        });
+    }
+
+    text += '\n============================\n';
+    text += `*SiG Remédios*\n`;
+    text += '_Cuidando de quem você ama._';
+
+    return text;
+};

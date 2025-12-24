@@ -7,7 +7,7 @@ import Card, { CardContent } from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Modal from '../components/ui/Modal';
-import { User, Settings, LogOut, Bell, LogIn, Database, Trash2, Mail, Phone, MapPin, Camera, Shield, ShieldCheck, Share2, Activity, Download, Users, Umbrella } from 'lucide-react';
+import { User, Settings, LogOut, Bell, LogIn, Database, Trash2, Mail, Phone, MapPin, Camera, Shield, ShieldCheck, Share2, Activity, Download, Users, Umbrella, ArrowRight, Info } from 'lucide-react';
 import { downloadJSON, prepareBackupData } from '../utils/dataExporter';
 
 const Profile = () => {
@@ -199,8 +199,6 @@ const Profile = () => {
         }
     };
 
-
-
     // Função que executa após confirmação no modal
     const handleConfirmEmailChange = async () => {
         if (!pendingEmailChange) return;
@@ -344,6 +342,61 @@ const Profile = () => {
                 <div className="text-center">
                     <h2 className="text-xl font-bold text-[#0f172a] dark:text-white">{user.user_metadata?.full_name || 'Usuário'}</h2>
                     <p className="text-[#64748b] dark:text-slate-400">{user.email}</p>
+                </div>
+            </div>
+
+            {/* Weekly Summary Settings Section */}
+            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden">
+                <div className="p-6 border-b border-slate-100 dark:border-slate-700 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/10 dark:to-purple-900/10">
+                    <div className="flex items-center gap-3 mb-2">
+                        <div className="bg-indigo-100 dark:bg-indigo-900/30 p-2 rounded-lg">
+                            <Share2 className="text-indigo-600 dark:text-indigo-400" size={24} />
+                        </div>
+                        <h2 className="text-xl font-bold text-indigo-900 dark:text-indigo-100">Resumo Semanal</h2>
+                    </div>
+                    <p className="text-indigo-700/80 dark:text-indigo-300/70 text-sm">
+                        Escolha o dia para receber o resumo de saúde da família na sua Home.
+                    </p>
+                </div>
+                <div className="p-6">
+                    <div className="flex flex-col gap-6">
+                        <div className="flex flex-col gap-4">
+                            <label htmlFor="summary-day-select" className="text-lg font-bold text-slate-800 dark:text-white block">
+                                Dia do Resumo Semanal
+                            </label>
+                            <div className="relative">
+                                <select
+                                    id="summary-day-select"
+                                    value={userPreferences?.summary_day || 'off'}
+                                    onChange={(e) => {
+                                        updateUserPreferences({ summary_day: e.target.value });
+                                        showToast('Dia do resumo atualizado!', 'success');
+                                    }}
+                                    className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-900/50 border-2 border-slate-200 dark:border-slate-700 rounded-2xl text-lg font-medium text-slate-900 dark:text-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all appearance-none cursor-pointer"
+                                    style={{
+                                        fontSize: accessibility?.largeText ? '1.5rem' : '1.125rem',
+                                        height: 'auto'
+                                    }}
+                                >
+                                    <option value="off">📴 Desativado</option>
+                                    <option value="0">Domingo</option>
+                                    <option value="1">Segunda-feira</option>
+                                    <option value="2">Terça-feira</option>
+                                    <option value="3">Quarta-feira</option>
+                                    <option value="4">Quinta-feira</option>
+                                    <option value="5">Sexta-feira</option>
+                                    <option value="6">Sábado</option>
+                                </select>
+                                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                                    <ArrowRight size={24} className="rotate-90" />
+                                </div>
+                            </div>
+                            <p className="text-sm text-slate-500 flex items-center gap-2">
+                                <Info size={16} className="text-indigo-500 shrink-0" />
+                                No dia escolhido, um card especial aparecerá na sua Home com as estatísticas da semana.
+                            </p>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -568,8 +621,6 @@ const Profile = () => {
                     </CardContent>
                 </Card>
 
-
-
                 {/* Account Sharing */}
                 <Card>
                     <CardContent className="p-0">
@@ -618,7 +669,7 @@ const Profile = () => {
                 </Button>
             </div>
 
-            {/* Edit Modal */}
+            {/* Edit Profile Modal */}
             <Modal
                 isOpen={isEditing}
                 onClose={() => setIsEditing(false)}
@@ -773,7 +824,6 @@ const Profile = () => {
                         </div>
                     </div>
 
-
                     {(editForm.email?.trim().toLowerCase() !== user?.email?.trim().toLowerCase()) && (
                         <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4">
                             <p className="text-sm text-amber-900 dark:text-amber-100 mb-3 font-medium">
@@ -897,6 +947,7 @@ const Profile = () => {
                     </div>
                 </div>
             </Modal>
+
             {/* Share Account Modal */}
             <Modal
                 isOpen={showShareModal}
@@ -966,7 +1017,7 @@ const Profile = () => {
                     </div>
                 </div>
             </Modal>
-        </div >
+        </div>
     );
 };
 

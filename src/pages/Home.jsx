@@ -24,6 +24,7 @@ import { OfferCard } from '../components/features/OfferCard';
 import { MedicationCardShimmer, HeroCardShimmer, StatsCardShimmer } from '../components/ui/Shimmer';
 import SimplifiedHome from '../components/features/SimplifiedHome';
 import ConfirmationModal from '../components/ui/ConfirmationModal';
+import WeeklySummaryCard from '../components/features/WeeklySummaryCard';
 
 
 const ITEMS_PER_PAGE = 6;
@@ -300,6 +301,9 @@ const Home = () => {
             <div className="mt-4 sm:mt-0">
                 <LocalOffersCarousel userIbge={user?.user_metadata?.ibge_code} />
             </div>
+
+            {/* Weekly Summary Card */}
+            <WeeklySummaryCard />
 
             {/* Motivation Card */}
             <MotivationCard />
