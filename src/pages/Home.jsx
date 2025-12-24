@@ -396,7 +396,10 @@ const Home = () => {
                         <div className="md:col-span-2">
                             <HeroCardShimmer />
                         </div>
-                        <StatsCardShimmer />
+                        <div className="flex flex-col gap-3">
+                            <StatsCardShimmer />
+                            <div className="bg-white dark:bg-slate-800 rounded-2xl h-32 animate-pulse"></div>
+                        </div>
                     </>
                 ) : (
                     <>
@@ -505,136 +508,138 @@ const Home = () => {
                             </CardContent>
                         </Card>
 
-                        <Card id="tour-summary-card" className="bg-white border-slate-200 shadow-sm relative overflow-hidden">
-                            <CardContent className="p-3 flex flex-col gap-2 relative z-10">
-                                <div className="flex items-center justify-between mb-1">
-                                    <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm flex items-center gap-2">
-                                        <Zap className="text-amber-500 fill-amber-500" size={16} />
-                                        Energia
-                                    </h3>
+                        <div className="flex flex-col gap-3">
+                            <Card id="tour-summary-card" className="bg-white border-slate-200 shadow-sm relative overflow-hidden flex-1">
+                                <CardContent className="p-3 flex flex-col gap-2 relative z-10">
+                                    <div className="flex items-center justify-between mb-1">
+                                        <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm flex items-center gap-2">
+                                            <Zap className="text-amber-500 fill-amber-500" size={16} />
+                                            Energia
+                                        </h3>
+                                        {(() => {
+                                            const total = todaysSchedule.length;
+                                            const taken = todaysSchedule.filter(i => i.isTaken).length;
+                                            const percentage = total > 0 ? Math.round((taken / total) * 100) : 100;
+
+                                            return (
+                                                <span className="text-lg font-black text-slate-900">{percentage}%</span>
+                                            );
+                                        })()}
+                                    </div>
+
                                     {(() => {
                                         const total = todaysSchedule.length;
                                         const taken = todaysSchedule.filter(i => i.isTaken).length;
+                                        // Fix: If total is 0, percentage is 100% (Day Complete/Rest)
                                         const percentage = total > 0 ? Math.round((taken / total) * 100) : 100;
+                                        const isComplete = percentage === 100;
 
                                         return (
-                                            <span className="text-lg font-black text-slate-900">{percentage}%</span>
+                                            <div className="flex flex-col gap-2 mt-2">
+                                                {/* Gamified Bar - Restored Animation */}
+                                                <div className="relative h-2 bg-slate-100 rounded-full overflow-hidden shadow-inner">
+                                                    <div
+                                                        className="absolute top-0 left-0 h-full bg-gradient-to-r from-emerald-400 to-emerald-600 rounded-full shadow-[0_0_10px_rgba(16,185,129,0.5)] transition-all duration-[3000ms] ease-out"
+                                                        style={{ width: `${animatedPercentage}%` }}
+                                                    />
+                                                </div>
+
+                                                {/* Restored Message Box with Compact Padding */}
+                                                <div className="bg-slate-50 rounded-lg p-2 border border-slate-100 flex items-center gap-2.5">
+                                                    <div className={`p-1.5 rounded-full flex-shrink-0 ${isComplete ? 'bg-amber-100 border border-amber-200' : 'bg-blue-100 text-blue-600'
+                                                        }`}>
+                                                        {isComplete ? <Star size={18} color="#d97706" fill="#fbbf24" className="animate-bounce drop-shadow-sm" /> : <Activity size={18} />}
+                                                    </div>
+                                                    <div>
+                                                        <p className="font-bold text-slate-700 text-xs mb-0.5">
+                                                            {isComplete ? (
+                                                                total === 0 ? "Dia Livre! Aproveite." : "Objetivo Concluído!"
+                                                            ) : "Continue assim!"}
+                                                        </p>
+                                                        <p className="text-[10px] text-slate-500 leading-tight">
+                                                            {isComplete
+                                                                ? (total === 0 ? "Sua saúde está em dia." : "Você completou tudo.")
+                                                                : `${percentage}% da meta diária.`}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         );
                                     })()}
-                                </div>
+                                </CardContent>
 
-                                {(() => {
-                                    const total = todaysSchedule.length;
-                                    const taken = todaysSchedule.filter(i => i.isTaken).length;
-                                    // Fix: If total is 0, percentage is 100% (Day Complete/Rest)
-                                    const percentage = total > 0 ? Math.round((taken / total) * 100) : 100;
-                                    const isComplete = percentage === 100;
+                                {/* Decorative Background Elements */}
+                                <div className="absolute -bottom-10 -right-10 w-32 h-32 bg-gradient-to-br from-indigo-50 to-blue-50 rounded-full blur-2xl opacity-50 pointer-events-none"></div>
+                            </Card>
 
-                                    return (
-                                        <div className="flex flex-col gap-2 mt-2">
-                                            {/* Gamified Bar - Restored Animation */}
-                                            <div className="relative h-2 bg-slate-100 rounded-full overflow-hidden shadow-inner">
-                                                <div
-                                                    className="absolute top-0 left-0 h-full bg-gradient-to-r from-emerald-400 to-emerald-600 rounded-full shadow-[0_0_10px_rgba(16,185,129,0.5)] transition-all duration-[3000ms] ease-out"
-                                                    style={{ width: `${animatedPercentage}%` }}
-                                                />
+                            {/* Card de Próxima Consulta */}
+                            <Card className="bg-white border-slate-200 shadow-sm relative overflow-hidden group flex-1">
+                                <CardContent className="p-3 flex flex-col gap-2 relative z-10">
+                                    <div className="flex items-center justify-between mb-1">
+                                        <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm flex items-center gap-2">
+                                            <Stethoscope className="text-emerald-500" size={16} />
+                                            Consultas
+                                        </h3>
+                                        <button onClick={() => navigate('/appointments')} className="text-slate-400 hover:text-emerald-500 transition-colors">
+                                            <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform" />
+                                        </button>
+                                    </div>
+
+                                    {nextAppointment ? (
+                                        <div className="flex flex-col gap-1.5">
+                                            <div className="text-lg font-black text-slate-900 leading-tight line-clamp-1">
+                                                {nextAppointment.doctorName}
                                             </div>
-
-                                            {/* Restored Message Box with Compact Padding */}
-                                            <div className="bg-slate-50 rounded-lg p-2 border border-slate-100 flex items-center gap-2.5">
-                                                <div className={`p-1.5 rounded-full flex-shrink-0 ${isComplete ? 'bg-amber-100 border border-amber-200' : 'bg-blue-100 text-blue-600'
-                                                    }`}>
-                                                    {isComplete ? <Star size={18} color="#d97706" fill="#fbbf24" className="animate-bounce drop-shadow-sm" /> : <Activity size={18} />}
-                                                </div>
-                                                <div>
-                                                    <p className="font-bold text-slate-700 text-xs mb-0.5">
-                                                        {isComplete ? (
-                                                            total === 0 ? "Dia Livre! Aproveite." : "Objetivo Concluído!"
-                                                        ) : "Continue assim!"}
-                                                    </p>
-                                                    <p className="text-[10px] text-slate-500 leading-tight">
-                                                        {isComplete
-                                                            ? (total === 0 ? "Sua saúde está em dia." : "Você completou tudo.")
-                                                            : `${percentage}% da meta diária.`}
-                                                    </p>
+                                            <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
+                                                <Clock size={12} className="text-emerald-500" />
+                                                {format(new Date(nextAppointment.appointmentDate), "dd/MM 'às' HH:mm", { locale: ptBR })}
+                                            </div>
+                                            <div className="flex items-center justify-between mt-1">
+                                                <div className="text-[10px] text-emerald-600 font-bold uppercase tracking-wider bg-emerald-50 px-2 py-0.5 rounded-md inline-block">
+                                                    {nextAppointment.specialty || 'Geral'}
                                                 </div>
                                             </div>
+
+                                            {nextAppointment.address && (
+                                                <div className="flex gap-2 mt-2">
+                                                    <a
+                                                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(nextAppointment.address + (nextAppointment.locationName ? ' ' + nextAppointment.locationName : ''))}`}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="flex-1 flex items-center justify-center gap-1.5 text-[10px] font-bold py-2 rounded-lg bg-slate-50 text-slate-600 border border-slate-100 hover:bg-slate-100 transition-colors"
+                                                        title="Google Maps"
+                                                    >
+                                                        <MapPinIcon size={12} />
+                                                        Maps
+                                                    </a>
+                                                    <a
+                                                        href={`https://waze.com/ul?q=${encodeURIComponent(nextAppointment.address)}&navigate=yes`}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="flex-1 flex items-center justify-center gap-1.5 text-[10px] font-bold py-2 rounded-lg bg-[#33ccff]/10 text-[#0582ad] border border-[#33ccff]/30 hover:bg-[#33ccff]/20 transition-colors"
+                                                        title="Waze"
+                                                    >
+                                                        <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor">
+                                                            <path d="M18.503 13.068a2.501 2.501 0 0 1-5.003 0c0-.14.01-.277.032-.41l-2.028-.671a2.501 2.501 0 0 1-5.006 0 2.5 2.5 0 0 1 1.708-2.37l1.411-3.692A7.135 7.135 0 0 1 12 5.068c3.94 0 7.135 3.194 7.135 7.135 0 .23-.01.458-.032.682l1.638.541a.5.5 0 0 1 .163.844l-2.401 1.831c.022-.249.034-.5.034-.755a8.136 8.136 0 0 0-8.135-8.135 8.136 8.136 0 0 0-8.136 8.135c0 1.25.28 2.433.784 3.492l-1.018 2.665a1 1 0 0 0 1.266 1.266l2.665-1.018a8.12 8.12 0 0 0 4.439 1.295c4.493 0 8.135-3.642 8.135-8.135 0-.173-.005-.345-.015-.516l2.13.705a1.5 1.5 0 0 0 .49-2.532l-3.361-2.563a3.502 3.502 0 0 0-2.39-4.862l-1.41-3.693a1 1 0 0 0-1.88 0l-1.411 3.693a3.502 3.502 0 0 0-2.39 4.862l-3.36 2.563a1.5 1.5 0 0 0 .489 2.532l2.13-.705c-.01.171-.015.343-.015.516 0 4.493 3.642 8.135 8.135 8.135.804 0 1.583-.116 2.316-.334l.684.26a1 1 0 0 0 1.266-1.266l-.26-.684c.677-.732 1.21-1.579 1.576-2.51l3.053 1.012a.5.5 0 0 0 .61-.643l-1.442-3.771a3.501 3.501 0 0 0 2.215-3.32z" />
+                                                        </svg>
+                                                        Waze
+                                                    </a>
+                                                </div>
+                                            )}
                                         </div>
-                                    );
-                                })()}
-                            </CardContent>
-
-                            {/* Decorative Background Elements */}
-                            <div className="absolute -bottom-10 -right-10 w-32 h-32 bg-gradient-to-br from-indigo-50 to-blue-50 rounded-full blur-2xl opacity-50 pointer-events-none"></div>
-                        </Card>
+                                    ) : (
+                                        <div className="flex flex-col items-center justify-center py-2 h-full">
+                                            <p className="text-[10px] text-slate-400 text-center italic">
+                                                Nenhuma consulta agendada
+                                            </p>
+                                        </div>
+                                    )}
+                                </CardContent>
+                                <div className="absolute -bottom-6 -right-6 w-20 h-20 bg-emerald-50 rounded-full blur-xl opacity-50 group-hover:scale-150 transition-transform font-bold"></div>
+                            </Card>
+                        </div>
                     </>
                 )}
-
-                {/* Card de Próxima Consulta */}
-                <Card className="bg-white border-slate-200 shadow-sm relative overflow-hidden group">
-                    <CardContent className="p-3 flex flex-col gap-2 relative z-10">
-                        <div className="flex items-center justify-between mb-1">
-                            <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm flex items-center gap-2">
-                                <Stethoscope className="text-emerald-500" size={16} />
-                                Consultas
-                            </h3>
-                            <button onClick={() => navigate('/appointments')} className="text-slate-400 hover:text-emerald-500 transition-colors">
-                                <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform" />
-                            </button>
-                        </div>
-
-                        {nextAppointment ? (
-                            <div className="flex flex-col gap-1.5">
-                                <div className="text-lg font-black text-slate-900 leading-tight line-clamp-1">
-                                    {nextAppointment.doctorName}
-                                </div>
-                                <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
-                                    <Clock size={12} className="text-emerald-500" />
-                                    {format(new Date(nextAppointment.appointmentDate), "dd/MM 'às' HH:mm", { locale: ptBR })}
-                                </div>
-                                <div className="flex items-center justify-between mt-1">
-                                    <div className="text-[10px] text-emerald-600 font-bold uppercase tracking-wider bg-emerald-50 px-2 py-0.5 rounded-md inline-block">
-                                        {nextAppointment.specialty || 'Geral'}
-                                    </div>
-                                </div>
-
-                                {nextAppointment.address && (
-                                    <div className="flex gap-2 mt-2">
-                                        <a
-                                            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(nextAppointment.address + (nextAppointment.locationName ? ' ' + nextAppointment.locationName : ''))}`}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="flex-1 flex items-center justify-center gap-1.5 text-[10px] font-bold py-2 rounded-lg bg-slate-50 text-slate-600 border border-slate-100 hover:bg-slate-100 transition-colors"
-                                            title="Google Maps"
-                                        >
-                                            <MapPinIcon size={12} />
-                                            Maps
-                                        </a>
-                                        <a
-                                            href={`https://waze.com/ul?q=${encodeURIComponent(nextAppointment.address)}&navigate=yes`}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="flex-1 flex items-center justify-center gap-1.5 text-[10px] font-bold py-2 rounded-lg bg-[#33ccff]/10 text-[#0582ad] border border-[#33ccff]/30 hover:bg-[#33ccff]/20 transition-colors"
-                                            title="Waze"
-                                        >
-                                            <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor">
-                                                <path d="M18.503 13.068a2.501 2.501 0 0 1-5.003 0c0-.14.01-.277.032-.41l-2.028-.671a2.501 2.501 0 0 1-5.006 0 2.5 2.5 0 0 1 1.708-2.37l1.411-3.692A7.135 7.135 0 0 1 12 5.068c3.94 0 7.135 3.194 7.135 7.135 0 .23-.01.458-.032.682l1.638.541a.5.5 0 0 1 .163.844l-2.401 1.831c.022-.249.034-.5.034-.755a8.136 8.136 0 0 0-8.135-8.135 8.136 8.136 0 0 0-8.136 8.135c0 1.25.28 2.433.784 3.492l-1.018 2.665a1 1 0 0 0 1.266 1.266l2.665-1.018a8.12 8.12 0 0 0 4.439 1.295c4.493 0 8.135-3.642 8.135-8.135 0-.173-.005-.345-.015-.516l2.13.705a1.5 1.5 0 0 0 .49-2.532l-3.361-2.563a3.502 3.502 0 0 0-2.39-4.862l-1.41-3.693a1 1 0 0 0-1.88 0l-1.411 3.693a3.502 3.502 0 0 0-2.39 4.862l-3.36 2.563a1.5 1.5 0 0 0 .489 2.532l2.13-.705c-.01.171-.015.343-.015.516 0 4.493 3.642 8.135 8.135 8.135.804 0 1.583-.116 2.316-.334l.684.26a1 1 0 0 0 1.266-1.266l-.26-.684c.677-.732 1.21-1.579 1.576-2.51l3.053 1.012a.5.5 0 0 0 .61-.643l-1.442-3.771a3.501 3.501 0 0 0 2.215-3.32z" />
-                                            </svg>
-                                            Waze
-                                        </a>
-                                    </div>
-                                )}
-                            </div>
-                        ) : (
-                            <div className="flex flex-col items-center justify-center py-2">
-                                <p className="text-[10px] text-slate-400 text-center italic">
-                                    Nenhuma consulta agendada
-                                </p>
-                            </div>
-                        )}
-                    </CardContent>
-                    <div className="absolute -bottom-6 -right-6 w-20 h-20 bg-emerald-50 rounded-full blur-xl opacity-50 group-hover:scale-150 transition-transform"></div>
-                </Card>
             </div>
 
             {/* Sponsor Display (Banner) */}
@@ -936,7 +941,7 @@ const Home = () => {
                 cancelText="Cancelar"
                 variant="primary"
             />
-        </div >
+        </div>
     );
 };
 
