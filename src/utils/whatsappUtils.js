@@ -122,7 +122,8 @@ export const generateWeeklySummaryMessage = (allStats) => {
 
     text += '\n============================\n';
     text += `*SiG Remédios*\n`;
-    text += '_Cuidando de quem você ama._';
+    text += '_Cuidando de quem você ama._\n\n';
+    text += 'Acesse o app: https://sigremedios.vercel.app';
 
     return text;
 };
