@@ -1013,7 +1013,7 @@ const HealthDiary = () => {
                         <Card>
                             <CardContent className="h-96 pt-6">
                                 {filteredLogs.length > 0 ? (
-                                    <ResponsiveContainer width="100%" height="100%">
+                                    <ResponsiveContainer width="100%" height="100%" minHeight={300} debounce={50}>
                                         <LineChart data={getChartData()}>
                                             <CartesianGrid strokeDasharray="3 3" />
                                             <XAxis dataKey="date" fontSize={12} tickMargin={10} />

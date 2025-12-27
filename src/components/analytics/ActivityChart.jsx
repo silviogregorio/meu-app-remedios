@@ -39,7 +39,7 @@ const ActivityChart = ({ data }) => {
 
     return (
         <div className="w-full h-full min-h-[300px] relative overflow-hidden">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" minHeight={200} debounce={50}>
                 <BarChart
                     data={data}
                     margin={{
