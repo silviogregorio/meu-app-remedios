@@ -16,20 +16,29 @@ const Input = ({
     id,
     name,
     autoComplete,
+    error, // Support error messages
+    helperText, // Support helper text
+    'aria-describedby': ariaDescribedBy,
     ...rest // Capture other props
 }) => {
     const [showPassword, setShowPassword] = useState(false);
     const isPasswordField = type === 'password';
     const inputType = isPasswordField && showPassword ? 'text' : type;
 
-    // Ensure we have an ID for accessibility if label is present
+    // Generate IDs for accessibility
     const inputId = id || name || undefined;
+    const errorId = error ? `${inputId}-error` : undefined;
+    const helperId = helperText ? `${inputId}-helper` : undefined;
+
+    // Combine describedby IDs
+    const describedBy = [ariaDescribedBy, errorId, helperId].filter(Boolean).join(' ') || undefined;
 
     return (
         <div className={clsx("flex flex-col gap-1.5", containerClassName)}>
             {label && (
                 <label htmlFor={inputId} className="text-sm font-semibold text-slate-700 dark:text-slate-300 ml-1">
-                    {label} {required && <span className="text-danger">*</span>}
+                    {label} {required && <span className="text-danger" aria-hidden="true">*</span>}
+                    {required && <span className="sr-only">(obrigatório)</span>}
                 </label>
             )}
             <div className="relative">
@@ -38,9 +47,12 @@ const Input = ({
                     name={name}
                     type={inputType}
                     className={clsx(
-                        "w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500",
-                        "focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-200",
+                        "w-full px-4 py-3 rounded-xl border bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 min-h-[48px]",
+                        "focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/30 transition-all duration-200",
                         "disabled:bg-slate-50 dark:disabled:bg-slate-800 disabled:text-slate-500",
+                        error
+                            ? "border-danger focus:border-danger focus-visible:ring-danger/30"
+                            : "border-slate-200 dark:border-slate-700 focus:border-primary",
                         isPasswordField && "pr-12", // Extra padding for icon
                         className
                     )}
@@ -51,24 +63,40 @@ const Input = ({
                     required={required}
                     disabled={disabled}
                     autoComplete={autoComplete}
+                    aria-invalid={error ? 'true' : undefined}
+                    aria-describedby={describedBy}
+                    aria-required={required || undefined}
                     {...rest}
                 />
                 {isPasswordField && (
                     <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors p-1 min-h-[44px] min-w-[44px] flex items-center justify-center"
                         tabIndex={-1}
                         aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                        aria-pressed={showPassword}
                     >
                         {showPassword ? (
-                            <EyeOff size={20} />
+                            <EyeOff size={20} aria-hidden="true" />
                         ) : (
-                            <Eye size={20} />
+                            <Eye size={20} aria-hidden="true" />
                         )}
                     </button>
                 )}
             </div>
+            {/* Error message */}
+            {error && (
+                <p id={errorId} className="text-sm text-danger ml-1 flex items-center gap-1" role="alert">
+                    <span aria-hidden="true">⚠️</span> {error}
+                </p>
+            )}
+            {/* Helper text */}
+            {helperText && !error && (
+                <p id={helperId} className="text-sm text-slate-500 ml-1">
+                    {helperText}
+                </p>
+            )}
         </div>
     );
 };

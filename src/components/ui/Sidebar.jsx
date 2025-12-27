@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { NavLink } from 'react-router-dom';
 import { Home, Users, Pill, FileText, User, X, LogOut, ClipboardList, Share2, Briefcase, Pin, PinOff, Heart, BookOpen, LifeBuoy, MessageSquare, Settings, Calendar } from 'lucide-react';
 import clsx from 'clsx';
@@ -7,6 +7,29 @@ import { supabase } from '../../lib/supabase';
 
 const Sidebar = ({ isOpen, onClose, isPinned, onTogglePin }) => {
     const { logout, user } = useApp();
+    const sidebarRef = useRef(null);
+    const closeButtonRef = useRef(null);
+
+    // Focus trap when sidebar is open on mobile
+    useEffect(() => {
+        if (isOpen && closeButtonRef.current) {
+            closeButtonRef.current.focus();
+        }
+    }, [isOpen]);
+
+    // Handle Escape key to close sidebar
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (e.key === 'Escape' && isOpen) {
+                onClose();
+            }
+        };
+
+        if (isOpen) {
+            document.addEventListener('keydown', handleKeyDown);
+            return () => document.removeEventListener('keydown', handleKeyDown);
+        }
+    }, [isOpen, onClose]);
 
     // Grouped Navigation
     const navGroups = [
@@ -57,14 +80,19 @@ const Sidebar = ({ isOpen, onClose, isPinned, onTogglePin }) => {
                     isPinned && "md:hidden" // Hide overlay on desktop if pinned
                 )}
                 onClick={onClose}
+                aria-hidden="true"
             />
 
             {/* Sidebar */}
             <aside
+                ref={sidebarRef}
                 className={clsx(
                     "fixed top-0 left-0 h-full w-64 bg-slate-50 dark:bg-slate-900 shadow-2xl z-50 transform transition-transform duration-300 ease-in-out border-r border-transparent dark:border-slate-800 flex flex-col",
                     isOpen ? "translate-x-0" : (isPinned ? "md:translate-x-0 -translate-x-full" : "-translate-x-full")
                 )}
+                role="navigation"
+                aria-label="Menu principal"
+                aria-hidden={!isOpen && !isPinned}
             >
                 {/* Header - Static */}
                 <div className="flex items-center justify-between p-4 bg-white dark:bg-slate-900 border-b border-gray-100 dark:border-slate-800 shrink-0">
@@ -74,53 +102,62 @@ const Sidebar = ({ isOpen, onClose, isPinned, onTogglePin }) => {
                         <button
                             onClick={onTogglePin}
                             className={clsx(
-                                "hidden md:flex p-2 rounded-full transition-colors",
+                                "hidden md:flex p-2 rounded-full transition-colors min-h-[44px] min-w-[44px] items-center justify-center",
                                 isPinned
                                     ? "bg-teal-50 text-teal-600 dark:bg-teal-900/20 dark:text-teal-400"
                                     : "text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-800"
                             )}
                             title={isPinned ? "Desafixar Menu" : "Fixar Menu"}
+                            aria-label={isPinned ? "Desafixar Menu" : "Fixar Menu"}
+                            aria-pressed={isPinned}
                         >
-                            {isPinned ? <PinOff size={18} /> : <Pin size={18} />}
+                            {isPinned ? <PinOff size={18} aria-hidden="true" /> : <Pin size={18} aria-hidden="true" />}
                         </button>
 
-                        <button onClick={onClose} className="p-2 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-full transition-colors md:hidden">
-                            <X size={20} className="text-gray-500 dark:text-slate-400" />
+                        <button
+                            ref={closeButtonRef}
+                            onClick={onClose}
+                            className="p-2 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-full transition-colors md:hidden min-h-[44px] min-w-[44px] flex items-center justify-center focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/50"
+                            aria-label="Fechar menu"
+                        >
+                            <X size={20} className="text-gray-500 dark:text-slate-400" aria-hidden="true" />
                         </button>
                     </div>
                 </div>
 
                 {/* Nav - Scrollable */}
                 <div className="flex-1 overflow-y-auto min-h-0">
-                    <nav className="flex flex-col p-4">
+                    <nav className="flex flex-col p-4" aria-label="Navegação principal">
                         {navGroups.map((group, groupIndex) => (
-                            <div key={group.title} className="mb-6">
-                                <h3 className="px-4 text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
+                            <div key={group.title} className="mb-6" role="group" aria-labelledby={`nav-group-${groupIndex}`}>
+                                <h3 id={`nav-group-${groupIndex}`} className="px-4 text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
                                     {group.title}
                                 </h3>
-                                <div className="space-y-1">
+                                <ul className="space-y-1" role="list">
                                     {group.items.map(({ path, icon: Icon, label }) => (
-                                        <NavLink
-                                            key={path}
-                                            to={path}
-                                            onClick={onClose}
-                                            id={`tour-nav-${path.replace('/', '').replace(/\//g, '-')}`}
-                                            className={({ isActive }) => clsx(
-                                                "flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-200",
-                                                isActive
-                                                    ? "bg-white dark:bg-slate-800 text-[#10b981] font-bold shadow-sm"
-                                                    : "text-slate-600 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-200"
-                                            )}
-                                        >
-                                            {({ isActive }) => (
-                                                <>
-                                                    <Icon size={20} className={clsx(isActive ? "text-[#10b981]" : "text-slate-400")} />
-                                                    <span>{label}</span>
-                                                </>
-                                            )}
-                                        </NavLink>
+                                        <li key={path}>
+                                            <NavLink
+                                                to={path}
+                                                onClick={onClose}
+                                                id={`tour-nav-${path.replace('/', '').replace(/\//g, '-')}`}
+                                                className={({ isActive }) => clsx(
+                                                    "flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-200 min-h-[48px] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/50",
+                                                    isActive
+                                                        ? "bg-white dark:bg-slate-800 text-[#10b981] font-bold shadow-sm"
+                                                        : "text-slate-600 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-200"
+                                                )}
+                                                aria-current={({ isActive }) => isActive ? 'page' : undefined}
+                                            >
+                                                {({ isActive }) => (
+                                                    <>
+                                                        <Icon size={20} className={clsx(isActive ? "text-[#10b981]" : "text-slate-400")} aria-hidden="true" />
+                                                        <span>{label}</span>
+                                                    </>
+                                                )}
+                                            </NavLink>
+                                        </li>
                                     ))}
-                                </div>
+                                </ul>
                             </div>
                         ))}
                     </nav>
@@ -135,9 +172,10 @@ const Sidebar = ({ isOpen, onClose, isPinned, onTogglePin }) => {
                                 onClose();
                                 window.location.href = '/';
                             }}
-                            className="flex items-center gap-3 px-4 py-3 w-full text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-colors"
+                            className="flex items-center gap-3 px-4 py-3 w-full text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-colors min-h-[48px] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-red-500/50"
+                            aria-label="Sair da conta"
                         >
-                            <LogOut size={20} />
+                            <LogOut size={20} aria-hidden="true" />
                             <span>Sair</span>
                         </button>
                     </div>

@@ -683,15 +683,22 @@ export const generatePDFStockReport = async (stockData, filters, patients) => {
         'correction': 'Correção'
     };
 
-    const tableData = stockData.map(item => [
-        format(new Date(item.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR }),
-        item.medications?.name || '-',
-        item.medications?.dosage || '-',
-        (item.quantity_change > 0 ? '+' : '') + item.quantity_change,
-        reasonMap[item.reason] || item.reason,
-        item.patients?.name || '-',
-        item.profiles?.full_name || 'Sistema'
-    ]);
+    const tableData = stockData.map(item => {
+        // Combinar dosagem com unidade de medida
+        const dosageWithUnit = item.medications?.dosage
+            ? `${item.medications.dosage} ${item.medications.type || 'un.'}`.trim()
+            : '-';
+
+        return [
+            format(new Date(item.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR }),
+            item.medications?.name || '-',
+            dosageWithUnit,
+            (item.quantity_change > 0 ? '+' : '') + item.quantity_change,
+            reasonMap[item.reason] || item.reason,
+            item.patients?.name || '-',
+            item.profiles?.full_name || 'Sistema'
+        ];
+    });
 
     autoTable(doc, {
         startY: yPos,

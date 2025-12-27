@@ -9,6 +9,7 @@ import ConfirmationModal from '../components/ui/ConfirmationModal';
 import { Trash2, Edit2, Plus, Calendar as CalendarIcon, FileDown, Share2, Clock, CheckCircle2, XCircle, AlertCircle, Circle, Printer, Mail, MessageCircle, FileText, Activity, Heart, Weight, Thermometer, Edit, Pill, SmilePlus, Frown, X, Info, RotateCcw, Brain, Zap, Coffee, HeartPulse } from 'lucide-react';
 import { formatDate, formatDateTime, formatTime } from '../utils/dateFormatter';
 import { generatePDFHealthDiary } from '../utils/pdfGenerator';
+import { generateHealthReportText } from '../utils/reportGenerators';
 import { format } from 'date-fns';
 import { supabase } from '../lib/supabase';
 import CalendarView from '../components/features/CalendarView';
@@ -211,95 +212,8 @@ const HealthDiary = () => {
     const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
     const paginatedLogs = filteredLogs.slice(startIndex, startIndex + ITEMS_PER_PAGE);
 
-    const generateHealthReportText = () => {
-        console.log('Generating WhatsApp message. filteredLogs:', filteredLogs.length, 'logs');
-        let text = '*DIÁRIO DE SAÚDE*\n';
-        text += '========================\n';
-        if (selectedPatientId !== 'all') {
-            const p = patients.find(pat => pat.id === selectedPatientId);
-            text += `*Paciente:* *_${p?.name || 'N/A'}_*\n`;
-        }
-
-        text += `*Gerado em:* ${formatDateTime(new Date())}\n`;
-        text += `*Total de registros:* ${filteredLogs.length}\n`;
-        text += '========================\n';
-
-
-        // Agrupar logs por paciente
-        const logsByPatient = {};
-        filteredLogs.forEach(log => {
-            const patientId = log.patient_id;
-            if (!logsByPatient[patientId]) {
-                logsByPatient[patientId] = [];
-            }
-            logsByPatient[patientId].push(log);
-        });
-
-        // Ordenar cada grupo por data crescente
-        Object.keys(logsByPatient).forEach(patientId => {
-            logsByPatient[patientId].sort((a, b) => new Date(a.measured_at) - new Date(b.measured_at));
-        });
-
-        // Verificar se há registros
-        const totalLogs = Object.values(logsByPatient).reduce((sum, logs) => sum + logs.length, 0);
-        if (totalLogs === 0) {
-            text += '*Nenhum registro encontrado*\n';
-            text += 'Adicione sinais vitais para gerar o relatório.\n\n';
-        } else {
-            // Iterar por cada paciente
-            Object.entries(logsByPatient).forEach(([patientId, logs], patientIndex) => {
-                const patient = patients.find(p => p.id === patientId);
-                const patientName = patient?.name || 'Paciente Desconhecido';
-
-                // Cabeçalho do paciente (apenas se houver múltiplos pacientes)
-                if (Object.keys(logsByPatient).length > 1) {
-                    if (patientIndex > 0) text += '\n';
-                    text += `-- - * _${patientName} _ * ---\n`;
-                }
-
-                // Registros do paciente (limitado a 30 total)
-                const logsToShow = logs.slice(0, 30);
-                logsToShow.forEach((log) => {
-                    const info = getCategoryInfo(log.category);
-
-                    // Tag baseada na categoria
-                    let tag = '';
-                    if (log.category === 'pressure') tag = '[PA]';
-                    else if (log.category === 'glucose') tag = '[GLI]';
-                    else if (log.category === 'weight') tag = '[PESO]';
-                    else if (log.category === 'temperature') tag = '[TEMP]';
-                    else if (log.category === 'heart_rate') tag = '[BPM]';
-                    else tag = '[REG]';
-
-                    text += `${tag} * ${info.label}*\n`;
-                    text += `Data: ${formatDateTime(log.measured_at)} \n`;
-
-                    let val = `${log.value} `;
-                    if (log.value_secondary) val += ` / ${log.value_secondary} `;
-                    val += ` ${info.unit} `;
-
-                    text += `Valor: * ${val}*\n`;
-
-                    if (log.notes) {
-                        text += `Obs: ${log.notes} \n`;
-                    }
-                });
-
-                if (logs.length > 30) {
-                    text += `_... e mais ${logs.length - 30} registro(s) de ${patientName} _\n`;
-                }
-            });
-        }
-
-
-
-        text += '========================\n';
-        text += '*SiG Remédios*\n';
-        text += 'Gerenciamento de Saúde Familiar\n\n';
-        text += 'https://sigremedios.vercel.app';
-
-        return text;
-    };
+    // generateHealthReportText foi movido para utils/reportGenerators.js
+    // Uso: generateHealthReportText(filteredLogs, patients, selectedPatientId)
 
     const handleSendEmail = async () => {
         if (!emailData.to) {
@@ -387,7 +301,7 @@ const HealthDiary = () => {
     };
 
     const handleWhatsApp = () => {
-        const text = encodeURIComponent(generateHealthReportText());
+        const text = generateHealthReportText(filteredLogs, patients, selectedPatientId);
         window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
     };
 
@@ -515,124 +429,7 @@ const HealthDiary = () => {
         }
     };
 
-    const handlePrint_Legacy = async () => {
-        try {
-            // Determine filter date range based on View (Day or All)
-            let logsToPrint = filteredLogs;
-            let medsToPrintSource = consumptionLog;
-
-            if (viewDate) {
-                // Filter HEALTH LOGS by viewDate (Local Time match)
-                logsToPrint = filteredLogs.filter(log => {
-                    const localDate = format(new Date(log.measured_at), 'yyyy-MM-dd');
-                    return localDate === viewDate;
-                });
-            }
-
-            // 2. Prepare Medication Schedule (Taken AND Pending/Missed)
-            let dailyMedicationSchedule = [];
-
-            if (viewDate) {
-                // If specific day selected, generate FULL schedule (prescriptions active today)
-                const targetDate = viewDate; // yyyy-mm-dd
-
-                // Get active prescriptions for this date
-                const activePrescriptions = prescriptions.filter(p => {
-                    // Patient Filter
-                    if (selectedPatientId !== 'all' && p.patientId !== selectedPatientId) return false;
-
-                    // Date Range Filter (Ensure clean comparisons)
-                    if (p.startDate && p.startDate.slice(0, 10) > targetDate) return false;
-                    if (p.endDate && p.endDate.slice(0, 10) < targetDate) return false;
-
-                    // Continuous Use logic (if applicable, usually doesn't have endDate or endDate is far)
-                    // Assuming basic check works.
-                    return true;
-                });
-
-                // Generate slots for each prescription
-                activePrescriptions.forEach(pres => {
-                    const med = medications.find(m => m.id === pres.medicationId);
-
-                    if (pres.times && Array.isArray(pres.times)) {
-                        pres.times.forEach(time => {
-                            // Find matching log
-                            const log = consumptionLog.find(l =>
-                                l.prescriptionId === pres.id &&
-                                l.date === targetDate &&
-                                l.scheduledTime === time
-                            );
-
-                            // Calculate Status
-                            let status = 'Pendente';
-                            let takenByName = null;
-
-                            if (log) {
-                                status = 'Tomado'; // taken
-                                takenByName = log.takenByName; // or profile join
-                            } else {
-                                // Logic for Missed/Late
-                                const now = new Date();
-                                const todayStr = format(now, 'yyyy-MM-dd');
-
-                                if (targetDate < todayStr) {
-                                    status = 'Não Tomado';
-                                } else if (targetDate === todayStr) {
-                                    const [h, m] = time.split(':').map(Number);
-                                    const schedDate = new Date();
-                                    schedDate.setHours(h, m, 0, 0);
-                                    const diffMins = (now - schedDate) / (1000 * 60);
-
-                                    if (diffMins > 30) status = 'Atrasado';
-                                }
-                            }
-
-                            dailyMedicationSchedule.push({
-                                date: targetDate,
-                                start_date: targetDate, // For sorting comp in pdfGen
-                                scheduledTime: time,
-                                medicationName: med?.name || 'Medicamento',
-                                patientId: pres.patientId || pres.patient_id,
-                                status: status,
-                                takenByName: takenByName
-                            });
-                        });
-                    }
-                });
-
-            } else {
-                // If NO viewDate (Print All History View? Or just unsupported?)
-                // The user usually prints what they see. If they see "Overview", maybe just logs?
-                // But user complained about "Day 14". 
-                // Let's keep the "Only Logs" fallback for 'all time' or try to iterate all days? (Too heavy).
-                // Fallback to existing logic for "All Time": just what was taken.
-                dailyMedicationSchedule = consumptionLog
-                    .filter(log => {
-                        const pres = prescriptions.find(p => p.id === log.prescriptionId);
-                        if (!pres) return false;
-                        if (selectedPatientId !== 'all' && pres.patientId !== selectedPatientId) return false;
-                        return true;
-                    })
-                    .map(log => {
-                        const pres = prescriptions.find(p => p.id === log.prescriptionId);
-                        const med = pres ? medications.find(m => m.id === pres.medicationId) : null;
-                        return {
-                            ...log,
-                            status: 'Tomado', // If valid log exists
-                            patientId: pres?.patientId,
-                            medicationName: med?.name || 'Medicamento Desconhecido'
-                        };
-                    });
-            }
-
-            const doc = await generatePDFHealthDiary(logsToPrint, { patientId: selectedPatientId, date: viewDate }, patients, dailyMedicationSchedule);
-            doc.autoPrint();
-            window.open(doc.output('bloburl'));
-        } catch (error) {
-            console.error(error);
-            showToast('Erro ao imprimir', 'error');
-        }
-    };
+    // handlePrint_Legacy foi removido - código legado não utilizado
 
     return (
         <div className="flex flex-col gap-8 pb-24 animate-in fade-in duration-500 max-w-6xl mx-auto w-full px-4 md:px-6">

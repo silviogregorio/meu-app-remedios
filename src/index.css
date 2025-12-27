@@ -232,56 +232,186 @@ textarea {
   --font-scale: 1.25 !important;
 }
 
-/* 2. High Contrast Mode */
+/* 2. High Contrast Mode - Improved for readability */
 .senior-contrast {
   /* Override Tailwind Colors with High Contrast Palette */
-  --color-primary: #000000 !important;
+  --color-primary: #1a1a1a !important;
   --color-primary-dark: #000000 !important;
-  --color-primary-light: #ffff00 !important;
-  /* Yellow highlight */
+  --color-primary-light: #e5e5e5 !important;
 
   --color-background: #ffffff !important;
   --color-surface: #ffffff !important;
 
   --color-text: #000000 !important;
-  --color-text-muted: #1a1a1a !important;
+  --color-text-muted: #333333 !important;
 
   /* Force dark borders for visibility */
   --border-color: #000000 !important;
 }
 
-/* Force elements in high contrast mode */
-.senior-contrast * {
-  border-color: #000000 !important;
-}
-
+/* Inputs and form elements */
 .senior-contrast input,
-.senior-contrast button,
-.senior-contrast .card {
+.senior-contrast select,
+.senior-contrast textarea {
   border: 2px solid #000000 !important;
-  background-color: #fff !important;
-  color: #000 !important;
+  background-color: #ffffff !important;
+  color: #000000 !important;
   box-shadow: none !important;
 }
 
-.senior-contrast .bg-primary,
-.senior-contrast .bg-blue-600,
-.senior-contrast .bg-indigo-600,
-.senior-contrast button.bg-primary {
-  background-color: #000000 !important;
-  color: #ffff00 !important;
-  /* Black bg, Yellow text */
+/* Buttons base - add border only */
+.senior-contrast button {
+  border: 2px solid #000000 !important;
+  box-shadow: none !important;
 }
 
-.senior-contrast .text-white {
-  color: #ffff00 !important;
-  font-weight: 900 !important;
+/* ANY button with colored background = BLACK bg + WHITE text */
+.senior-contrast button[class*="bg-primary"],
+.senior-contrast button[class*="bg-teal"],
+.senior-contrast button[class*="bg-emerald"],
+.senior-contrast button[class*="bg-green"],
+.senior-contrast button[class*="bg-blue"],
+.senior-contrast button[class*="bg-indigo"],
+.senior-contrast button[class*="bg-violet"],
+.senior-contrast button[class*="bg-purple"],
+.senior-contrast button[class*="bg-pink"],
+.senior-contrast button[class*="bg-cyan"],
+.senior-contrast a[class*="bg-primary"],
+.senior-contrast a[class*="bg-teal"],
+.senior-contrast a[class*="bg-emerald"],
+.senior-contrast a[class*="bg-green"] {
+  background-color: #1a1a1a !important;
+  color: #ffffff !important;
 }
 
-.senior-contrast svg {
-  stroke: #000000 !important;
+/* FORCE white text on colored buttons - including children */
+.senior-contrast button[class*="bg-primary"] *,
+.senior-contrast button[class*="bg-teal"] *,
+.senior-contrast button[class*="bg-emerald"] *,
+.senior-contrast button[class*="bg-green"] *,
+.senior-contrast button[class*="bg-blue"] *,
+.senior-contrast button[class*="bg-indigo"] *,
+.senior-contrast a[class*="bg-primary"] *,
+.senior-contrast a[class*="bg-teal"] *,
+.senior-contrast a[class*="bg-emerald"] *,
+.senior-contrast a[class*="bg-green"] * {
+  color: #ffffff !important;
+}
+
+/* White/Ghost/Secondary buttons = WHITE bg + BLACK text */
+.senior-contrast button[class*="bg-white"],
+.senior-contrast button[class*="bg-slate-50"],
+.senior-contrast button[class*="bg-slate-100"],
+.senior-contrast button[class*="bg-gray-50"],
+.senior-contrast button[class*="bg-gray-100"],
+.senior-contrast button[class*="ghost"],
+.senior-contrast button[class*="secondary"],
+.senior-contrast button[class*="outline"],
+.senior-contrast button:not([class*="bg-"]) {
+  background-color: #ffffff !important;
   color: #000000 !important;
 }
+
+/* White buttons - force black text on children too */
+.senior-contrast button[class*="bg-white"] *,
+.senior-contrast button[class*="ghost"] *,
+.senior-contrast button[class*="outline"] *,
+.senior-contrast button:not([class*="bg-"]) * {
+  color: #000000 !important;
+}
+
+/* Danger buttons */
+.senior-contrast button[class*="danger"],
+.senior-contrast button[class*="bg-red"],
+.senior-contrast .bg-red-500,
+.senior-contrast .bg-red-600 {
+  background-color: #8b0000 !important;
+  color: #ffffff !important;
+}
+
+/* Text colors - ensure all text is readable */
+.senior-contrast .text-white {
+  color: #ffffff !important;
+}
+
+.senior-contrast [class*="text-slate"],
+.senior-contrast [class*="text-gray"],
+.senior-contrast [class*="text-teal"],
+.senior-contrast [class*="text-blue"],
+.senior-contrast p,
+.senior-contrast span,
+.senior-contrast h1,
+.senior-contrast h2,
+.senior-contrast h3,
+.senior-contrast h4 {
+  color: #000000 !important;
+}
+
+/* TEXT ON DARK BACKGROUNDS = WHITE */
+.senior-contrast [class*="bg-primary"] p,
+.senior-contrast [class*="bg-primary"] span,
+.senior-contrast [class*="bg-primary"] h1,
+.senior-contrast [class*="bg-primary"] h2,
+.senior-contrast [class*="bg-primary"] h3,
+.senior-contrast [class*="bg-teal"] p,
+.senior-contrast [class*="bg-teal"] span,
+.senior-contrast [class*="bg-blue"] p,
+.senior-contrast [class*="bg-blue"] span,
+.senior-contrast [class*="bg-indigo"] p,
+.senior-contrast [class*="bg-indigo"] span,
+.senior-contrast [class*="bg-emerald"] p,
+.senior-contrast [class*="bg-emerald"] span,
+.senior-contrast [class*="bg-green"] p,
+.senior-contrast [class*="bg-green"] span,
+.senior-contrast button p,
+.senior-contrast button span {
+  color: #ffffff !important;
+}
+
+/* ONLY top-level cards get borders - prevent nested border issues */
+.senior-contrast>.card,
+.senior-contrast main>div>[class*="rounded-2xl"],
+.senior-contrast main>div>[class*="rounded-xl"],
+.senior-contrast main>[class*="rounded-2xl"],
+.senior-contrast main>[class*="rounded-xl"] {
+  background-color: #ffffff !important;
+  border: 2px solid #000000 !important;
+  overflow: hidden !important;
+}
+
+/* Nested cards/elements - NO border to avoid cutting */
+.senior-contrast [class*="rounded-2xl"] [class*="rounded"],
+.senior-contrast [class*="rounded-xl"] [class*="rounded"],
+.senior-contrast .card .card,
+.senior-contrast .card [class*="rounded"] {
+  border: none !important;
+  background-color: #f5f5f5 !important;
+}
+
+/* Toggle switches - make them VERY visible */
+.senior-contrast label.cursor-pointer div,
+.senior-contrast [class*="peer-checked"],
+.senior-contrast .peer~div {
+  background-color: #888888 !important;
+  border: 3px solid #000000 !important;
+}
+
+.senior-contrast .peer:checked~div {
+  background-color: #000000 !important;
+}
+
+/* SVG icons - inherit color from parent */
+.senior-contrast svg {
+  stroke: currentColor !important;
+  color: currentColor !important;
+}
+
+/* Links */
+.senior-contrast a:not(button) {
+  color: #000000 !important;
+  text-decoration: underline !important;
+}
+
 
 @keyframes shake {
 
@@ -330,4 +460,69 @@ textarea {
   animation: shimmer 1.5s ease-in-out infinite;
   background: linear-gradient(90deg, #475569 25%, #64748b 50%, #475569 75%);
   background-size: 200% 100%;
+}
+
+/* ========================================
+   ACCESSIBILITY UTILITIES
+   ======================================== */
+
+/* Screen Reader Only - visually hidden but accessible */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Skip to main content link */
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: var(--color-primary);
+  color: white;
+  padding: 8px 16px;
+  z-index: 100;
+  font-weight: 600;
+  border-radius: 0 0 var(--radius-md) 0;
+  transition: top 0.3s;
+}
+
+.skip-link:focus {
+  top: 0;
+}
+
+/* Reduced Motion - respect user preferences */
+@media (prefers-reduced-motion: reduce) {
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Enhanced Focus Visible for all interactive elements */
+:focus-visible {
+  outline: 3px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Remove default focus for mouse users */
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Minimum touch target assistance */
+.touch-target {
+  min-height: 44px;
+  min-width: 44px;
 }

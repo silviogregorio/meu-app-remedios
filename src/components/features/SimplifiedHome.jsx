@@ -209,7 +209,15 @@ const SimplifiedHome = () => {
     };
 
     return (
-        <div className="min-h-screen bg-slate-50 flex flex-col p-4 gap-4 animate-in fade-in duration-700">
+        <div className="min-h-screen bg-slate-50 flex flex-col p-4 gap-4 animate-in fade-in duration-700" role="main" aria-label="Modo Simplificado">
+            {/* Screen Reader announcement for next medication */}
+            <div className="sr-only" aria-live="polite" aria-atomic="true">
+                {nextMedication
+                    ? `Próximo remédio: ${nextMedication.medication.name}, ${nextMedication.doseAmount} ${nextMedication.medication.unit || 'unidade'}, às ${nextMedication.time}`
+                    : 'Todos os remédios foram tomados. Parabéns!'
+                }
+            </div>
+
             {/* Header / Date */}
             <div className="flex flex-wrap justify-between items-center bg-white p-6 rounded-3xl shadow-sm border border-slate-100 gap-4">
                 <div>

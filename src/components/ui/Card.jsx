@@ -1,13 +1,25 @@
 import React from 'react';
 import clsx from 'clsx';
 
-const Card = ({ children, className, onClick }) => {
+const Card = ({ children, className, onClick, 'aria-label': ariaLabel, role }) => {
+    // Determine appropriate role for clickable cards
+    const computedRole = role || (onClick ? 'button' : undefined);
+
     return (
         <div
             onClick={onClick}
+            role={computedRole}
+            tabIndex={onClick ? 0 : undefined}
+            aria-label={ariaLabel}
+            onKeyDown={onClick ? (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    onClick(e);
+                }
+            } : undefined}
             className={clsx(
                 "bg-white dark:bg-slate-900 rounded-2xl shadow-soft border border-slate-100 dark:border-slate-800 overflow-hidden transition-all duration-300",
-                onClick && "cursor-pointer hover:shadow-lg hover:-translate-y-1 hover:border-primary/20 dark:hover:border-primary/20",
+                onClick && "cursor-pointer hover:shadow-lg hover:-translate-y-1 hover:border-primary/20 dark:hover:border-primary/20 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/50 focus-visible:ring-offset-2",
                 className
             )}
         >
