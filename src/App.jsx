@@ -18,6 +18,7 @@ import Support from './pages/Support';
 import Profile from './pages/Profile';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import CompleteProfile from './pages/CompleteProfile';
 import Share from './pages/Share';
 import Appointments from './pages/Appointments';
 
@@ -81,6 +82,7 @@ function App() {
                 </Route>
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
+                <Route path="/complete-profile" element={<ProtectedRoute skipProfileCheck={true}><CompleteProfile /></ProtectedRoute>} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </BrowserRouter>

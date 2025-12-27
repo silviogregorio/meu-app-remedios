@@ -6,8 +6,8 @@ import Pagination from '../components/ui/Pagination';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useNavigate } from 'react-router-dom';
-import { Check, Clock, AlertCircle, Calendar, User, Pill, X, Bell, Calendar as CalendarIcon, DownloadCloud, CircleHelp, Trophy, Zap, Flame, Activity, Star, ShieldCheck, ThumbsUp, Medal, Sparkles, Stethoscope, ChevronRight, Armchair } from 'lucide-react';
-import { formatDate, formatTime, formatDateFull, getISODate } from '../utils/dateFormatter';
+import { Check, Clock, AlertCircle, Calendar, User, Pill, X, Bell, Calendar as CalendarIcon, DownloadCloud, CircleHelp, Trophy, Zap, Flame, Activity, Star, ShieldCheck, ThumbsUp, Medal, Sparkles, Stethoscope, ChevronRight, Accessibility } from 'lucide-react';
+import { formatDate, formatTime, formatDateFull, getISODate, parseISODate } from '../utils/dateFormatter';
 import clsx from 'clsx';
 import { useNotifications } from '../hooks/useNotifications';
 import confetti from 'canvas-confetti';
@@ -65,14 +65,13 @@ const Home = () => {
         try {
             if (item.isTaken) {
                 // If it's taken, we remove the log (undo)
-                // We need the log ID. item.consumptionId should be populated.
-                if (item.consumptionId) {
-                    await removeConsumption(item.consumptionId);
-                    // refresh is handled by AppContext subscription
-                }
+                // removeConsumption expects (prescriptionId, scheduledTime, date)
+                await removeConsumption(item.prescriptionId, item.time, selectedDate);
+                // refresh is handled by AppContext subscription
             } else {
                 // Mark as taken
                 await logConsumption({
+                    prescriptionId: item.prescriptionId, // ADDED: Required for LogService
                     medicationId: item.medicationId,
                     patientId: item.patientId,
                     doseAmount: item.doseAmount,
@@ -110,52 +109,41 @@ const Home = () => {
             // Let's use the same logic as generateFutureSchedule but for single date or reuse it.
             // Actually, for Home view we usually want granular control.
 
-            // Re-implementing basic schedule generation for the view:
             let dailyItems = [];
-            const dayOfWeek = new Date(selectedDate + 'T00:00:00').getDay(); // 0=Sun, 6=Sat
-            // Fix timezone issue by using getUTCDay if needed, but local string split is safer for "YYYY-MM-DD".
-            // Actually new Date('2023-01-01') in JS defaults to UTC if ISO, but '2023-01-01T00:00:00' is local.
-            // Let's rely on string parsing for robustness or date-fns if available.
-            // But for now, simple logic:
-
-            const targetDate = new Date(selectedDate); // Local time midnight
-
             prescriptions.forEach(presc => {
-                // Check active range
-                const start = new Date(presc.startDate);
-                const end = presc.endDate ? new Date(presc.endDate) : null;
-                const target = new Date(selectedDate);
-                target.setHours(0, 0, 0, 0);
-                start.setHours(0, 0, 0, 0);
-                if (end) end.setHours(0, 0, 0, 0);
+                const start = parseISODate(presc.startDate);
+                const end = presc.endDate ? parseISODate(presc.endDate) : null;
+                const target = parseISODate(selectedDate);
 
                 if (target < start) return;
                 if (end && target > end) return;
 
-                // Check frequency
-                // 1. "daily" -> everyday
-                // 2. "specific_days" -> check weekDays
-                // 3. "interval" -> check days interval
-
+                // Check frequency - treat undefined/null as 'daily' (default)
                 let isDue = false;
-                if (presc.frequency === 'daily') isDue = true;
-                else if (presc.frequency === 'specific_days') {
+                const freq = presc.frequency || 'daily';
+
+                if (freq === 'daily') {
+                    isDue = true;
+                } else if (freq === 'specific_days') {
                     const weekMap = { 0: 'dom', 1: 'seg', 2: 'ter', 3: 'qua', 4: 'qui', 5: 'sex', 6: 'sab' };
                     const dayStr = weekMap[target.getDay()];
                     if (presc.weekDays && presc.weekDays.includes(dayStr)) isDue = true;
-                } else if (presc.frequency === 'interval') {
+                } else if (freq === 'interval') {
                     const diffDays = Math.floor((target - start) / (1000 * 60 * 60 * 24));
-                    if (diffDays % presc.intervalDays === 0) isDue = true;
+                    if (presc.intervalDays && diffDays % presc.intervalDays === 0) isDue = true;
+                } else {
+                    // Unknown frequency type, treat as daily
+                    isDue = true;
                 }
 
                 if (isDue) {
                     // Add times
                     presc.times.forEach(time => {
-                        // Check consumption
+                        // Check consumption - using robust camelCase and date field
                         const log = consumptionLog.find(l =>
-                            l.prescription_id === presc.id &&
-                            l.scheduled_time === time &&
-                            l.taken_at.startsWith(selectedDate)
+                            (l.prescriptionId === presc.id || l.prescription_id === presc.id) &&
+                            (l.scheduledTime === time || l.scheduled_time === time) &&
+                            (l.date === selectedDate || (l.taken_at && l.taken_at.startsWith(selectedDate)))
                         );
 
                         const med = medications.find(m => m.id === presc.medicationId);
@@ -170,12 +158,12 @@ const Home = () => {
                                 time: time,
                                 medicationName: med.name,
                                 medicationType: med.unit || 'unidade',
-                                doseAmount: presc.dosageAmount || 1, // Fallback
-                                dosage: med.dosage, // String like "500mg"
+                                doseAmount: presc.doseAmount || 1,
+                                dosage: med.dosage,
                                 patientName: patient.name,
                                 isTaken: !!log,
                                 consumptionId: log?.id,
-                                takenByName: log?.taken_by_name,
+                                takenByName: log?.takenByName || log?.taken_by_name,
                                 shape: med.shape,
                                 color: med.color
                             });
@@ -285,7 +273,7 @@ const Home = () => {
                             className="flex items-center gap-2 px-4 py-2.5 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-600 transition-all text-sm font-bold shadow-sm border border-slate-200/50 dark:border-slate-600"
                             title="Modo Simplificado"
                         >
-                            <Armchair size={18} />
+                            <Accessibility size={18} />
                             <span>Modo Idoso</span>
                         </button>
                         <button
@@ -425,9 +413,15 @@ const Home = () => {
                                     const now = new Date();
                                     const currentTime = formatTime(now);
 
-                                    const nextDose = todaysSchedule.find(item =>
+                                    // Primeiro, procura a próxima dose futura não tomada
+                                    let nextDose = todaysSchedule.find(item =>
                                         !item.isTaken && item.time >= currentTime
                                     );
+
+                                    // Se não há dose futura, mas há doses atrasadas, pega a primeira atrasada
+                                    if (!nextDose) {
+                                        nextDose = todaysSchedule.find(item => !item.isTaken);
+                                    }
 
                                     if (nextDose) {
                                         const [hours, minutes] = nextDose.time.split(':').map(Number);
@@ -861,28 +855,61 @@ const Home = () => {
                                         s.email?.toLowerCase() === user?.email?.toLowerCase() && s.permission === 'edit'
                                     );
 
+                                    // Check if dose is late (past current time and not taken)
+                                    const now = new Date();
+                                    const currentTime = now.toTimeString().slice(0, 5);
+                                    const isLate = !item.isTaken && item.time < currentTime;
+
                                     return (
-                                        <Card key={item.id} className={clsx("transition-all", item.isTaken && "opacity-60 bg-[#f8fafc]")}>
+                                        <Card
+                                            key={item.id}
+                                            className={clsx(
+                                                "transition-all border-l-4",
+                                                item.isTaken
+                                                    ? "opacity-60 bg-green-50/50 border-l-green-500"
+                                                    : isLate
+                                                        ? "bg-red-50/50 border-l-red-500"
+                                                        : "bg-amber-50/50 border-l-amber-500"
+                                            )}
+                                        >
                                             <CardContent className="flex items-center justify-between p-4">
                                                 <div className="flex items-center gap-4 flex-1">
                                                     <div className="flex flex-col items-center gap-1 mr-2 px-2">
-                                                        <span className={clsx("font-bold text-lg", item.isTaken ? "text-slate-400" : "text-slate-900")}>
+                                                        <span className={clsx(
+                                                            "font-bold text-lg",
+                                                            item.isTaken ? "text-green-600"
+                                                                : isLate ? "text-red-600"
+                                                                    : "text-amber-600"
+                                                        )}>
                                                             {item.time}
                                                         </span>
                                                         <div className={clsx(
                                                             "w-12 h-12 rounded-2xl flex items-center justify-center border shadow-sm transition-all",
                                                             item.isTaken
-                                                                ? "bg-slate-50 border-slate-200 opacity-60 grayscale"
-                                                                : "bg-white border-slate-100"
+                                                                ? "bg-green-100 border-green-200"
+                                                                : isLate
+                                                                    ? "bg-red-100 border-red-200"
+                                                                    : "bg-white border-slate-100"
                                                         )}>
                                                             <PillIcon shape={item.shape} color={item.color} size={28} />
                                                         </div>
                                                     </div>
                                                     <div className="flex-1 min-w-0">
-                                                        <h3 className={clsx("font-bold", item.isTaken ? "text-[#64748b] line-through" : "text-[#0f172a]")}>
+                                                        <h3 className={clsx("font-bold", item.isTaken ? "text-slate-500 line-through" : "text-[#0f172a]")}>
                                                             {Number(item.doseAmount)} {item.medicationType} {item.medicationName} {item.dosage}
                                                         </h3>
                                                         <p className="text-sm text-[#64748b]">{item.patientName}</p>
+                                                        {/* Status Badge */}
+                                                        <span className={clsx(
+                                                            "text-xs font-semibold px-2 py-0.5 rounded-full mt-1 inline-block",
+                                                            item.isTaken
+                                                                ? "bg-green-100 text-green-700"
+                                                                : isLate
+                                                                    ? "bg-red-100 text-red-700"
+                                                                    : "bg-amber-100 text-amber-700"
+                                                        )}>
+                                                            {item.isTaken ? 'Tomado' : isLate ? 'Atrasado' : 'Pendente'}
+                                                        </span>
                                                         {item.isTaken && item.takenByName && (
                                                             <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
                                                                 <User size={12} />
@@ -898,8 +925,8 @@ const Home = () => {
                                                         className={clsx(
                                                             "w-10 h-10 rounded-full flex items-center justify-center transition-all shrink-0",
                                                             item.isTaken
-                                                                ? "bg-[#10b981] text-white hover:bg-[#059669]"
-                                                                : "bg-[#f1f5f9] text-[#94a3b8] hover:bg-[#e2e8f0] hover:text-[#64748b]"
+                                                                ? "bg-green-500 text-white hover:bg-green-600"
+                                                                : "bg-slate-100 text-slate-400 hover:bg-emerald-100 hover:text-emerald-600"
                                                         )}
                                                         title={item.isTaken ? "Marcar como não tomado" : "Marcar como tomado"}
                                                     >

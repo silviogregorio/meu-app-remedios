@@ -16,12 +16,22 @@ const Toast = ({ message, type = 'success', onClose, duration = 5000 }) => {
     return (
         <div className={clsx(
             "fixed top-4 right-4 z-[10000] flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg animate-in slide-in-from-right-full duration-300",
-            type === 'success' ? "bg-white border-l-4 border-[#10b981]" : "bg-white border-l-4 border-red-500"
+            type === 'success' && "bg-white border-l-4 border-[#10b981]",
+            type === 'warning' && "bg-white border-l-4 border-amber-500",
+            type === 'error' && "bg-white border-l-4 border-red-500",
+            !['success', 'warning', 'error'].includes(type) && "bg-white border-l-4 border-[#10b981]"
         )}>
-            {type === 'success' ? (
+            {type === 'success' && (
                 <CheckCircle size={20} className="text-[#10b981]" />
-            ) : (
+            )}
+            {type === 'warning' && (
+                <AlertCircle size={20} className="text-amber-500" />
+            )}
+            {type === 'error' && (
                 <AlertCircle size={20} className="text-red-500" />
+            )}
+            {!['success', 'warning', 'error'].includes(type) && (
+                <CheckCircle size={20} className="text-[#10b981]" />
             )}
             <p className="text-sm font-medium text-gray-800">{message}</p>
             <button onClick={onClose} className="ml-2 text-gray-400 hover:text-gray-600">

@@ -78,3 +78,17 @@ export const getISODate = (date = new Date()) => {
     const day = String(date.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
 };
+/**
+ * Parses a YYYY-MM-DD string into a Date object at 00:00:00 local time.
+ * This prevents the timezone shift issue where new Date('2023-10-27')
+ * results in '2023-10-26 21:00' due to UTC offset.
+ * @param {string} dateString 
+ * @returns {Date}
+ */
+export const parseISODate = (dateString) => {
+    if (!dateString) return new Date();
+    // Use the T00:00:00 suffix to force local time interpretation in most browsers
+    // but a manual split/instantiation is even safer across all environments.
+    const [year, month, day] = dateString.split('-').map(Number);
+    return new Date(year, month - 1, day, 0, 0, 0);
+};

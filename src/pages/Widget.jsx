@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
-import { formatTime, getISODate } from '../utils/dateFormatter';
+import { formatTime, getISODate, parseISODate } from '../utils/dateFormatter';
 import { Check, Clock, Pill, User, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import PillIcon from '../components/ui/PillIcon';
@@ -21,33 +21,37 @@ const Widget = () => {
             let dailyItems = [];
 
             prescriptions.forEach(presc => {
-                const start = new Date(presc.startDate);
-                const end = presc.endDate ? new Date(presc.endDate) : null;
-                const target = new Date(today);
-                target.setHours(0, 0, 0, 0);
-                start.setHours(0, 0, 0, 0);
-                if (end) end.setHours(0, 0, 0, 0);
+                const start = parseISODate(presc.startDate);
+                const end = presc.endDate ? parseISODate(presc.endDate) : null;
+                const target = parseISODate(today);
 
                 if (target < start) return;
                 if (end && target > end) return;
 
+                // Check frequency - treat undefined/null as 'daily' (default)
                 let isDue = false;
-                if (presc.frequency === 'daily') isDue = true;
-                else if (presc.frequency === 'specific_days') {
+                const freq = presc.frequency || 'daily';
+
+                if (freq === 'daily') {
+                    isDue = true;
+                } else if (freq === 'specific_days') {
                     const weekMap = { 0: 'dom', 1: 'seg', 2: 'ter', 3: 'qua', 4: 'qui', 5: 'sex', 6: 'sab' };
                     const dayStr = weekMap[target.getDay()];
                     if (presc.weekDays && presc.weekDays.includes(dayStr)) isDue = true;
-                } else if (presc.frequency === 'interval') {
+                } else if (freq === 'interval') {
                     const diffDays = Math.floor((target - start) / (1000 * 60 * 60 * 24));
-                    if (diffDays % presc.intervalDays === 0) isDue = true;
+                    if (presc.intervalDays && diffDays % presc.intervalDays === 0) isDue = true;
+                } else {
+                    // Unknown frequency type, treat as daily
+                    isDue = true;
                 }
 
                 if (isDue) {
                     presc.times.forEach(time => {
                         const log = consumptionLog.find(l =>
-                            l.prescription_id === presc.id &&
-                            l.scheduled_time === time &&
-                            l.taken_at.startsWith(today)
+                            (l.prescriptionId === presc.id || l.prescription_id === presc.id) &&
+                            (l.scheduledTime === time || l.scheduled_time === time) &&
+                            (l.date === today || (l.taken_at && l.taken_at.startsWith(today)))
                         );
 
                         const med = medications.find(m => m.id === presc.medicationId);
@@ -62,7 +66,7 @@ const Widget = () => {
                                 time: time,
                                 medicationName: med.name,
                                 medicationType: med.unit || 'unidade',
-                                doseAmount: presc.dosageAmount || 1,
+                                doseAmount: presc.doseAmount || 1,
                                 dosage: med.dosage,
                                 patientName: patient.name,
                                 isTaken: !!log,

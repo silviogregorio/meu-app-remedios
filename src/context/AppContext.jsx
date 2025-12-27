@@ -11,7 +11,7 @@ import { SpecialtyService } from '../services/specialtyService';
 import { LogService } from '../services/logService';
 import { requestForToken } from '../utils/firebase';
 import { setBadge } from '../utils/badge';
-import { getISODate } from '../utils/dateFormatter';
+import { getISODate, parseISODate } from '../utils/dateFormatter';
 
 const AppContext = createContext();
 
@@ -341,33 +341,37 @@ export const AppProvider = ({ children }) => {
             let pendingCount = 0;
 
             prescriptions.forEach(presc => {
-                const start = new Date(presc.startDate);
-                const end = presc.endDate ? new Date(presc.endDate) : null;
-                const target = new Date(today);
-                target.setHours(0, 0, 0, 0);
-                start.setHours(0, 0, 0, 0);
-                if (end) end.setHours(0, 0, 0, 0);
+                const start = parseISODate(presc.startDate);
+                const end = presc.endDate ? parseISODate(presc.endDate) : null;
+                const target = parseISODate(today);
 
                 if (target < start) return;
                 if (end && target > end) return;
 
+                // Check frequency - treat undefined/null as 'daily' (default)
                 let isDue = false;
-                if (presc.frequency === 'daily') isDue = true;
-                else if (presc.frequency === 'specific_days') {
+                const freq = presc.frequency || 'daily';
+
+                if (freq === 'daily') {
+                    isDue = true;
+                } else if (freq === 'specific_days') {
                     const weekMap = { 0: 'dom', 1: 'seg', 2: 'ter', 3: 'qua', 4: 'qui', 5: 'sex', 6: 'sab' };
                     const dayStr = weekMap[target.getDay()];
                     if (presc.weekDays && presc.weekDays.includes(dayStr)) isDue = true;
-                } else if (presc.frequency === 'interval') {
+                } else if (freq === 'interval') {
                     const diffDays = Math.floor((target - start) / (1000 * 60 * 60 * 24));
-                    if (diffDays % presc.intervalDays === 0) isDue = true;
+                    if (presc.intervalDays && diffDays % presc.intervalDays === 0) isDue = true;
+                } else {
+                    // Unknown frequency type, treat as daily
+                    isDue = true;
                 }
 
                 if (isDue) {
                     presc.times.forEach(time => {
                         const log = consumptionLog.find(l =>
-                            l.prescription_id === presc.id &&
-                            l.scheduled_time === time &&
-                            l.taken_at.startsWith(today)
+                            (l.prescriptionId === presc.id || l.prescription_id === presc.id) &&
+                            (l.scheduledTime === time || l.scheduled_time === time) &&
+                            (l.date === today || (l.taken_at && l.taken_at.startsWith(today)))
                         );
 
                         if (!log) {
@@ -825,9 +829,13 @@ export const AppProvider = ({ children }) => {
                 prescriptionId, scheduledTime, date, prescription, medication
             );
 
-            setConsumptionLog(prev => prev.filter(l =>
-                !(l.prescriptionId === prescriptionId && l.scheduledTime === scheduledTime && l.date === date)
-            ));
+            // Update local state with robust field matching (camelCase and snake_case)
+            setConsumptionLog(prev => prev.filter(l => {
+                const matchPrescription = (l.prescriptionId === prescriptionId || l.prescription_id === prescriptionId);
+                const matchTime = (l.scheduledTime === scheduledTime || l.scheduled_time === scheduledTime);
+                const matchDate = (l.date === date || (l.taken_at && l.taken_at.startsWith(date)));
+                return !(matchPrescription && matchTime && matchDate);
+            }));
 
             if (updatedMedication) {
                 setMedications(prev => prev.map(m =>
@@ -835,7 +843,7 @@ export const AppProvider = ({ children }) => {
                 ));
             }
 
-            showToast('Registro removido.', 'info');
+            showToast('Dose desmarcada.', 'warning');
         } catch (error) {
             console.error('Erro ao remover registro de consumo:', error);
             showToast('Erro ao remover registro', 'error');

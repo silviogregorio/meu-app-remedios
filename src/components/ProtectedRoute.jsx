@@ -2,7 +2,7 @@ import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
-const ProtectedRoute = ({ children, adminOnly = false }) => {
+const ProtectedRoute = ({ children, adminOnly = false, skipProfileCheck = false }) => {
     const { user, loading } = useAuth();
 
     if (loading) {
@@ -15,6 +15,18 @@ const ProtectedRoute = ({ children, adminOnly = false }) => {
 
     if (!user) {
         return <Navigate to="/" replace />;
+    }
+
+    // Check if profile is complete (has CEP/IBGE)
+    // Skip this check for the complete-profile page itself
+    if (!skipProfileCheck) {
+        const hasCompleteProfile =
+            user.user_metadata?.ibge_code ||
+            user.user_metadata?.cep;
+
+        if (!hasCompleteProfile) {
+            return <Navigate to="/complete-profile" replace />;
+        }
     }
 
     // Admin-only route protection

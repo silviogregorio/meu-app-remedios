@@ -6,7 +6,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import PillIcon from '../ui/PillIcon';
 import ConfirmationModal from '../ui/ConfirmationModal';
-import { getISODate } from '../../utils/dateFormatter';
+import { getISODate, parseISODate } from '../../utils/dateFormatter';
 
 const SimplifiedHome = () => {
     const {
@@ -17,9 +17,7 @@ const SimplifiedHome = () => {
         consumptionLog,
         logConsumption,
         updateUserPreferences,
-        userPreferences,
-        speak,
-        requestHelp
+        userPreferences
     } = useApp();
     const navigate = useNavigate();
 
@@ -28,6 +26,22 @@ const SimplifiedHome = () => {
     const [showSOSConfirm, setShowSOSConfirm] = useState(false);
     const [showExitConfirm, setShowExitConfirm] = useState(false);
     const [sosLoading, setSosLoading] = useState(false);
+
+    // Text-to-Speech function
+    const speak = (text) => {
+        if ('speechSynthesis' in window) {
+            // Cancel any ongoing speech
+            window.speechSynthesis.cancel();
+
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'pt-BR';
+            utterance.rate = 0.9;
+            utterance.pitch = 1;
+            window.speechSynthesis.speak(utterance);
+        } else {
+            console.warn('Speech synthesis not supported');
+        }
+    };
 
     // 1. Find Next Medication Logic (Simplified version of Home.jsx)
     useEffect(() => {
@@ -40,35 +54,38 @@ const SimplifiedHome = () => {
 
             prescriptions.forEach(presc => {
                 // Check Active Status
-                const start = new Date(presc.startDate);
-                const end = presc.endDate ? new Date(presc.endDate) : null;
-                const target = new Date(todayStr); // Local midnight
-                target.setHours(0, 0, 0, 0);
-                start.setHours(0, 0, 0, 0);
-                if (end) end.setHours(0, 0, 0, 0);
+                const start = parseISODate(presc.startDate);
+                const end = presc.endDate ? parseISODate(presc.endDate) : null;
+                const target = parseISODate(todayStr);
 
                 if (target < start) return;
                 if (end && target > end) return;
 
-                // Check Frequency
+                // Check Frequency - treat undefined/null as 'daily' (default)
                 let isDue = false;
-                if (presc.frequency === 'daily') isDue = true;
-                else if (presc.frequency === 'specific_days') {
+                const freq = presc.frequency || 'daily';
+
+                if (freq === 'daily') {
+                    isDue = true;
+                } else if (freq === 'specific_days') {
                     const weekMap = { 0: 'dom', 1: 'seg', 2: 'ter', 3: 'qua', 4: 'qui', 5: 'sex', 6: 'sab' };
                     const dayStr = weekMap[target.getDay()];
                     if (presc.weekDays && presc.weekDays.includes(dayStr)) isDue = true;
-                } else if (presc.frequency === 'interval') {
+                } else if (freq === 'interval') {
                     const diffDays = Math.floor((target - start) / (1000 * 60 * 60 * 24));
-                    if (diffDays % presc.intervalDays === 0) isDue = true;
+                    if (presc.intervalDays && diffDays % presc.intervalDays === 0) isDue = true;
+                } else {
+                    // Unknown frequency type, treat as daily
+                    isDue = true;
                 }
 
                 if (isDue) {
                     presc.times.forEach(time => {
                         // Check if already taken
                         const log = consumptionLog.find(l =>
-                            l.prescription_id === presc.id &&
-                            l.scheduled_time === time &&
-                            l.taken_at.startsWith(todayStr)
+                            (l.prescriptionId === presc.id || l.prescription_id === presc.id) &&
+                            (l.scheduledTime === time || l.scheduled_time === time) &&
+                            (l.date === todayStr || (l.taken_at && l.taken_at.startsWith(todayStr)))
                         );
 
                         if (!log && time >= currentTime) {
@@ -77,10 +94,11 @@ const SimplifiedHome = () => {
                             if (med) {
                                 candidates.push({
                                     ...presc,
+                                    prescriptionId: presc.id,
                                     time,
                                     medication: med,
                                     patientName: patient?.name || 'Você',
-                                    doseAmount: presc.dosageAmount || 1
+                                    doseAmount: presc.doseAmount || 1
                                 });
                             }
                         }
@@ -93,7 +111,15 @@ const SimplifiedHome = () => {
 
             if (candidates.length > 0) {
                 const next = candidates[0];
-                setNextMedication(next);
+
+                // Count how many doses at the same time
+                const sameTImeDoses = candidates.filter(c => c.time === next.time);
+
+                setNextMedication({
+                    ...next,
+                    pendingCount: sameTImeDoses.length,
+                    allPendingAtTime: sameTImeDoses
+                });
 
                 // Calculate nice time text
                 const [h, m] = next.time.split(':').map(Number);
@@ -128,6 +154,7 @@ const SimplifiedHome = () => {
         const todayStr = getISODate();
 
         await logConsumption({
+            prescriptionId: nextMedication.prescriptionId,
             medicationId: nextMedication.medicationId,
             patientId: nextMedication.patientId,
             doseAmount: nextMedication.doseAmount,
@@ -207,12 +234,11 @@ const SimplifiedHome = () => {
 
                 {/* 1. NEXT MEDICATION (Giant Button) */}
                 {nextMedication ? (
-                    <button
-                        onClick={handleTakeMedication}
-                        className="w-full bg-blue-600 rounded-[2rem] p-6 shadow-xl shadow-blue-200 active:scale-95 transition-all flex flex-wrap sm:flex-nowrap items-center justify-between gap-4 group min-h-[12rem]"
+                    <div
+                        className="w-full bg-blue-600 rounded-[2rem] p-6 shadow-xl shadow-blue-200 transition-all flex flex-wrap sm:flex-nowrap items-center justify-between gap-4 min-h-[12rem]"
                     >
                         <div className="flex items-center gap-6">
-                            <div className="bg-white/20 p-4 rounded-full backdrop-blur-sm group-hover:bg-white/30 transition-colors shrink-0">
+                            <div className="bg-white/20 p-4 rounded-full backdrop-blur-sm shrink-0">
                                 <PillIcon
                                     shape={nextMedication.medication.shape}
                                     color={nextMedication.medication.color}
@@ -221,31 +247,51 @@ const SimplifiedHome = () => {
                                 />
                             </div>
                             <div className="text-left">
-                                <p className="text-blue-100 text-lg font-medium mb-0.5">Tomar Agora ({nextMedication.time})</p>
+                                <p className="text-blue-100 text-lg font-medium mb-0.5">
+                                    Tomar Agora ({nextMedication.time})
+                                    {nextMedication.pendingCount > 1 && (
+                                        <span className="ml-2 bg-white/30 px-2 py-0.5 rounded-full text-white text-sm">
+                                            {nextMedication.pendingCount} doses
+                                        </span>
+                                    )}
+                                </p>
                                 <div className="flex flex-wrap items-center gap-2">
                                     <h2 className="text-3xl font-black text-white leading-tight">
                                         {nextMedication.medication.name}
                                     </h2>
-                                    <button
+                                    <span
+                                        role="button"
+                                        tabIndex={0}
                                         onClick={(e) => {
+                                            e.preventDefault();
                                             e.stopPropagation();
                                             speak(`Remédio: ${nextMedication.medication.name}. Dose: ${nextMedication.doseAmount} ${nextMedication.medication.unit || 'unidade'}. ${nextMedication.instructions || ''}`);
                                         }}
-                                        className="p-3 bg-white/20 hover:bg-white/40 rounded-full transition-colors"
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter' || e.key === ' ') {
+                                                e.preventDefault();
+                                                speak(`Remédio: ${nextMedication.medication.name}. Dose: ${nextMedication.doseAmount} ${nextMedication.medication.unit || 'unidade'}. ${nextMedication.instructions || ''}`);
+                                            }
+                                        }}
+                                        className="p-4 bg-white/30 hover:bg-white/50 active:bg-white/60 rounded-full transition-colors cursor-pointer"
                                         title="Ouvir Instrução"
                                     >
-                                        <Volume2 size={24} className="text-white" />
-                                    </button>
+                                        <Volume2 size={28} className="text-white" />
+                                    </span>
                                 </div>
                                 <p className="text-blue-200 text-lg font-medium">
                                     {Number(nextMedication.doseAmount)} {nextMedication.medication.unit || 'unidade(s)'}
+                                    {nextMedication.pendingCount > 1 && ` (confirme ${nextMedication.pendingCount}x)`}
                                 </p>
                             </div>
                         </div>
-                        <div className="px-6 py-3 bg-white text-blue-700 rounded-full font-bold text-lg uppercase tracking-wider shadow-sm shrink-0">
+                        <button
+                            onClick={handleTakeMedication}
+                            className="px-6 py-3 bg-white text-blue-700 rounded-full font-bold text-lg uppercase tracking-wider shadow-sm shrink-0 hover:bg-blue-50 active:scale-95 transition-all"
+                        >
                             Confirmar
-                        </div>
-                    </button>
+                        </button>
+                    </div>
                 ) : (
                     <div className="w-full bg-emerald-500 rounded-[2rem] p-6 shadow-xl shadow-emerald-200 flex flex-wrap sm:flex-nowrap items-center justify-center gap-6 min-h-[12rem]">
                         <div className="bg-white/20 p-5 rounded-full shrink-0">

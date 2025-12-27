@@ -157,20 +157,22 @@ const SOSCard = ({ onClose }) => {
     };
 
     const handleWhatsAppText = () => {
-        // Create a summary text
+        // Create a summary text with medication times
         const medsText = activePrescriptions.map(p => {
             const med = medications.find(m => m.id === p.medicationId);
-            return `- ${med?.name} (${med?.dosage}) ${p.frequency}`;
-        }).join('%0A');
+            const times = p.times?.join(', ') || 'Sob demanda';
+            return `- ${med?.name} (${med?.dosage}) - ${times}`;
+        }).join('\n');
 
-        const text = `*SOS MÉDICO - EMERGÊNCIA*%0A%0A` +
-            `*Paciente:* ${selectedPatient.name}%0A` +
-            (selectedPatient.bloodType ? `*Tipo Sanguíneo:* ${selectedPatient.bloodType}%0A` : '') +
-            (selectedPatient.allergies ? `*Alergias:* ${selectedPatient.allergies}%0A` : '') +
-            (selectedPatient.condition ? `*Condição:* ${selectedPatient.condition}%0A` : '') +
-            `%0A*Medicamentos:*%0A${medsText}%0A%0A` +
-            `*Responsável:* ${user?.user_metadata?.full_name || 'Ver Contato'}%0A` +
-            `*Contato:* ${user?.phone || 'N/A'}`;
+        const text = `◆ *SOS MÉDICO - EMERGÊNCIA*\n\n` +
+            `*Paciente:* ${selectedPatient.name}\n` +
+            (selectedPatient.bloodType ? `*Tipo Sanguíneo:* ${selectedPatient.bloodType}\n` : '') +
+            (selectedPatient.allergies ? `*Alergias:* ${selectedPatient.allergies}\n` : '') +
+            (selectedPatient.condition ? `*Condição:* ${selectedPatient.condition}\n` : '') +
+            `\n*Medicamentos:*\n${medsText}\n\n` +
+            `*Responsável:* ${user?.user_metadata?.full_name || 'Ver Contato'}\n` +
+            `*Contato:* ${user?.phone || 'N/A'}\n\n` +
+            `_Enviado via SiG Remédios_\nhttps://sigremedios.vercel.app`;
 
         window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
     };
@@ -217,30 +219,30 @@ const SOSCard = ({ onClose }) => {
                     </Button>
                 </div>
 
+                {/* Patient Selector - Fixed at top */}
+                {patients.length > 1 && (
+                    <div className="px-6 pt-6 pb-4 border-b border-slate-100 print:hidden shrink-0" data-html2canvas-ignore="true">
+                        <div className="bg-slate-100/80 p-1.5 rounded-3xl">
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-1.5">
+                                {patients.map(p => (
+                                    <button
+                                        key={p.id}
+                                        onClick={() => setSelectedPatientId(p.id)}
+                                        className={`flex items-center justify-center px-4 py-3 rounded-2xl text-sm font-bold transition-all duration-300 ${selectedPatientId === p.id
+                                            ? 'bg-white text-primary shadow-sm ring-1 ring-slate-200/50'
+                                            : 'text-slate-500 hover:text-slate-700 hover:bg-white/50'
+                                            }`}
+                                    >
+                                        <span className="truncate">{p.name.split(' ')[0]}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 <div className="overflow-y-auto flex-1 custom-scrollbar">
                     <div className="p-6 space-y-6" ref={printRef}>
-
-                        {/* 0. Patient Selector */}
-                        {patients.length > 1 && (
-                            <div className="mb-6 print:hidden" data-html2canvas-ignore="true">
-                                <div className="bg-slate-100/80 p-1.5 rounded-3xl">
-                                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-1.5">
-                                        {patients.map(p => (
-                                            <button
-                                                key={p.id}
-                                                onClick={() => setSelectedPatientId(p.id)}
-                                                className={`flex items-center justify-center px-4 py-3 rounded-2xl text-sm font-bold transition-all duration-300 ${selectedPatientId === p.id
-                                                    ? 'bg-white text-primary shadow-sm ring-1 ring-slate-200/50'
-                                                    : 'text-slate-500 hover:text-slate-700 hover:bg-white/50'
-                                                    }`}
-                                            >
-                                                <span className="truncate">{p.name.split(' ')[0]}</span>
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-                            </div>
-                        )}
 
                         {/* 1. Patient Info */}
                         <div className="flex items-start justify-between gap-4">

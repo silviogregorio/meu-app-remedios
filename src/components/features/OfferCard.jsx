@@ -79,7 +79,7 @@ export const OfferCard = ({ offer, variant = 'standard' }) => {
 
                 <div className={`relative w-full ${isCarousel ? 'pr-6' : ''}`}>
                     {image_url ? (
-                        <img src={image_url} alt={title} className="w-full h-32 object-cover rounded-lg" />
+                        <img src={image_url} alt={title} className="w-full h-32 object-contain bg-slate-50 rounded-lg p-2" />
                     ) : (
                         <div className="w-full h-32 flex items-center justify-center bg-slate-50 rounded-lg text-slate-400">
                             <Tag size={32} />

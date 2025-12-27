@@ -13,7 +13,7 @@ import { format, startOfMonth, endOfMonth, eachDayOfInterval, isToday, isSameDay
 import { ptBR } from 'date-fns/locale';
 import { generatePDFReport, generatePDFStockReport } from '../utils/pdfGenerator';
 import { getApiEndpoint } from '../config/api';
-import { formatDateTime, formatDate, getISODate } from '../utils/dateFormatter';
+import { formatDateTime, formatDate, getISODate, parseISODate } from '../utils/dateFormatter';
 
 
 const ITEMS_PER_PAGE = 6;
@@ -270,24 +270,44 @@ const Reports = () => {
 
         const expectedDoses = [];
         filteredPrescriptions.forEach(prescription => {
-            const prescStart = new Date(prescription.startDate);
-            const prescEnd = new Date(prescription.endDate);
-            const filterStart = new Date(filters.startDate);
-            const filterEnd = new Date(filters.endDate);
+            const prescStart = parseISODate(prescription.startDate);
+            const prescEnd = prescription.endDate ? parseISODate(prescription.endDate) : null;
+            const filterStart = parseISODate(filters.startDate);
+            const filterEnd = parseISODate(filters.endDate);
 
             const start = new Date(Math.max(prescStart, filterStart));
-            const end = new Date(Math.min(prescEnd, filterEnd));
+            const end = prescEnd ? new Date(Math.min(prescEnd, filterEnd)) : filterEnd;
 
             for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-                prescription.times.forEach(time => {
-                    expectedDoses.push({
-                        date: getISODate(d),
-                        time: time,
-                        patientId: prescription.patientId,
-                        medicationId: prescription.medicationId,
-                        prescriptionId: prescription.id
+                // Frequency Check - treat undefined/null as 'daily' (default)
+                let isDue = false;
+                const freq = prescription.frequency || 'daily';
+
+                if (freq === 'daily') {
+                    isDue = true;
+                } else if (freq === 'specific_days') {
+                    const weekMap = { 0: 'dom', 1: 'seg', 2: 'ter', 3: 'qua', 4: 'qui', 5: 'sex', 6: 'sab' };
+                    const dayStr = weekMap[d.getDay()];
+                    if (prescription.weekDays && prescription.weekDays.includes(dayStr)) isDue = true;
+                } else if (freq === 'interval') {
+                    const diffDays = Math.floor((d - prescStart) / (1000 * 60 * 60 * 24));
+                    if (prescription.intervalDays && diffDays % prescription.intervalDays === 0) isDue = true;
+                } else {
+                    // Unknown frequency type, treat as daily
+                    isDue = true;
+                }
+
+                if (isDue) {
+                    prescription.times.forEach(time => {
+                        expectedDoses.push({
+                            date: getISODate(d),
+                            time: time,
+                            patientId: prescription.patientId,
+                            medicationId: prescription.medicationId,
+                            prescriptionId: prescription.id
+                        });
                     });
-                });
+                }
             }
         });
 
@@ -296,9 +316,9 @@ const Reports = () => {
             const medication = medications.find(m => m.id === dose.medicationId);
 
             const taken = consumptionLog.find(log => {
-                const match = log.prescriptionId === dose.prescriptionId &&
-                    log.date === dose.date &&
-                    log.scheduledTime === dose.time;
+                const match = (log.prescriptionId === dose.prescriptionId || log.prescription_id === dose.prescriptionId) &&
+                    (log.date === dose.date || (log.taken_at && log.taken_at.startsWith(dose.date))) &&
+                    (log.scheduledTime === dose.time || log.scheduled_time === dose.time);
                 return match;
             });
 

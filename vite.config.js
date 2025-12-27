@@ -55,6 +55,12 @@ export default defineConfig({
   },
   build: {
     chunkSizeWarningLimit: 1000,
+    // Remove console.log, console.warn, console.info in production builds
+    // This prevents information leakage and improves performance
+    minify: 'esbuild',
+    esbuild: {
+      drop: ['console', 'debugger'],
+    },
     rollupOptions: {
       output: {
         manualChunks: {

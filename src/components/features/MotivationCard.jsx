@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Quote, Volume2, VolumeX, RefreshCw } from 'lucide-react';
+import { Quote, Volume2, VolumeX, Sun, Cloud, Moon, Lightbulb, ChevronLeft, ChevronRight, Heart } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { getRandomBatch } from '../../data/quotesReserve';
+import clsx from 'clsx';
 
 const MotivationCard = () => {
     const [message, setMessage] = useState(null);
@@ -53,8 +54,7 @@ const MotivationCard = () => {
             if (error) throw error;
 
             if (data && data.length > 0) {
-                const msg = data[0]; // RPC returns array inside data if setof? No, returns body.
-                // Supabase RPC returns data as the array of rows
+                const msg = data[0];
                 setMessage(msg);
 
                 // Mark as seen immediately
@@ -73,7 +73,6 @@ const MotivationCard = () => {
                 const newBatch = getRandomBatch(5);
 
                 // Insert new batch with is_active: true
-                // Using upsert with onConflict 'text' to avoid errors if Reserve has duplicates with DB
                 const { error: insertError } = await supabase
                     .from('motivation_messages')
                     .upsert(newBatch.map(m => ({ ...m, is_active: true })), { onConflict: 'text', ignoreDuplicates: true });
@@ -89,7 +88,7 @@ const MotivationCard = () => {
         } catch (err) {
             console.error('Error fetching motivation:', err);
             // Fallback UI
-            setMessage({ text: "Sua saúde é seu maior bem. Cuide-se com carinho." });
+            setMessage({ text: "Sua saúde é seu maior bem. Cuide-se com carinho.", category: "saúde" });
         } finally {
             setLoading(false);
         }
@@ -115,43 +114,113 @@ const MotivationCard = () => {
         window.speechSynthesis.speak(utterance);
     };
 
-    if (loading) return null; // Or skeleton
+    if (loading) {
+        return (
+            <div className="rounded-2xl p-5 bg-gradient-to-br from-slate-50 to-slate-100 border border-slate-200 animate-pulse mb-4">
+                <div className="h-4 bg-slate-200 rounded w-24 mb-3"></div>
+                <div className="h-5 bg-slate-200 rounded w-3/4 mb-2"></div>
+                <div className="h-4 bg-slate-200 rounded w-1/2"></div>
+            </div>
+        );
+    }
     if (!message) return null;
 
-    // Theme Config based on period
+    // Theme Config based on period with gradients
     const themes = {
-        morning: { bg: 'bg-orange-50', text: 'text-orange-900', icon: 'text-orange-500', border: 'border-orange-100' },
-        afternoon: { bg: 'bg-blue-50', text: 'text-blue-900', icon: 'text-blue-500', border: 'border-blue-100' },
-        night: { bg: 'bg-indigo-50', text: 'text-indigo-900', icon: 'text-indigo-500', border: 'border-indigo-100' }
+        morning: {
+            gradient: 'from-amber-50 via-orange-50 to-yellow-50',
+            border: 'border-amber-200/50',
+            iconBg: 'bg-gradient-to-br from-amber-400 to-orange-500',
+            text: 'text-amber-900',
+            textSecondary: 'text-amber-700',
+            badge: 'bg-amber-100 text-amber-700',
+            Icon: Sun,
+            greeting: 'Bom Dia'
+        },
+        afternoon: {
+            gradient: 'from-sky-50 via-blue-50 to-cyan-50',
+            border: 'border-sky-200/50',
+            iconBg: 'bg-gradient-to-br from-sky-400 to-blue-500',
+            text: 'text-sky-900',
+            textSecondary: 'text-sky-700',
+            badge: 'bg-sky-100 text-sky-700',
+            Icon: Cloud,
+            greeting: 'Boa Tarde'
+        },
+        night: {
+            gradient: 'from-violet-50 via-purple-50 to-indigo-50',
+            border: 'border-violet-200/50',
+            iconBg: 'bg-gradient-to-br from-violet-400 to-purple-600',
+            text: 'text-violet-900',
+            textSecondary: 'text-violet-700',
+            badge: 'bg-violet-100 text-violet-700',
+            Icon: Moon,
+            greeting: 'Boa Noite'
+        }
     };
 
     const theme = themes[period] || themes.morning;
+    const PeriodIcon = theme.Icon;
 
     return (
-        <div className={`rounded-xl p-4 ${theme.bg} border ${theme.border} relative overflow-hidden transition-all animate-in fade-in slide-in-from-top-4 shadow-sm mb-4`}>
-            {/* Background Icon Watermark */}
-            <Quote className={`absolute -right-2 -top-2 w-24 h-24 ${theme.icon} opacity-5 rotate-12`} />
+        <div className={clsx(
+            "rounded-2xl p-5 bg-gradient-to-br border relative overflow-hidden transition-all duration-500 animate-in fade-in slide-in-from-top-4 shadow-sm hover:shadow-md mb-4",
+            theme.gradient,
+            theme.border
+        )}>
+            {/* Background Decorations */}
+            <div className="absolute -right-6 -top-6 w-32 h-32 rounded-full bg-white/20 blur-2xl"></div>
+            <div className="absolute -left-8 -bottom-8 w-24 h-24 rounded-full bg-white/30 blur-xl"></div>
 
-            <div className="relative z-10">
+            {/* Floating Icon */}
+            <div className={clsx(
+                "absolute top-4 left-4 w-10 h-10 rounded-xl flex items-center justify-center shadow-lg",
+                theme.iconBg
+            )}>
+                <PeriodIcon size={20} className="text-white" />
+            </div>
+
+            <div className="relative z-10 pl-14">
+                {/* Header */}
                 <div className="flex justify-between items-start mb-3">
-                    <span className={`text-xs font-bold uppercase tracking-wider ${theme.icon} opacity-80 flex items-center gap-1`}>
-                        {period === 'morning' && '☀️ Bom dia'}
-                        {period === 'afternoon' && '🌤️ Boa tarde'}
-                        {period === 'night' && '🌙 Boa noite'} • Inspiração
-                    </span>
+                    <div>
+                        <span className={clsx("text-xs font-bold uppercase tracking-wider opacity-80", theme.textSecondary)}>
+                            {theme.greeting} • {message.category || 'Inspiração'}
+                        </span>
+                    </div>
 
+                    {/* Audio Button */}
                     <button
                         onClick={handleSpeak}
-                        className={`p-2 rounded-full ${isPlaying ? 'bg-red-100 text-red-600' : 'bg-white/50 hover:bg-white text-slate-600'} transition-colors`}
+                        className={clsx(
+                            "p-2 rounded-xl transition-all duration-300 shadow-sm",
+                            isPlaying
+                                ? "bg-red-100 text-red-600 scale-105"
+                                : "bg-white/70 hover:bg-white text-slate-500 hover:text-slate-700"
+                        )}
                         title={isPlaying ? "Parar leitura" : "Ouvir mensagem"}
                     >
                         {isPlaying ? <VolumeX size={18} /> : <Volume2 size={18} />}
                     </button>
                 </div>
 
-                <p className={`text-lg md:text-xl font-medium ${theme.text} leading-relaxed font-serif italic`}>
+                {/* Message Title (if exists) */}
+                {message.title && (
+                    <h3 className={clsx("font-bold text-base mb-1", theme.text)}>
+                        {message.title}
+                    </h3>
+                )}
+
+                {/* Main Message */}
+                <p className={clsx("text-base md:text-lg font-medium leading-relaxed", theme.text)}>
                     "{message.text}"
                 </p>
+
+                {/* Navigation Arrows (Optional - for future carousel) */}
+                <div className="absolute right-4 top-1/2 -translate-y-1/2 flex flex-col gap-1 opacity-20">
+                    <ChevronLeft size={20} className="text-slate-400" />
+                    <ChevronRight size={20} className="text-slate-400" />
+                </div>
             </div>
         </div>
     );
