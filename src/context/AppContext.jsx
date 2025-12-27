@@ -12,6 +12,7 @@ import { LogService } from '../services/logService';
 import { requestForToken } from '../utils/firebase';
 import { setBadge } from '../utils/badge';
 import { getISODate, parseISODate } from '../utils/dateFormatter';
+import * as SharingService from '../services/sharingService';
 
 const AppContext = createContext();
 
@@ -944,73 +945,19 @@ export const AppProvider = ({ children }) => {
         }
     };
 
-    // Compartilhamento
+    // === COMPARTILHAMENTO (usando SharingService) ===
     const sharePatient = async (patientId, email, permission) => {
         if (!user) return;
         try {
-            // 1. Tentar Inserir (DB)
-            const { data, error } = await supabase.from('patient_shares').insert([{
-                patient_id: patientId,
-                owner_id: user.id,
-                shared_with_email: email,
-                permission: permission
-            }]).select();
-
-            if (error) {
-                if (error.code === '23505') { // Unique violation
-                    showToast('Este paciente já está compartilhado com este email.', 'warning');
-                    return; // Retorna aqui para não tentar enviar email
-                } else {
-                    throw error;
-                }
+            const result = await SharingService.sharePatient(patientId, email, permission, user, patients);
+            if (result.alreadyShared) {
+                showToast('Este paciente já está compartilhado com este email.', 'warning');
+                return;
             }
-
-            // 2. Enviar Email (Backend)
-            // Lógica copiada e adaptada de shareAccount
-            try {
-                const apiUrl = import.meta.env.VITE_API_URL || '';
-                const endpoint = apiUrl ? `${apiUrl}/api/send-email` : '/api/send-email';
-                const patientName = patients.find(p => p.id === patientId)?.name || 'um paciente';
-
-                const { data: { session } } = await supabase.auth.getSession();
-                const emailResponse = await fetch(endpoint, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${session?.access_token}`
-                    },
-                    body: JSON.stringify({
-                        to: email,
-                        subject: `Convite de Acesso - Paciente ${patientName}`,
-                        text: `${user.user_metadata?.full_name || 'Alguém'} compartilhou o acesso ao paciente "${patientName}" com você no SiG Remédios.\n\nAcesse o app com este email para visualizar os dados.`,
-                        observations: `Permissão concedida: ${permission === 'edit' ? 'Editar' : 'Visualizar'}`,
-                        type: 'invite'
-                    })
-                });
-
-                if (!emailResponse.ok) {
-                    // Tentar ler JSON de erro
-                    const errorData = await emailResponse.json().catch(() => ({ error: 'Erro ao ler resposta do servidor (provavelmente HTML)' }));
-
-                    console.error('❌ Resposta de erro do email (RAW):', JSON.stringify(errorData, null, 2));
-
-                    const errorMessage = errorData.error || errorData.message || 'Falha desconhecida';
-                    showToast(`Erro no email: ${errorMessage}`, 'warning');
-                } else {
-                    showToast(`Convite enviado para ${email}!`, 'success');
-                }
-
-                // Atualizar lista localmente para refletir na UI imediatamente
-                const updatedPatient = patients.find(p => p.id === patientId);
-                if (updatedPatient) {
-                    fetchAllData(true);
-                }
-
-            } catch (emailError) {
-                console.error('Erro ao enviar email:', emailError);
-                showToast(`Erro de rede ao enviar email.`, 'warning');
+            if (result.success) {
+                showToast(result.emailSent ? `Convite enviado para ${email}!` : 'Compartilhado (email não enviado)', result.emailSent ? 'success' : 'warning');
+                fetchAllData(true);
             }
-
         } catch (error) {
             console.error('Erro ao compartilhar paciente:', error);
             showToast('Erro ao compartilhar paciente', 'error');
@@ -1019,129 +966,43 @@ export const AppProvider = ({ children }) => {
 
     const unsharePatient = async (patientId, sharedWithEmail) => {
         try {
-            const { error, count } = await supabase
-                .from('patient_shares')
-                .delete({ count: 'exact' })
-                .eq('patient_id', patientId)
-                .ilike('shared_with_email', sharedWithEmail);
-
-            if (error) throw error;
-
-            if (count === 0) {
-                console.warn('⚠️ Nenhuma permissão removida. Verifique se o email coincide.', { patientId, sharedWithEmail });
-                // Fallback: Try exact match just in case ILIKE fails for some specific reason? No, ILIKE covers equality.
-            } else {
-                console.log(`✅ ${count} permissão(ões) removida(s).`);
+            const result = await SharingService.unsharePatient(patientId, sharedWithEmail);
+            if (result.success) {
+                showToast('Compartilhamento removido.', 'info');
+                setPatients(prev => prev.map(p => {
+                    if (p.id === patientId) {
+                        return { ...p, sharedWith: p.sharedWith.filter(s => s.email !== sharedWithEmail) };
+                    }
+                    return p;
+                }));
             }
-
-            showToast('Compartilhamento removido.', 'info');
-
-            // Atualização Otimista da UI
-            setPatients(prev => prev.map(p => {
-                if (p.id === patientId) {
-                    return {
-                        ...p,
-                        sharedWith: p.sharedWith.filter(s => s.email !== sharedWithEmail)
-                    };
-                }
-                return p;
-            }));
-
         } catch (error) {
             console.error('Erro ao remover compartilhamento:', error);
             showToast('Erro ao remover compartilhamento', 'error');
         }
     };
 
-    // --- Compartilhamento de Conta (NOVO) ---
     const shareAccount = async (email) => {
         if (!user) return;
         try {
-            const { data, error } = await supabase.from('account_shares').insert([{
-                owner_id: user.id,
-                shared_with_email: email
-            }]).select();
-
-            if (error) {
-                if (error.code === '23505') {
-                    showToast('Esta conta já está compartilhada com este email.', 'warning');
-                } else {
-                    throw error;
-                }
-            } else {
-                setAccountShares(prev => [...prev, data[0]]);
-
-                // Enviar email de convite
-                try {
-                    const apiUrl = import.meta.env.VITE_API_URL || '';
-                    // Se for localhost (desenvolvimento), o proxy do Vite já lida com /api
-                    // Se for produção, VITE_API_URL deve estar definida ou o backend estar no mesmo domínio
-                    const endpoint = apiUrl ? `${apiUrl}/api/send-email` : '/api/send-email';
-
-                    const { data: { session } } = await supabase.auth.getSession();
-                    const emailResponse = await fetch(endpoint, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${session?.access_token}`
-                        },
-                        body: JSON.stringify({
-                            to: email,
-                            subject: 'Convite de Acesso - SiG Remédios',
-                            text: `${user.user_metadata?.full_name || 'Alguém'} compartilhou o acesso à conta do SiG Remédios com você.\n\nAgora você pode visualizar e gerenciar os pacientes, medicamentos e receitas desta conta.\n\nAcesse o app com este email para ver os dados compartilhados.`,
-                            observations: 'Acesso concedido via Compartilhamento de Conta.'
-                        })
-                    });
-
-                    if (!emailResponse.ok) {
-                        const errorData = await emailResponse.json().catch(() => ({}));
-                        throw new Error(errorData.error || `Erro HTTP: ${emailResponse.status}`);
-                    }
-
-                    // Enviar Email de Segurança para o Dono (Alerta)
-                    if (user.email) {
-                        try {
-                            await fetch(endpoint, {
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                    'Authorization': `Bearer ${session?.access_token}`
-                                },
-                                body: JSON.stringify({
-                                    to: user.email, // Email do dono
-                                    subject: 'Alerta de Segurança - Compartilhamento de Conta',
-                                    text: `Olá, ${user.user_metadata?.full_name || 'Usuário'}.\n\nSua conta do SiG Remédios acabou de ser compartilhada com: ${email}.\n\nSe você NÃO reconhece esta ação, acesse sua conta imediatamente, remova o compartilhamento e troque sua senha.\n\nData: ${new Date().toLocaleString('pt-BR')}`,
-                                    observations: 'Esta é uma mensagem automática de segurança.',
-                                    type: 'contact' // Usando template de "contact" ou similar para diferenciar, ou padrão
-                                })
-                            });
-                        } catch (securityError) {
-                            console.error('Falha ao enviar alerta de segurança:', securityError);
-                            // Não bloqueia o fluxo principal, apenas loga
-                        }
-                    }
-
-                    showToast(`Conta compartilhada e convite enviado para ${email}!`, 'success');
-                } catch (emailError) {
-                    console.error('Erro ao enviar email:', emailError);
-                    showToast(`Conta compartilhada, mas falha no envio do email: ${emailError.message}`, 'warning');
-                }
+            const result = await SharingService.shareAccount(email, user);
+            if (result.alreadyShared) {
+                showToast('Esta conta já está compartilhada com este email.', 'warning');
+                return;
+            }
+            if (result.success) {
+                setAccountShares(prev => [...prev, result.data]);
+                showToast(`Conta compartilhada e convite enviado para ${email}!`, 'success');
             }
         } catch (error) {
             console.error('Erro ao compartilhar conta:', error);
-            showToast(`Erro ao compartilhar: ${error.message || error.error_description || 'Falha na operação'}`, 'error');
+            showToast(`Erro ao compartilhar: ${error.message}`, 'error');
         }
     };
 
     const unshareAccount = async (id) => {
         try {
-            const { error } = await supabase
-                .from('account_shares')
-                .delete()
-                .eq('id', id);
-
-            if (error) throw error;
-
+            await SharingService.unshareAccount(id);
             setAccountShares(prev => prev.filter(s => s.id !== id));
             showToast('Compartilhamento de conta removido.', 'info');
         } catch (error) {
@@ -1150,21 +1011,12 @@ export const AppProvider = ({ children }) => {
         }
     };
 
-    // Aceitar/Rejeitar Compartilhamento
     const acceptShare = async (shareId) => {
         try {
-            const { error } = await supabase
-                .from('patient_shares')
-                .update({
-                    accepted_at: new Date().toISOString(),
-                    shared_with_id: user.id
-                })
-                .eq('id', shareId);
-
-            if (error) throw error;
+            await SharingService.acceptShare(shareId, user.id);
             showToast('Convite aceito!', 'success');
             fetchPendingShares();
-            fetchAllData(); // Refresh patients list
+            fetchAllData();
         } catch (error) {
             console.error('Erro ao aceitar compartilhamento:', error);
             showToast('Erro ao aceitar convite', 'error');
@@ -1173,12 +1025,7 @@ export const AppProvider = ({ children }) => {
 
     const rejectShare = async (shareId) => {
         try {
-            const { error } = await supabase
-                .from('patient_shares')
-                .delete()
-                .eq('id', shareId);
-
-            if (error) throw error;
+            await SharingService.rejectShare(shareId);
             showToast('Convite recusado.', 'info');
             fetchPendingShares();
         } catch (error) {
