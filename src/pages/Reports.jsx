@@ -570,7 +570,7 @@ const Reports = () => {
                     subject: subject,
                     text: text,
                     observations: emailData.observations,
-                    type: (emailType === 'birthday') ? 'contact' : 'report',
+                    type: (emailType === 'birthday') ? 'contact' : (emailType === 'stock' ? 'invite' : 'report'),
                     reportData: (typeof reportPayload !== 'undefined') ? reportPayload : null,
                     attachments: attachments
                 })
