@@ -577,8 +577,15 @@ const Reports = () => {
             });
 
             if (!response.ok) {
-                const errData = await response.json();
-                throw new Error(errData.error || 'Falha ao enviar email');
+                let errorMessage = `Erro ${response.status}: Falha ao enviar email`;
+                try {
+                    const errData = await response.json();
+                    errorMessage = errData.error || errData.message || errorMessage;
+                } catch (jsonError) {
+                    // Resposta não é JSON válido (ex: HTML de erro ou corpo vazio)
+                    console.warn('Resposta do servidor não é JSON:', jsonError);
+                }
+                throw new Error(errorMessage);
             }
 
             showToast('Email enviado com sucesso!', 'success');
