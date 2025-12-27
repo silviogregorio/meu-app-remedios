@@ -13,7 +13,7 @@ import { format, startOfMonth, endOfMonth, eachDayOfInterval, isToday, isSameDay
 import { ptBR } from 'date-fns/locale';
 import { generatePDFReport, generatePDFStockReport } from '../utils/pdfGenerator';
 import { getApiEndpoint } from '../config/api';
-import { formatDateTime, formatDate } from '../utils/dateFormatter';
+import { formatDateTime, formatDate, getISODate } from '../utils/dateFormatter';
 
 
 const ITEMS_PER_PAGE = 6;
@@ -208,7 +208,7 @@ const Reports = () => {
         for (let i = 6; i >= 0; i--) {
             const d = new Date(filters.endDate);
             d.setDate(d.getDate() - i);
-            const dateStr = d.toISOString().split('T')[0];
+            const dateStr = getISODate(d);
 
             const count = consumptionLog.filter(log => log.date === dateStr).length;
             activityData.push({ date: dateStr, count });
@@ -281,7 +281,7 @@ const Reports = () => {
             for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
                 prescription.times.forEach(time => {
                     expectedDoses.push({
-                        date: d.toISOString().split('T')[0],
+                        date: getISODate(d),
                         time: time,
                         patientId: prescription.patientId,
                         medicationId: prescription.medicationId,

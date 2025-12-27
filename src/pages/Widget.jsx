@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
-import { formatTime } from '../utils/dateFormatter';
+import { formatTime, getISODate } from '../utils/dateFormatter';
 import { Check, Clock, Pill, User, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import PillIcon from '../components/ui/PillIcon';
@@ -15,7 +15,7 @@ const Widget = () => {
     useEffect(() => {
         const calculateNext = () => {
             const now = new Date();
-            const today = now.toISOString().split('T')[0];
+            const today = getISODate();
             const currentTime = formatTime(now);
 
             let dailyItems = [];
@@ -93,14 +93,14 @@ const Widget = () => {
 
         setLoading(true);
         try {
-            const today = new Date().toISOString().split('T')[0];
+
             await logConsumption({
                 medicationId: nextDose.medicationId,
                 patientId: nextDose.patientId,
                 doseAmount: nextDose.doseAmount,
                 unit: nextDose.medicationType,
                 scheduledTime: nextDose.time,
-                date: today,
+                date: getISODate(),
                 status: 'taken'
             });
         } catch (error) {

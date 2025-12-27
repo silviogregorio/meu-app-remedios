@@ -8,7 +8,7 @@ import Modal from '../components/ui/Modal';
 import ConfirmationModal from '../components/ui/ConfirmationModal';
 import Pagination from '../components/ui/Pagination';
 import { Plus, Edit2, Trash2, X, Search, ClipboardList, Clock, User, Pill, Calendar, Camera, AlertTriangle, Info } from 'lucide-react';
-import { formatDate } from '../utils/dateFormatter';
+import { formatDate, getISODate } from '../utils/dateFormatter';
 import { checkInteractions } from '../data/drugInteractions';
 
 const ITEMS_PER_PAGE = 6;
@@ -32,21 +32,12 @@ const Prescriptions = () => {
     const [currentPage, setCurrentPage] = useState(1);
 
     // Helper for local date (YYYY-MM-DD)
-    const getLocalToday = () => {
-        const date = new Date();
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
-    };
+    const getLocalToday = () => getISODate();
 
     const getFutureDate = (days) => {
         const date = new Date();
         date.setDate(date.getDate() + days);
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
+        return getISODate(date);
     };
 
     const [formData, setFormData] = useState({
@@ -89,7 +80,7 @@ const Prescriptions = () => {
     // Drug Interaction Check
     useEffect(() => {
         if (formData.medicationId && formData.patientId) {
-            const today = new Date().toISOString().split('T')[0];
+            const today = getISODate();
             const selectedMed = medications.find(m => m.id === formData.medicationId);
 
             // Filter only ACTIVE prescriptions (Continuous or EndDate >= Today)
@@ -201,7 +192,7 @@ const Prescriptions = () => {
         setFormData({
             ...formData,
             duration: e.target.value,
-            endDate: end.toISOString().split('T')[0]
+            endDate: getISODate(end)
         });
     };
 
@@ -227,7 +218,7 @@ const Prescriptions = () => {
         setFormData({
             ...formData,
             startDate: newStartDate,
-            endDate: end.toISOString().split('T')[0]
+            endDate: getISODate(end)
         });
     };
 

@@ -68,3 +68,13 @@ export const formatDateFull = (date) => {
     const week = format(d, 'EEEE', { locale: ptBR });
     return `${week.charAt(0).toUpperCase() + week.slice(1)}, ${day}`;
 };
+/**
+ * Returns the current date in YYYY-MM-DD format (local time)
+ * @returns {string}
+ */
+export const getISODate = (date = new Date()) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+};

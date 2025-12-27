@@ -1,3 +1,5 @@
+import { getISODate } from './dateFormatter';
+
 export const generateICS = (scheduleItems) => {
     // Basic VCALENDAR header
     let icsContent = [
@@ -81,7 +83,7 @@ export const generateFutureSchedule = (prescriptions, medications, patients, day
     for (let i = 0; i < days; i++) {
         const currentDate = new Date(today);
         currentDate.setDate(today.getDate() + i);
-        const dateStr = currentDate.toISOString().split('T')[0];
+        const dateStr = getISODate(currentDate);
 
         // Normalize for comparison
         currentDate.setHours(0, 0, 0, 0);

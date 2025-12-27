@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { useApp } from '../context/AppContext';
 import { useNotifications } from '../hooks/useNotifications';
 import { format } from 'date-fns';
+import { getISODate } from '../utils/dateFormatter';
 
 const NotificationManager = () => {
     const { prescriptions, medications, consumptionLog, patients, accessibility, speak } = useApp();
@@ -13,7 +14,7 @@ const NotificationManager = () => {
 
         const checkDoses = () => {
             const now = new Date();
-            const todayStr = now.toISOString().split('T')[0];
+            const todayStr = getISODate();
 
             // Calculate schedule for today (simplified version of Home.jsx logic)
             const schedule = [];

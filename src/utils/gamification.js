@@ -1,4 +1,5 @@
 import { generateDailySchedule } from './scheduleGenerator';
+import { getISODate } from './dateFormatter';
 
 // Helper to check if a specific date was "perfect" (all scheduled meds taken)
 const isDayPerfect = (dateStr, prescriptions, consumptionLog) => {
@@ -43,7 +44,7 @@ export const calculateStreak = (prescriptions, consumptionLog) => {
     let maxDays = 365;
 
     while (maxDays > 0) {
-        const dateStr = d.toISOString().split('T')[0];
+        const dateStr = getISODate(d);
 
         // Optimize: If date is before ALL prescriptions start dates, stop.
         // Find earliest start date
@@ -63,7 +64,7 @@ export const calculateStreak = (prescriptions, consumptionLog) => {
     // If today is empty (Rest day), it counts as perfect automatically? 
     // Usually Apps display "Streak: X" where X includes today ONLY if today is done.
 
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = getISODate();
     if (isDayPerfect(todayStr, prescriptions, consumptionLog)) {
         // Only increment if today is *actually* perfect.
         // But simply "isDayPerfect" returns true for empty days.

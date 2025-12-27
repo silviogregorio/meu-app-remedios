@@ -1,6 +1,7 @@
 /**
  * Utility functions for Google Calendar integration
  */
+import { getISODate } from './dateFormatter';
 
 /**
  * Generates a Google Calendar URL for adding a medication reminder
@@ -63,7 +64,7 @@ ${instructions ? `Instruções: ${instructions}` : ''}
     let recurrence = 'RRULE:FREQ=DAILY';
     if (prescription.endDate) {
         const endDateObj = new Date(prescription.endDate);
-        const untilDate = endDateObj.toISOString().split('T')[0].replace(/-/g, '');
+        const untilDate = getISODate(endDateObj).replace(/-/g, '');
         recurrence += `;UNTIL=${untilDate}`;
     }
 

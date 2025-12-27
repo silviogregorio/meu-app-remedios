@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { useApp } from '../../context/AppContext';
 import { Heart, AlertTriangle, Phone, Printer, X, Droplet, Mail, MessageCircle, Download } from 'lucide-react';
 import Button from '../ui/Button';
+import { getISODate } from '../../utils/dateFormatter';
 
 import { supabase } from '../../lib/supabase';
 import { getApiEndpoint } from '../../config/api';
@@ -67,7 +68,7 @@ const SOSCard = ({ onClose }) => {
         // Continuous Use OR EndDate >= Today
         if (p.continuousUse) return true;
 
-        const today = new Date().toISOString().split('T')[0];
+        const today = getISODate();
         return p.endDate >= today;
     });
 

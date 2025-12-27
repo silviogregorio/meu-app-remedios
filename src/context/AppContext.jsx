@@ -11,6 +11,7 @@ import { SpecialtyService } from '../services/specialtyService';
 import { LogService } from '../services/logService';
 import { requestForToken } from '../utils/firebase';
 import { setBadge } from '../utils/badge';
+import { getISODate } from '../utils/dateFormatter';
 
 const AppContext = createContext();
 
@@ -334,7 +335,7 @@ export const AppProvider = ({ children }) => {
 
         const updateBadge = () => {
             const now = new Date();
-            const today = now.toISOString().split('T')[0];
+            const today = getISODate();
             const currentTime = now.toTimeString().slice(0, 5);
 
             let pendingCount = 0;
@@ -431,7 +432,7 @@ export const AppProvider = ({ children }) => {
 
         let alertsSent = 0;
         const now = new Date(); // Hora "Servidor"
-        const todayStr = now.toISOString().split('T')[0];
+        const todayStr = getISODate();
 
         // Iterar prescrições ativas
         const activePrescriptions = prescriptions.filter(p => !p.endDate || new Date(p.endDate) >= new Date().setHours(0, 0, 0, 0));
@@ -718,7 +719,7 @@ export const AppProvider = ({ children }) => {
             showToast(formatLowStockMessage(med.name, daysRemaining), 'warning');
 
             // 4. Throttling: Verificar se já alertou hoje
-            const todayStr = new Date().toISOString().split('T')[0];
+            const todayStr = getISODate();
             if (med.last_alert_date === todayStr) {
                 console.log('Alerta de estoque já enviado hoje para', med.name);
                 return;

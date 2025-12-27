@@ -7,7 +7,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useNavigate } from 'react-router-dom';
 import { Check, Clock, AlertCircle, Calendar, User, Pill, X, Bell, Calendar as CalendarIcon, DownloadCloud, CircleHelp, Trophy, Zap, Flame, Activity, Star, ShieldCheck, ThumbsUp, Medal, Sparkles, Stethoscope, ChevronRight, Armchair } from 'lucide-react';
-import { formatDate, formatTime, formatDateFull } from '../utils/dateFormatter';
+import { formatDate, formatTime, formatDateFull, getISODate } from '../utils/dateFormatter';
 import clsx from 'clsx';
 import { useNotifications } from '../hooks/useNotifications';
 import confetti from 'canvas-confetti';
@@ -41,7 +41,7 @@ const Home = () => {
     const [offersLoading, setOffersLoading] = useState(true);
     const [isInitialLoading, setIsInitialLoading] = useState(true);
 
-    const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+    const [selectedDate, setSelectedDate] = useState(getISODate());
     const [selectedPatient, setSelectedPatient] = useState('all');
     const [selectedMedication, setSelectedMedication] = useState('all');
     const [selectedStatus, setSelectedStatus] = useState('all');
@@ -51,11 +51,11 @@ const Home = () => {
     const [showElderlyConfirm, setShowElderlyConfirm] = useState(false);
 
     // Derived state
-    const hasActiveFilters = selectedPatient !== 'all' || selectedMedication !== 'all' || selectedStatus !== 'all' || selectedDate !== new Date().toISOString().split('T')[0];
+    const hasActiveFilters = selectedPatient !== 'all' || selectedMedication !== 'all' || selectedStatus !== 'all' || selectedDate !== getISODate();
 
     // Handlers
     const clearFilters = () => {
-        setSelectedDate(new Date().toISOString().split('T')[0]);
+        setSelectedDate(getISODate());
         setSelectedPatient('all');
         setSelectedMedication('all');
         setSelectedStatus('all');
@@ -826,7 +826,7 @@ const Home = () => {
             {/* Schedule List */}
             <div id="tour-schedule-list">
                 <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-4">
-                    {selectedDate === new Date().toISOString().split('T')[0] ? 'Próximos Horários' : 'Horários do Dia'}
+                    {selectedDate === getISODate() ? 'Próximos Horários' : 'Horários do Dia'}
                 </h2>
                 <div className="flex flex-col gap-3">
                     {(() => {

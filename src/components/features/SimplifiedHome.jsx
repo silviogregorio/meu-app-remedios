@@ -6,6 +6,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import PillIcon from '../ui/PillIcon';
 import ConfirmationModal from '../ui/ConfirmationModal';
+import { getISODate } from '../../utils/dateFormatter';
 
 const SimplifiedHome = () => {
     const {
@@ -32,7 +33,7 @@ const SimplifiedHome = () => {
     useEffect(() => {
         const calculateNextMedication = () => {
             const now = new Date();
-            const todayStr = now.toISOString().split('T')[0];
+            const todayStr = getISODate();
             const currentTime = now.toTimeString().slice(0, 5);
 
             let candidates = [];
@@ -124,7 +125,7 @@ const SimplifiedHome = () => {
         if (!nextMedication) return;
 
         const now = new Date();
-        const todayStr = now.toISOString().split('T')[0];
+        const todayStr = getISODate();
 
         await logConsumption({
             medicationId: nextMedication.medicationId,
