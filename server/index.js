@@ -149,16 +149,49 @@ app.use((req, res, next) => {
     next();
 });
 
-// Rota DEDICADA para Contato (Landing Page) - Isolamento de falha
-app.post('/api/contact', async (req, res) => {
+// Rate limiter específico para contato (mais restritivo)
+const contactLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000, // 1 hour
+    max: 5, // limit each IP to 5 contact requests per hour
+    message: {
+        success: false,
+        error: 'Muitas mensagens enviadas. Tente novamente em 1 hora.'
+    }
+});
+
+// Rota DEDICADA para Contato (Landing Page) - COM PROTEÇÃO ANTI-BOT
+app.post('/api/contact', contactLimiter, async (req, res) => {
     try {
-        console.log(`[Contact] Recebendo mensagem de ${req.body.name}`);
+        const { name, email, phone, message, website, formLoadTime } = req.body;
 
-        const { name, email, phone, message } = req.body;
-
-        if (!name || (!email && !req.body.senderEmail) || !message) {
-            return res.status(400).json({ success: false, error: 'Campos obrigatórios: nome, email, mensagem' });
+        // PROTEÇÃO 1: Honeypot field (bots fill this, humans don't see it)
+        if (website && website.trim() !== '') {
+            console.warn('[Contact] Bot detected via honeypot:', req.ip);
+            // Return success to not reveal detection, but don't send email
+            return res.json({ success: true, message: 'Mensagem enviada com sucesso!' });
         }
+
+        // PROTEÇÃO 2: Time-based check (form must be open for at least 3 seconds)
+        if (formLoadTime) {
+            const elapsed = Date.now() - parseInt(formLoadTime);
+            if (elapsed < 3000) { // Less than 3 seconds
+                console.warn('[Contact] Bot detected via timing:', req.ip, elapsed + 'ms');
+                return res.json({ success: true, message: 'Mensagem enviada com sucesso!' });
+            }
+        }
+
+        // PROTEÇÃO 3: Basic validation
+        if (!name || name.length < 2 || name.length > 100) {
+            return res.status(400).json({ success: false, error: 'Nome inválido' });
+        }
+        if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            return res.status(400).json({ success: false, error: 'Email inválido' });
+        }
+        if (!message || message.length < 10 || message.length > 2000) {
+            return res.status(400).json({ success: false, error: 'Mensagem deve ter entre 10 e 2000 caracteres' });
+        }
+
+        console.log(`[Contact] Recebendo mensagem de ${name}`);
 
         // Hardcoded destination for security and simplicity
         const to = 'sigsis@gmail.com';
@@ -168,10 +201,10 @@ app.post('/api/contact', async (req, res) => {
         const result = await sendEmail({
             to,
             subject,
-            text: message, // O template usa 'text' para preencher 'message'
+            text: message,
             type: 'contact',
             senderName: name,
-            senderEmail: email || req.body.senderEmail,
+            senderEmail: email,
             phone,
             observations: `Contato via Web de: ${email}`
         });

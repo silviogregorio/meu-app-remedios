@@ -10,12 +10,13 @@ import HealthTips from '../components/features/HealthTips';
 const Landing = () => {
     const navigate = useNavigate();
 
-    const [contactForm, setContactForm] = useState({ name: '', email: '', phone: '', message: '' });
+    const [contactForm, setContactForm] = useState({ name: '', email: '', phone: '', message: '', website: '' });
     const [sendingContact, setSendingContact] = useState(false);
     const [contactStatus, setContactStatus] = useState(null); // { type: 'success' | 'error', message: '' }
     const [sponsors, setSponsors] = useState([]);
     const [isInstalled, setIsInstalled] = useState(false);
     const [installPrompt, setInstallPrompt] = useState(null);
+    const [formLoadTime] = useState(Date.now()); // Anti-bot: track when form was loaded
 
     useEffect(() => {
         // Check if already installed
@@ -107,7 +108,9 @@ const Landing = () => {
                     name: contactForm.name,
                     email: contactForm.email,
                     phone: contactForm.phone,
-                    message: contactForm.message
+                    message: contactForm.message,
+                    website: contactForm.website, // Honeypot field (should be empty)
+                    formLoadTime // Anti-bot: time when form was loaded
                 })
             });
 
@@ -127,7 +130,7 @@ const Landing = () => {
                     colors: ['#10b981', '#3b82f6', '#f43f5e', '#f59e0b']
                 });
 
-                setContactForm({ name: '', email: '', phone: '', message: '' });
+                setContactForm({ name: '', email: '', phone: '', message: '', website: '' });
                 // Limpar mensagem de sucesso após 5 segundos
                 setTimeout(() => setContactStatus(null), 5000);
             } else {
