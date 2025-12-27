@@ -453,13 +453,21 @@ const handleSOSInsert = async (payload) => {
         }
 
         // TEXTOS
-        const subject = `🚨 EMERGÊNCIA SOS: ${patient?.name || 'Alerta'}`;
+        const isHelpRequest = alert.alert_type === 'help_request';
+        const subject = isHelpRequest
+            ? `💡 PEDIDO DE AJUDA: ${patient?.name || 'Alerta'}`
+            : `🚨 EMERGÊNCIA SOS: ${patient?.name || 'Alerta'}`;
+
         // Título simplificado para o push notification
-        const pushTitle = `🚨 EMERGÊNCIA SOS`;
+        const pushTitle = isHelpRequest ? `💡 PEDIDO DE AJUDA` : `🚨 EMERGÊNCIA SOS`;
+
         const locationText = displayAddress
             ? `${displayAddress}\n(Ver no mapa: ${locationUrl || 'Coordenadas indisponíveis'})`
             : locationUrl || 'Localização não disponível';
-        const text = `ALERTA DE PÂNICO!\n\nPaciente: ${patient?.name}\nMedicamentos: ${medicationsList.join(', ') || 'N/A'}\nContato Emergência: ${patient?.emergency_contact_name || 'N/A'} (${patient?.emergency_contact_phone || 'N/A'})\n\nLocalização: ${locationText}\nPrecisão: ${Math.round(alert.accuracy || 0)}m`;
+
+        const text = isHelpRequest
+            ? `PEDIDO DE AJUDA DO APP\n\nPaciente: ${patient?.name}\n\nO paciente solicitou assistência com o uso do aplicativo.\n\nLocalização: ${locationText}`
+            : `ALERTA DE PÂNICO!\n\nPaciente: ${patient?.name}\nMedicamentos: ${medicationsList.join(', ') || 'N/A'}\nContato Emergência: ${patient?.emergency_contact_name || 'N/A'} (${patient?.emergency_contact_phone || 'N/A'})\n\nLocalização: ${locationText}\nPrecisão: ${Math.round(alert.accuracy || 0)}m`;
 
         // ENVIAR EMAILS com dados completos
         for (const to of uniqueRecipients) {
@@ -555,27 +563,28 @@ const handleSOSInsert = async (payload) => {
             const medInfo = `[${ageText || 'Idade N/A'} | Sangue: ${bloodType}]`;
 
             // Formatar texto para o Push Body
-            // REMOVED Name from start to avoid duplication
             const pushPhoneText = phoneForWhatsapp ? `\n📞 Tel: ${formattedPhone}` : '';
             const patientNameText = patient?.name || 'Alguém';
-            const pushBody = `${patientNameText}\n${medInfo}\nPRECISA DE AJUDA!${pushPhoneText}\n📍 ${displayAddress || 'Ver localização'}\n\n👆 Clique aqui para abrir o Mapa`;
+            const pushActionText = isHelpRequest ? 'precisa de ajuda com o aplicativo.' : 'PRECISA DE AJUDA URGENTE!';
+            const pushBody = `${patientNameText}\n${isHelpRequest ? '' : medInfo + '\n'}${pushActionText}${pushPhoneText}\n📍 ${displayAddress || 'Ver localização'}\n\n👆 Clique aqui para abrir o Mapa`;
 
             try {
                 console.log(`📱 [BACKEND] Tentando push para ${fcmTokens.length} token(s)`);
-                // Whatsapp message pre-filled - CLEANER FORMAT with Unicode Escapes and Phone
-                // 🚨 = 🚨, 📍 = 📍
-                const whatsappText = `Olá, sou ${patient?.name || 'o paciente'}.\n_*PRECISO DE AJUDA URGENTE!*_\n\nIdade: ${ageText || 'N/A'}\nTipo Sanguíneo: *${bloodType}*\nTelefone: ${formattedPhone}\n\n*Minha localização:*\n${locationUrl || 'https://sigremedios.vercel.app'}`;
+
+                const whatsappText = isHelpRequest
+                    ? `Olá, sou ${patient?.name || 'o paciente'}.\n_*Estou com dificuldade no aplicativo e preciso de uma ajudinha.*_\n\n*Minha localização:*\n${locationUrl || 'https://sigremedios.vercel.app'}`
+                    : `Olá, sou ${patient?.name || 'o paciente'}.\n_*PRECISO DE AJUDA URGENTE!*_\n\nIdade: ${ageText || 'N/A'}\nTipo Sanguíneo: *${bloodType}*\nTelefone: ${formattedPhone}\n\n*Minha localização:*\n${locationUrl || 'https://sigremedios.vercel.app'}`;
 
                 // Add appUrl for body click (to keep user in app)
                 const appUrl = 'https://sigremedios.vercel.app/';
 
                 const pushData = {
-                    type: 'sos',
+                    type: isHelpRequest ? 'help_request' : 'sos',
                     alertId: String(alert.id),
                     mapUrl: locationUrl || 'https://sigremedios.vercel.app',
                     appUrl: appUrl,
-                    phone: String(digits), // RAW digits for WhatsApp link
-                    formattedPhone: String(formattedPhone), // FOR TOAST DISPLAY
+                    phone: String(digits),
+                    formattedPhone: String(formattedPhone),
                     patientName: String(patient?.name || 'Alguém'),
                     whatsappMessage: String(whatsappText)
                 };

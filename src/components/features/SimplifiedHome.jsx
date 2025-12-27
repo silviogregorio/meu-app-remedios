@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
-import { Pill, Activity, Smartphone, Settings, LogOut, Phone, FileHeart, AlertTriangle } from 'lucide-react';
+import { Pill, Activity, Smartphone, Settings, LayoutGrid, Phone, FileHeart, AlertTriangle, Volume2, HelpCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -16,7 +16,9 @@ const SimplifiedHome = () => {
         consumptionLog,
         logConsumption,
         updateUserPreferences,
-        userPreferences
+        userPreferences,
+        speak,
+        requestHelp
     } = useApp();
     const navigate = useNavigate();
 
@@ -181,7 +183,7 @@ const SimplifiedHome = () => {
     return (
         <div className="min-h-screen bg-slate-50 flex flex-col p-4 gap-4 animate-in fade-in duration-700">
             {/* Header / Date */}
-            <div className="flex justify-between items-center bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
+            <div className="flex flex-wrap justify-between items-center bg-white p-6 rounded-3xl shadow-sm border border-slate-100 gap-4">
                 <div>
                     <h1 className="text-3xl font-black text-slate-900">
                         {format(new Date(), "EEEE", { locale: ptBR }).split('-')[0]}
@@ -192,11 +194,10 @@ const SimplifiedHome = () => {
                 </div>
                 <button
                     onClick={handleExitMode}
-                    className="flex items-center gap-2 px-4 py-3 bg-slate-100 hover:bg-slate-200 rounded-xl text-slate-600 font-bold transition-colors"
+                    className="flex items-center gap-2 px-4 py-3 bg-slate-100 hover:bg-slate-200 rounded-xl text-slate-600 font-bold transition-colors shadow-sm"
                 >
-                    <LogOut size={20} />
-                    <span className="hidden sm:inline">Sair do Modo Simplificado</span>
-                    <span className="sm:hidden">Sair</span>
+                    <LayoutGrid size={20} />
+                    <span>Sair do Modo Sênior</span>
                 </button>
             </div>
 
@@ -207,7 +208,7 @@ const SimplifiedHome = () => {
                 {nextMedication ? (
                     <button
                         onClick={handleTakeMedication}
-                        className="w-full bg-blue-600 rounded-[2rem] p-6 shadow-xl shadow-blue-200 active:scale-95 transition-all flex flex-row items-center justify-between gap-4 group h-48"
+                        className="w-full bg-blue-600 rounded-[2rem] p-6 shadow-xl shadow-blue-200 active:scale-95 transition-all flex flex-wrap sm:flex-nowrap items-center justify-between gap-4 group min-h-[12rem]"
                     >
                         <div className="flex items-center gap-6">
                             <div className="bg-white/20 p-4 rounded-full backdrop-blur-sm group-hover:bg-white/30 transition-colors shrink-0">
@@ -220,9 +221,21 @@ const SimplifiedHome = () => {
                             </div>
                             <div className="text-left">
                                 <p className="text-blue-100 text-lg font-medium mb-0.5">Tomar Agora ({nextMedication.time})</p>
-                                <h2 className="text-3xl font-black text-white leading-tight line-clamp-1">
-                                    {nextMedication.medication.name}
-                                </h2>
+                                <div className="flex flex-wrap items-center gap-2">
+                                    <h2 className="text-3xl font-black text-white leading-tight">
+                                        {nextMedication.medication.name}
+                                    </h2>
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            speak(`Remédio: ${nextMedication.medication.name}. Dose: ${nextMedication.doseAmount} ${nextMedication.medication.unit || 'unidade'}. ${nextMedication.instructions || ''}`);
+                                        }}
+                                        className="p-3 bg-white/20 hover:bg-white/40 rounded-full transition-colors"
+                                        title="Ouvir Instrução"
+                                    >
+                                        <Volume2 size={24} className="text-white" />
+                                    </button>
+                                </div>
                                 <p className="text-blue-200 text-lg font-medium">
                                     {Number(nextMedication.doseAmount)} {nextMedication.medication.unit || 'unidade(s)'}
                                 </p>
@@ -233,35 +246,47 @@ const SimplifiedHome = () => {
                         </div>
                     </button>
                 ) : (
-                    <div className="w-full bg-emerald-500 rounded-[2rem] p-6 shadow-xl shadow-emerald-200 flex flex-row items-center justify-center gap-6 h-48">
+                    <div className="w-full bg-emerald-500 rounded-[2rem] p-6 shadow-xl shadow-emerald-200 flex flex-wrap sm:flex-nowrap items-center justify-center gap-6 min-h-[12rem]">
                         <div className="bg-white/20 p-5 rounded-full shrink-0">
                             <Activity size={56} className="text-white" />
                         </div>
                         <div className="text-left">
                             <h2 className="text-3xl font-black text-white">Tudo Certo!</h2>
-                            <p className="text-emerald-100 text-lg leading-tight mt-1 max-w-[250px]">Você tomou todos os remédios por enquanto.</p>
+                            <p className="text-emerald-100 text-lg leading-tight mt-1">Você tomou todos os remédios por enquanto.</p>
                         </div>
                     </div>
                 )}
 
                 {/* 2. Secondary Actions Grid */}
-                <div className="grid grid-cols-2 gap-4 h-48">
+                <div className="grid grid-cols-2 gap-4">
                     {/* SOS Button */}
                     <button
                         onClick={() => setShowSOSConfirm(true)}
-                        className="bg-red-500 rounded-3xl p-4 shadow-lg shadow-red-200 active:scale-95 transition-all flex flex-col items-center justify-center gap-2"
+                        className="bg-red-500 rounded-3xl p-6 shadow-lg shadow-red-200 active:scale-95 transition-all flex flex-col items-center justify-center gap-2 min-h-[10rem]"
                     >
                         <AlertTriangle size={48} className="text-white fill-red-500 stroke-2" />
                         <span className="text-white font-black text-2xl tracking-wide">SOS</span>
                     </button>
 
+                    {/* Remote Assistance Button */}
+                    <button
+                        onClick={async () => {
+                            const targetPatient = patients.find(p => p.userId === user?.id) || patients[0];
+                            if (targetPatient) await requestHelp(targetPatient.id);
+                        }}
+                        className="bg-amber-400 rounded-3xl p-6 shadow-lg shadow-amber-100 active:scale-95 transition-all flex flex-col items-center justify-center gap-2 min-h-[10rem]"
+                    >
+                        <HelpCircle size={48} className="text-slate-900" />
+                        <span className="text-slate-900 font-black text-xl tracking-wide leading-tight">Dúvida / Ajuda</span>
+                    </button>
+
                     {/* Health Card / Phone */}
                     <button
-                        onClick={() => navigate('/share')} // Or a specific card modal
-                        className="bg-white rounded-3xl p-4 shadow-lg border border-slate-100 active:scale-95 transition-all flex flex-col items-center justify-center gap-2"
+                        onClick={() => navigate('/share')}
+                        className="bg-white rounded-3xl p-6 shadow-lg border border-slate-100 active:scale-95 transition-all flex flex-wrap items-center justify-center gap-4 col-span-2 min-h-[6rem]"
                     >
-                        <FileHeart size={48} className="text-slate-800" />
-                        <span className="text-slate-800 font-bold text-xl">Meu Cartão</span>
+                        <FileHeart size={40} className="text-slate-800" />
+                        <span className="text-slate-800 font-bold text-2xl">Meu Cartão SOS</span>
                     </button>
                 </div>
             </div>
@@ -313,10 +338,10 @@ const SimplifiedHome = () => {
                 isOpen={showExitConfirm}
                 onClose={() => setShowExitConfirm(false)}
                 onConfirm={() => updateUserPreferences({ simplified_mode: false })}
-                title="Sair do Modo Simplificado?"
-                description="Você voltará para a interface completa do aplicativo."
-                confirmText="Sim, Voltar ao Normal"
-                cancelText="Ficar Aqui"
+                title="Voltar ao Painel Completo?"
+                description="Você voltará para a visualização com todas as funções, relatórios e dashboards do sistema. Deseja continuar?"
+                confirmText="Sim, Ir para Painel"
+                cancelText="Não, Ficar aqui"
                 variant="primary"
             />
         </div>

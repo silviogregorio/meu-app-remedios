@@ -2,6 +2,7 @@ import React from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { Activity } from 'lucide-react';
 
 const ActivityChart = ({ data }) => {
     // data format: array of { date: 'YYYY-MM-DD', count: number }
@@ -27,14 +28,17 @@ const ActivityChart = ({ data }) => {
 
     if (!hasActivity) {
         return (
-            <div className="h-64 flex items-center justify-center text-slate-400 bg-slate-50 rounded-xl border border-dashed border-slate-200">
-                Sem atividade registrada nesta semana
+            <div className="flex-1 min-h-[160px] flex flex-col items-center justify-center text-slate-400 bg-slate-50/50 rounded-2xl border border-dashed border-slate-200 py-6 px-4 text-center">
+                <div className="bg-white p-3 rounded-full shadow-sm mb-3">
+                    <Activity size={24} className="text-slate-300" />
+                </div>
+                <p className="text-sm font-medium">Sem atividade registrada nesta semana</p>
             </div>
         );
     }
 
     return (
-        <div className="w-full h-72">
+        <div className="w-full h-full min-h-[300px] relative overflow-hidden">
             <ResponsiveContainer width="100%" height="100%">
                 <BarChart
                     data={data}

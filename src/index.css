@@ -36,6 +36,7 @@
 
   /* Typography */
   --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --font-scale: 1;
 
   /* Spacing & Layout */
   --radius-sm: 0.5rem;
@@ -54,6 +55,10 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+}
+
+html {
+  font-size: calc(100% * var(--font-scale));
 }
 
 body {
@@ -222,10 +227,9 @@ textarea {
 
 /* --- Senior Mode Accessibility --- */
 
-/* 1. Large Text Mode */
+/* 1. Large Text Mode (Legacy support, now controlled by slider) */
 .senior-text {
-  font-size: 125% !important;
-  /* Scale up everything 25% */
+  --font-scale: 1.25 !important;
 }
 
 /* 2. High Contrast Mode */

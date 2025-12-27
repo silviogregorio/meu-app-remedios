@@ -97,13 +97,13 @@ export const generateWeeklySummaryMessage = (allStats) => {
 
             if (stats.adherenceRate !== null) {
                 text += `${emojiCheck} *Adesão:* ${stats.adherenceRate}%\n`;
-                text += `${emojiPill} *Remédios:* ${stats.takenDoses} tomados`;
+                text += `${emojiPill} *Medicações:* ${stats.takenDoses} tomadas`;
                 if (stats.forgottenDoses > 0) {
-                    text += `, ${stats.forgottenDoses} esquecidos`;
+                    text += `, ${stats.forgottenDoses} esquecidas`;
                 }
                 text += '\n';
             } else {
-                text += `${emojiPill} Sem registros de medicamentos\n`;
+                text += `${emojiPill} Sem registros de medicações\n`;
             }
 
             if (stats.avgPressure) {

@@ -35,7 +35,8 @@ export const AppProvider = ({ children }) => {
     const [accessibility, setAccessibility] = useState({
         highContrast: false,
         largeText: false,
-        voiceEnabled: false
+        voiceEnabled: false,
+        fontSize: 100
     });
     const [vacationMode, setVacationMode] = useState(false);
     const [userPreferences, setUserPreferences] = useState({});
@@ -1232,6 +1233,26 @@ export const AppProvider = ({ children }) => {
         }
     };
 
+    // Aplicar Acessibilidade (Side Effects)
+    useEffect(() => {
+        document.documentElement.style.setProperty('--font-scale', (accessibility.fontSize || 100) / 100);
+    }, [accessibility.fontSize]);
+
+    // Síntese de Voz (TTS)
+    const speak = (text) => {
+        if (!('speechSynthesis' in window)) return;
+
+        // Cancelar qualquer fala em andamento para não encavalar
+        window.speechSynthesis.cancel();
+
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'pt-BR';
+        utterance.rate = 0.9; // Um pouco mais devagar para idosos
+        utterance.pitch = 1.0;
+
+        window.speechSynthesis.speak(utterance);
+    };
+
 
     // Estado Derivado para compatibilidade de UI
     const userPatients = patients.filter(p => p.userId === user?.id);
@@ -1239,42 +1260,54 @@ export const AppProvider = ({ children }) => {
     const userMedications = medications;
     const userPrescriptions = prescriptions;
 
-    const triggerPanicAlert = async (patientId, lat, lng, accuracy = null, address = null) => {
+    const triggerPanicAlert = async (patientId, lat, lng, accuracy = null, address = null, type = 'emergency') => {
         if (!user) return;
         try {
-            // Tenta salvar o log no banco, mas não trava o envio do email se falhar
-            try {
-                const insertData = {
+            // Tenta salvar o log no banco
+            const { data: newAlert, error: insertError } = await supabase
+                .from('sos_alerts')
+                .insert([{
                     patient_id: patientId,
                     triggered_by: user.id,
                     location_lat: lat,
                     location_lng: lng,
                     accuracy: accuracy,
-                    status: 'active'
-                };
+                    status: 'active',
+                    alert_type: type,
+                    address: address
+                }])
+                .select()
+                .single();
 
-                // Adicionar endereço se disponível (evita geocoding reverso no backend)
-                if (address) {
-                    insertData.address = address;
-                }
+            if (insertError) throw insertError;
 
-                const { error: logError } = await supabase.from('sos_alerts').insert([insertData]);
-                if (logError) console.warn('Erro ao logar SOS (tabela pode não existir):', logError.message);
-            } catch (e) { console.error('Falha de log SOS:', e); }
-
-            showToast('🚨 Alerta de Socorro enviado!', 'success');
-
-            // O envio de Email e Push agora é tratado pelo BACKEND (server/index.js)
-            // através de Listener do Supabase Realtime na tabela 'sos_alerts'.
-            // Isso garante que mesmo se o usuário fechar o app, o alerta é processado.
-
-            console.log('✅ [SOS] Registro criado no banco. Backend processará o envio.');
-            return true;
+            showToast(type === 'emergency' ? 'SOS Enviado!' : 'Pedido de ajuda enviado!', 'success');
+            return newAlert;
         } catch (error) {
-            console.error('Erro ao disparar SOS:', error);
-            showToast('Erro ao disparar alerta!', 'error');
-            throw error;
+            console.error('Erro ao disparar alerta:', error);
+            showToast('Erro ao disparar alerta.', 'error');
         }
+    };
+
+    const requestHelp = async (patientId) => {
+        if (!navigator.geolocation) {
+            // Se não tiver GPS, envia sem localização mesmo
+            return await triggerPanicAlert(patientId, null, null, null, null, 'help_request');
+        }
+
+        return new Promise((resolve) => {
+            navigator.geolocation.getCurrentPosition(
+                async (pos) => {
+                    const res = await triggerPanicAlert(patientId, pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy, null, 'help_request');
+                    resolve(res);
+                },
+                async () => {
+                    // Fallback se recusar GPS
+                    const res = await triggerPanicAlert(patientId, null, null, null, null, 'help_request');
+                    resolve(res);
+                }
+            );
+        });
     };
 
     // --- APPOINTMENTS METHODS ---
@@ -1363,6 +1396,7 @@ export const AppProvider = ({ children }) => {
             runCaregiverCheck,
             checkLowStock,
             triggerPanicAlert,
+            requestHelp,
             logout: authSignOut,
 
             // Consultas
@@ -1374,7 +1408,8 @@ export const AppProvider = ({ children }) => {
 
             // Preferências do Usuário
             userPreferences,
-            updateUserPreferences
+            updateUserPreferences,
+            speak
         }}>
             {children}
             {toast && <Toast message={toast.message} type={toast.type} duration={toast.duration} onClose={() => setToast(null)} />}

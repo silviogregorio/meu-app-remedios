@@ -4,7 +4,7 @@ import { useNotifications } from '../hooks/useNotifications';
 import { format } from 'date-fns';
 
 const NotificationManager = () => {
-    const { prescriptions, medications, consumptionLog, patients } = useApp();
+    const { prescriptions, medications, consumptionLog, patients, accessibility, speak } = useApp();
     const { sendNotification, permission } = useNotifications();
     const notifiedDosesRef = useRef(new Set());
 
@@ -62,6 +62,12 @@ const NotificationManager = () => {
                             body: `${item.patientName} precisa tomar ${item.medicationName} às ${item.time}.`,
                             tag: notificationId // Prevent duplicate notifications on some platforms
                         });
+
+                        // TTS Voice Alert
+                        if (accessibility?.voiceEnabled) {
+                            speak(`Olá! Hora do remédio para ${item.patientName === 'Você' ? 'você' : item.patientName}. É hora de tomar ${item.medicationName}.`);
+                        }
+
                         notifiedDosesRef.current.add(notificationId);
                     }
                 }

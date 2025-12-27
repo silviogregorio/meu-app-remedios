@@ -244,7 +244,7 @@ const HealthDiary = () => {
         const totalLogs = Object.values(logsByPatient).reduce((sum, logs) => sum + logs.length, 0);
         if (totalLogs === 0) {
             text += '*Nenhum registro encontrado*\n';
-            text += 'Adicione sinais vitais para gerar o relatorio.\n\n';
+            text += 'Adicione sinais vitais para gerar o relatório.\n\n';
         } else {
             // Iterar por cada paciente
             Object.entries(logsByPatient).forEach(([patientId, logs], patientIndex) => {
@@ -322,7 +322,7 @@ const HealthDiary = () => {
                 body: JSON.stringify({
                     to: emailData.to,
                     subject: 'Diário de Saúde - SiG Remédios',
-                    text: 'Segue em anexo o relatorio de saude solicitado.',
+                    text: 'Segue em anexo o relatório de saúde solicitado.',
                     type: 'health-diary',
                     observations: emailData.observations,
                     healthLogsByPatient: (() => {
@@ -653,42 +653,41 @@ const HealthDiary = () => {
 
             {!showForm && (
                 <>
-                    {/* 1. ABAS DE NAVEGAÇÃO (Topo) */}
+                    {/* 1. ABAS DE NAVEGAÇÃO (Topo) - Premium Segmented Control */}
                     {activeTab !== 'symptoms' ? (
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6 no-print">
-                            <button
-                                onClick={() => setActiveTab('adherence')}
-                                className={`flex items-center justify-center gap-3 p-4 rounded-xl border-2 transition-all active:scale-95 text-sm md:text-base font-bold
-                                    ${activeTab === 'adherence'
-                                        ? 'border-indigo-600 bg-indigo-50 text-indigo-700 shadow-sm'
-                                        : 'border-slate-200 bg-white text-slate-600 hover:border-indigo-200 hover:bg-slate-50'
-                                    }`}
-                            >
-                                <CalendarIcon size={20} />
-                                Frequência
-                            </button>
-                            <button
-                                onClick={() => setActiveTab('list')}
-                                className={`flex items-center justify-center gap-3 p-4 rounded-xl border-2 transition-all active:scale-95 text-sm md:text-base font-bold
-                                    ${activeTab === 'list'
-                                        ? 'border-indigo-600 bg-indigo-50 text-indigo-700 shadow-sm'
-                                        : 'border-slate-200 bg-white text-slate-600 hover:border-indigo-200 hover:bg-slate-50'
-                                    }`}
-                            >
-                                <FileText size={20} />
-                                Sinais Vitais
-                            </button>
-                            <button
-                                onClick={() => setActiveTab('symptoms')}
-                                className={`flex items-center justify-center gap-3 p-4 rounded-xl border-2 transition-all active:scale-95 text-sm md:text-base font-bold
-                                    ${activeTab === 'symptoms'
-                                        ? 'border-indigo-600 bg-indigo-50 text-indigo-700 shadow-sm'
-                                        : 'border-slate-200 bg-white text-slate-600 hover:border-indigo-200 hover:bg-slate-50'
-                                    }`}
-                            >
-                                <SmilePlus size={20} />
-                                Sintomas
-                            </button>
+                        <div className="bg-slate-100/80 dark:bg-slate-800/50 p-1.5 rounded-3xl mb-6 no-print">
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5">
+                                <button
+                                    onClick={() => setActiveTab('adherence')}
+                                    className={`flex items-center justify-center gap-2 px-4 py-3 rounded-2xl font-bold text-sm transition-all duration-300 ${activeTab === 'adherence'
+                                        ? 'bg-white dark:bg-slate-700 text-primary dark:text-white shadow-sm ring-1 ring-slate-200/50'
+                                        : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+                                        }`}
+                                >
+                                    <CalendarIcon size={18} />
+                                    Frequência
+                                </button>
+                                <button
+                                    onClick={() => setActiveTab('list')}
+                                    className={`flex items-center justify-center gap-2 px-4 py-3 rounded-2xl font-bold text-sm transition-all duration-300 ${activeTab === 'list'
+                                        ? 'bg-white dark:bg-slate-700 text-primary dark:text-white shadow-sm ring-1 ring-slate-200/50'
+                                        : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+                                        }`}
+                                >
+                                    <FileText size={18} />
+                                    Sinais Vitais
+                                </button>
+                                <button
+                                    onClick={() => setActiveTab('symptoms')}
+                                    className={`flex items-center justify-center gap-2 px-4 py-3 rounded-2xl font-bold text-sm transition-all duration-300 ${activeTab === 'symptoms'
+                                        ? 'bg-white dark:bg-slate-700 text-primary dark:text-white shadow-sm ring-1 ring-slate-200/50'
+                                        : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+                                        }`}
+                                >
+                                    <SmilePlus size={18} />
+                                    Sintomas
+                                </button>
+                            </div>
                         </div>
                     ) : (
                         <div className="mb-6 no-print animate-in slide-in-from-right-4">
@@ -741,17 +740,34 @@ const HealthDiary = () => {
                                         </select>
                                     </div>
 
-                                    {/* Ações (Centralizadas e Flutuantes) - 'Zap' Renomeado + Padding Lateral */}
-                                    <div className="flex justify-center gap-4 px-4 sm:px-0">
-                                        <Button variant="outline" size="sm" onClick={() => setShowEmailModal(true)} title="Enviar por Email" className="h-9 hover:bg-slate-50 shadow-sm border-slate-200">
-                                            <Mail size={16} className="mr-2 text-slate-500" /> <span className="text-slate-600">Email</span>
-                                        </Button>
-                                        <Button variant="outline" size="sm" onClick={handlePrint} title="Imprimir PDF" className="h-9 hover:bg-slate-50 shadow-sm border-slate-200">
-                                            <Printer size={16} className="mr-2 text-slate-500" /> <span className="text-slate-600">Imprimir</span>
-                                        </Button>
-                                        <Button variant="outline" size="sm" onClick={handleWhatsApp} title="Enviar no WhatsApp" className="h-9 hover:bg-slate-50 shadow-sm border-slate-200">
-                                            <MessageCircle size={16} className="mr-2 text-slate-500" /> <span className="text-slate-600">Zap</span>
-                                        </Button>
+                                    {/* Quick Actions Panel - Senior UI/UX Refinement */}
+                                    <div className="bg-slate-50 dark:bg-slate-800/40 p-3 rounded-2xl border border-slate-100 dark:border-slate-700/50 no-print">
+                                        <div className="grid grid-cols-3 sm:flex sm:flex-wrap gap-2 justify-center">
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => setShowEmailModal(true)}
+                                                className="bg-white dark:bg-slate-700 h-10 border-slate-200 dark:border-slate-600 text-blue-600 dark:text-blue-400 hover:bg-blue-50"
+                                            >
+                                                <Mail size={16} className="mr-2" /> Email
+                                            </Button>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={handlePrint}
+                                                className="bg-white dark:bg-slate-700 h-10 border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-50"
+                                            >
+                                                <Printer size={16} className="mr-2" /> Imprimir
+                                            </Button>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={handleWhatsApp}
+                                                className="bg-white dark:bg-slate-700 h-10 border-slate-200 dark:border-slate-600 text-green-600 dark:text-green-400 hover:bg-green-50"
+                                            >
+                                                <MessageCircle size={16} className="mr-2" /> WhatsApp
+                                            </Button>
+                                        </div>
                                     </div>
                                 </div>
                             </CardContent>
@@ -772,7 +788,7 @@ const HealthDiary = () => {
                                 <select
                                     id="patient-select"
                                     name="patientId"
-                                    className="px-4 py-3 rounded-xl border border-slate-200"
+                                    className="h-12 pl-4 pr-9 rounded-xl border border-slate-200 bg-white text-slate-900 focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-200 appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20fill%3D%22none%22%20viewBox%3D%220%200%2024%2024%22%20stroke%3D%22%2364748b%22%3E%3Cpath%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20stroke-width%3D%222%22%20d%3D%22M19%209l-7%207-7-7%22%2F%3E%3C%2Fsvg%3E')] bg-[length:1.25em_1.25em] bg-[right_0.4rem_center] bg-no-repeat"
                                     value={formData.patientId}
                                     onChange={e => setFormData({ ...formData, patientId: e.target.value })}
                                     required
@@ -785,7 +801,7 @@ const HealthDiary = () => {
                                 <select
                                     id="category-select"
                                     name="category"
-                                    className="px-4 py-3 rounded-xl border border-slate-200"
+                                    className="h-12 pl-4 pr-9 rounded-xl border border-slate-200 bg-white text-slate-900 focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-200 appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20fill%3D%22none%22%20viewBox%3D%220%200%2024%2024%22%20stroke%3D%22%2364748b%22%3E%3Cpath%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20stroke-width%3D%222%22%20d%3D%22M19%209l-7%207-7-7%22%2F%3E%3C%2Fsvg%3E')] bg-[length:1.25em_1.25em] bg-[right_0.4rem_center] bg-no-repeat"
                                     value={formData.category}
                                     onChange={e => setFormData({ ...formData, category: e.target.value })}
                                 >

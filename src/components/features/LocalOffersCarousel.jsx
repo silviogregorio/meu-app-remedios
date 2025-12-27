@@ -67,9 +67,9 @@ const LocalOffersCarousel = ({ userIbge }) => {
                 </p>
             )}
 
-            <div className="flex gap-4 overflow-x-auto pb-4 px-1 snap-x scrollbar-hide">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 px-1">
                 {offers.map(offer => (
-                    <div key={offer.id} className="flex-none w-64 snap-start">
+                    <div key={offer.id} className="w-full">
                         <OfferCard offer={offer} variant="carousel" />
                     </div>
                 ))}

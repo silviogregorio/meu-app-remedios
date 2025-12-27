@@ -14,6 +14,8 @@ const Layout = () => {
         const saved = localStorage.getItem('sidebarPinned');
         return saved === 'true';
     });
+    const [headerHeight, setHeaderHeight] = useState(64);
+    const headerRef = useRef(null);
 
     const navigate = useNavigate();
     const location = useLocation();
@@ -27,6 +29,22 @@ const Layout = () => {
     useEffect(() => {
         showToastRef.current = showToast;
     }, [showToast]);
+
+    useEffect(() => {
+        if (!headerRef.current) return;
+
+        const updateHeight = () => {
+            if (headerRef.current) {
+                setHeaderHeight(headerRef.current.offsetHeight);
+            }
+        };
+
+        const resizeObserver = new ResizeObserver(updateHeight);
+        resizeObserver.observe(headerRef.current);
+
+        updateHeight();
+        return () => resizeObserver.disconnect();
+    }, []);
 
     // Unified handler for FCM messages (from foreground or broadcast)
     const handleFCMMessage = (payload) => {
@@ -133,7 +151,7 @@ const Layout = () => {
     };
 
     return (
-        <div className={`min-h-screen bg-[#f8fafc] dark:bg-slate-950 relative overflow-hidden transition-colors duration-300 ${accessibility?.highContrast ? 'senior-contrast' : ''} ${accessibility?.largeText ? 'senior-text' : ''}`}>
+        <div className={`min-h-screen bg-[#f8fafc] dark:bg-slate-950 relative overflow-x-hidden transition-colors duration-300 ${accessibility?.highContrast ? 'senior-contrast' : ''} ${accessibility?.largeText ? 'senior-text' : ''}`}>
             {/* Gradient decorations in corners */}
             <div className="fixed top-0 left-0 w-[600px] h-[600px] bg-gradient-to-br from-emerald-50/50 via-emerald-50/25 to-transparent rounded-full blur-3xl -translate-x-1/3 -translate-y-1/3 pointer-events-none"></div>
             <div className="fixed top-0 right-0 w-[600px] h-[600px] bg-gradient-to-bl from-teal-50/40 via-emerald-50/20 to-transparent rounded-full blur-3xl translate-x-1/3 -translate-y-1/3 pointer-events-none"></div>
@@ -148,9 +166,13 @@ const Layout = () => {
                 <Header
                     onMenuClick={() => setIsSidebarOpen(true)}
                     isPinned={isPinned}
+                    ref={headerRef}
                 />
 
-                <main className="pt-[80px] px-4 pb-5 max-w-5xl mx-auto relative z-10">
+                <main
+                    className="px-4 pb-5 max-w-5xl mx-auto relative z-10"
+                    style={{ paddingTop: `${headerHeight + 16}px` }}
+                >
                     {showBackButton && (
                         <div className="mb-4">
                             <button

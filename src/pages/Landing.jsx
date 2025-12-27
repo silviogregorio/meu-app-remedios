@@ -4,6 +4,7 @@ import { Users, Bell, ArrowRight, Activity, Heart, Send, CheckCircle2, AlertCirc
 import { supabase } from '../lib/supabase';
 import confetti from 'canvas-confetti';
 import { getApiEndpoint } from '../config/api';
+import HealthTips from '../components/features/HealthTips';
 
 
 const Landing = () => {
@@ -74,9 +75,9 @@ const Landing = () => {
                 if (status === 'SUBSCRIBED') {
                     console.log('✅ Connected to Realtime updates for sponsors');
                 } else if (status === 'CHANNEL_ERROR') {
-                    console.error('❌ Realtime connection error. Check browser console network tab.');
+                    console.warn('⚠️ Realtime subscription failed. To fix this, enable "Realtime" for the "sponsors" table in the Supabase Dashboard Dashboard (Table > Replication).');
                 } else if (status === 'TIMED_OUT') {
-                    console.error('⚠️ Realtime connection timed out.');
+                    console.warn('⚠️ Realtime connection timed out.');
                 }
             });
 
@@ -188,15 +189,15 @@ const Landing = () => {
             <header className="px-6 pt-20 pb-12 md:pt-24 md:pb-16 max-w-7xl mx-auto flex flex-col md:flex-row items-center gap-12">
                 <div className="flex-1 space-y-8 animate-fade-in-up">
                     <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-sm font-medium border border-blue-100">
-                        <Gift className="w-4 h-4 text-blue-600 fill-current animate-pulse" />
-                        Saúde: o bem mais precioso que temos, além da família.
+                        <Users className="w-4 h-4 text-blue-600 fill-current animate-pulse" />
+                        A paz de espírito de saber que quem você ama está bem cuidado.
                     </div>
                     <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight leading-tight text-slate-900">
-                        Cuidar da saúde <br className="hidden md:block" />
-                        nunca foi tão <span className="text-blue-600">simples</span>.
+                        Cuidar da família <br className="hidden md:block" />
+                        nunca foi tão <span className="text-blue-600">tranquilo</span>.
                     </h1>
                     <p className="text-lg md:text-xl text-slate-600 max-w-xl leading-relaxed">
-                        Tenha controle total sobre medicamentos, horários e estoque. Receba alertas inteligentes para nunca esquecer uma dose. Tudo isso de forma 100% gratuita.
+                        Tenha o controle total sobre os medicamentos de quem você ama. Receba alertas em tempo real e saiba, de onde estiver, que a dose foi tomada com segurança.
                     </p>
 
                 </div>
@@ -227,6 +228,11 @@ const Landing = () => {
                     </div>
                 </div>
             </header>
+
+            {/* Health Tips Carousel Section */}
+            <section className="py-8 bg-white relative z-20">
+                <HealthTips autoRotateInterval={60000} variant="landing" />
+            </section>
 
             {/* Features Section - Premium Futurisc */}
             <section id="features" className="bg-slate-50 py-8 px-6 relative overflow-hidden">
@@ -369,80 +375,78 @@ const Landing = () => {
                                 </h3>
                             </div>
 
-                            {/* Horizontal Premium Scroll Container */}
-                            <div className="relative w-full overflow-x-auto pb-8 pt-4 px-4 flex justify-center lg:justify-start hide-scrollbar snap-x snap-mandatory">
-                                <div className={`flex gap-8 ${sponsors.length < 3 ? 'mx-auto' : ''}`}>
-                                    {sponsors.map((sponsor, index) => (
-                                        <div
-                                            key={`${sponsor.id}-${index}`}
-                                            className="min-w-[320px] w-[320px] md:min-w-[400px] md:w-[400px] bg-white/40 backdrop-blur-2xl rounded-3xl border border-white/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-2xl transition-all duration-700 group snap-center flex flex-col items-center p-10 relative overflow-hidden animate-float"
-                                            style={{ animationDelay: `${index * 1.5}s`, animationDuration: '8s' }}
-                                        >
-                                            {/* Intrinsic Living Shimmer Effect (Always On) */}
-                                            <div className="absolute inset-0 z-0 opacity-30 bg-gradient-to-r from-transparent via-white/80 to-transparent skew-x-12 animate-shimmer pointer-events-none"></div>
+                            {/* Premium Responsive Grid - Senior UI/UX */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mt-12 pb-12">
+                                {sponsors.map((sponsor, index) => (
+                                    <div
+                                        key={`${sponsor.id}-${index}`}
+                                        className="w-full bg-white/40 backdrop-blur-2xl rounded-3xl border border-white/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-2xl transition-all duration-700 group flex flex-col items-center p-10 relative overflow-hidden animate-float"
+                                        style={{ animationDelay: `${index * 1.5}s`, animationDuration: '8s' }}
+                                    >
+                                        {/* Intrinsic Living Shimmer Effect (Always On) */}
+                                        <div className="absolute inset-0 z-0 opacity-30 bg-gradient-to-r from-transparent via-white/80 to-transparent skew-x-12 animate-shimmer pointer-events-none"></div>
 
-                                            {/* Colorful Pulse Background */}
-                                            <div className="absolute inset-0 bg-gradient-to-br from-blue-100/20 via-purple-100/20 to-pink-100/20 opacity-50 animate-pulse-slow z-0"></div>
+                                        {/* Colorful Pulse Background */}
+                                        <div className="absolute inset-0 bg-gradient-to-br from-blue-100/20 via-purple-100/20 to-pink-100/20 opacity-50 animate-pulse-slow z-0"></div>
 
-                                            <div className="relative z-10 w-full h-40 flex items-center justify-center mb-8 p-6 bg-white/60 rounded-2xl shadow-inner border border-white/50 group-hover:bg-white/90 transition-colors duration-500">
-                                                <img
-                                                    src={sponsor.logo_url}
-                                                    alt={sponsor.name}
-                                                    className="max-w-full max-h-full object-contain mix-blend-multiply opacity-80 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500"
-                                                />
-                                            </div>
-
-                                            <div className="text-center relative z-10 w-full">
-                                                <h4 className="font-bold text-slate-900 text-2xl mb-4 tracking-tight">{sponsor.name}</h4>
-
-                                                {/* Always visible description for impactful presentation */}
-                                                {sponsor.description && (
-                                                    <p className="text-slate-600 text-base leading-relaxed mb-6 line-clamp-3 min-h-[4.5em]">
-                                                        {sponsor.description}
-                                                    </p>
-                                                )}
-
-                                                <div className="flex justify-center gap-4 mb-8">
-                                                    {sponsor.whatsapp && (
-                                                        <a href={sponsor.whatsapp.startsWith('http') ? sponsor.whatsapp : `https://wa.me/${sponsor.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" className="p-2 bg-green-100 text-green-600 rounded-full hover:bg-green-600 hover:text-white transition-all transform hover:scale-110 shadow-sm">
-                                                            <MessageCircle size={20} />
-                                                        </a>
-                                                    )}
-                                                    {sponsor.instagram && (
-                                                        <a href={sponsor.instagram} target="_blank" rel="noopener noreferrer" className="p-2 bg-pink-100 text-pink-600 rounded-full hover:bg-pink-600 hover:text-white transition-all transform hover:scale-110 shadow-sm">
-                                                            <Instagram size={20} />
-                                                        </a>
-                                                    )}
-                                                    {sponsor.facebook && (
-                                                        <a href={sponsor.facebook} target="_blank" rel="noopener noreferrer" className="p-2 bg-blue-100 text-blue-600 rounded-full hover:bg-blue-600 hover:text-white transition-all transform hover:scale-110 shadow-sm">
-                                                            <Facebook size={20} />
-                                                        </a>
-                                                    )}
-                                                    {sponsor.youtube && (
-                                                        <a href={sponsor.youtube} target="_blank" rel="noopener noreferrer" className="p-2 bg-red-100 text-red-600 rounded-full hover:bg-red-600 hover:text-white transition-all transform hover:scale-110 shadow-sm">
-                                                            <Youtube size={20} />
-                                                        </a>
-                                                    )}
-                                                    {sponsor.tiktok && (
-                                                        <a href={sponsor.tiktok} target="_blank" rel="noopener noreferrer" className="p-2 bg-slate-100 text-slate-800 rounded-full hover:bg-black hover:text-white transition-all transform hover:scale-110 shadow-sm">
-                                                            <Video size={20} />
-                                                        </a>
-                                                    )}
-                                                </div>
-
-                                                <a
-                                                    href={sponsor.website_url || '#'}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="inline-flex items-center justify-center w-full py-4 px-6 bg-white hover:bg-blue-600 text-slate-700 hover:text-white font-bold rounded-xl transition-all duration-300 border border-slate-200 hover:border-blue-600 shadow-sm hover:shadow-lg group/btn"
-                                                >
-                                                    Conhecer Parceiro
-                                                    <ArrowRight size={20} className="ml-2 transform group-hover/btn:translate-x-1 transition-transform" />
-                                                </a>
-                                            </div>
+                                        <div className="relative z-10 w-full h-40 flex items-center justify-center mb-8 p-6 bg-white/60 rounded-2xl shadow-inner border border-white/50 group-hover:bg-white/90 transition-colors duration-500">
+                                            <img
+                                                src={sponsor.logo_url}
+                                                alt={sponsor.name}
+                                                className="max-w-full max-h-full object-contain mix-blend-multiply opacity-80 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500"
+                                            />
                                         </div>
-                                    ))}
-                                </div>
+
+                                        <div className="text-center relative z-10 w-full">
+                                            <h4 className="font-bold text-slate-900 text-2xl mb-4 tracking-tight">{sponsor.name}</h4>
+
+                                            {/* Always visible description for impactful presentation */}
+                                            {sponsor.description && (
+                                                <p className="text-slate-600 text-base leading-relaxed mb-6 line-clamp-3 min-h-[4.5em]">
+                                                    {sponsor.description}
+                                                </p>
+                                            )}
+
+                                            <div className="flex justify-center gap-4 mb-8">
+                                                {sponsor.whatsapp && (
+                                                    <a href={sponsor.whatsapp.startsWith('http') ? sponsor.whatsapp : `https://wa.me/${sponsor.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" className="p-2 bg-green-100 text-green-600 rounded-full hover:bg-green-600 hover:text-white transition-all transform hover:scale-110 shadow-sm">
+                                                        <MessageCircle size={20} />
+                                                    </a>
+                                                )}
+                                                {sponsor.instagram && (
+                                                    <a href={sponsor.instagram} target="_blank" rel="noopener noreferrer" className="p-2 bg-pink-100 text-pink-600 rounded-full hover:bg-pink-600 hover:text-white transition-all transform hover:scale-110 shadow-sm">
+                                                        <Instagram size={20} />
+                                                    </a>
+                                                )}
+                                                {sponsor.facebook && (
+                                                    <a href={sponsor.facebook} target="_blank" rel="noopener noreferrer" className="p-2 bg-blue-100 text-blue-600 rounded-full hover:bg-blue-600 hover:text-white transition-all transform hover:scale-110 shadow-sm">
+                                                        <Facebook size={20} />
+                                                    </a>
+                                                )}
+                                                {sponsor.youtube && (
+                                                    <a href={sponsor.youtube} target="_blank" rel="noopener noreferrer" className="p-2 bg-red-100 text-red-600 rounded-full hover:bg-red-600 hover:text-white transition-all transform hover:scale-110 shadow-sm">
+                                                        <Youtube size={20} />
+                                                    </a>
+                                                )}
+                                                {sponsor.tiktok && (
+                                                    <a href={sponsor.tiktok} target="_blank" rel="noopener noreferrer" className="p-2 bg-slate-100 text-slate-800 rounded-full hover:bg-black hover:text-white transition-all transform hover:scale-110 shadow-sm">
+                                                        <Video size={20} />
+                                                    </a>
+                                                )}
+                                            </div>
+
+                                            <a
+                                                href={sponsor.website_url || '#'}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="inline-flex items-center justify-center w-full py-4 px-6 bg-white hover:bg-blue-600 text-slate-700 hover:text-white font-bold rounded-xl transition-all duration-300 border border-slate-200 hover:border-blue-600 shadow-sm hover:shadow-lg group/btn"
+                                            >
+                                                Conhecer Parceiro
+                                                <ArrowRight size={20} className="ml-2 transform group-hover/btn:translate-x-1 transition-transform" />
+                                            </a>
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
                         </div>
                     </section>

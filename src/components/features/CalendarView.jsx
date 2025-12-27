@@ -179,7 +179,7 @@ const CalendarView = ({ prescriptions, consumptionLog, healthLogs = [], onDateSe
             </div>
 
             {/* Legend */}
-            <div className="flex items-center justify-center gap-4 py-3 border-t border-slate-100 bg-slate-50/50 text-xs text-slate-500">
+            <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 px-4 py-3 border-t border-slate-100 bg-slate-50/50 text-xs text-slate-500">
                 <div className="flex items-center gap-1.5">
                     <div className="w-2 h-2 rounded-full bg-emerald-500" />
                     <span>Tomado</span>

@@ -7,7 +7,7 @@ import Card, { CardContent } from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Modal from '../components/ui/Modal';
-import { User, Settings, LogOut, Bell, LogIn, Database, Trash2, Mail, Phone, MapPin, Camera, Shield, ShieldCheck, Share2, Activity, Download, Users, Umbrella, ArrowRight, Info } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Calendar, Shield, ShieldCheck, Bell, Settings, LogOut, Heart, Fingerprint, Volume2, Share2, Activity, Download, Users, Umbrella, ArrowRight, Info, Trash2, Database, LogIn, Camera } from 'lucide-react';
 import { downloadJSON, prepareBackupData } from '../utils/dataExporter';
 
 const Profile = () => {
@@ -533,24 +533,37 @@ const Profile = () => {
                             </label>
                         </div>
 
-                        {/* Large Text Toggle */}
-                        <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-700">
-                            <div className="flex items-center gap-3">
-                                <Settings className="text-slate-400" size={20} />
-                                <div>
-                                    <h4 className="font-semibold text-slate-900 dark:text-white">Texto Grande</h4>
-                                    <p className="text-sm text-slate-500">Aumenta o tamanho da letra em 25%.</p>
+                        {/* Font Size Scaling (Slider) */}
+                        <div className="flex flex-col gap-4 p-4 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-700">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <Settings className="text-slate-400" size={20} />
+                                    <div>
+                                        <h4 className="font-semibold text-slate-900 dark:text-white">Escala de Fonte</h4>
+                                        <p className="text-sm text-slate-500">Ajuste o tamanho das letras de forma dinâmica.</p>
+                                    </div>
                                 </div>
+                                <span className="font-bold text-primary text-lg">{accessibility?.fontSize || 100}%</span>
                             </div>
-                            <label className="relative inline-flex items-center cursor-pointer">
+                            <div className="px-2 flex items-center gap-4">
+                                <span className="text-sm">A</span>
                                 <input
-                                    type="checkbox"
-                                    checked={accessibility?.largeText || false}
-                                    onChange={(e) => updateAccessibility({ largeText: e.target.checked })}
-                                    className="sr-only peer"
+                                    type="range"
+                                    min="80"
+                                    max="200"
+                                    step="10"
+                                    value={accessibility?.fontSize || 100}
+                                    onChange={(e) => updateAccessibility({ fontSize: parseInt(e.target.value) })}
+                                    className="flex-1 h-3 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-primary"
                                 />
-                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
-                            </label>
+                                <span className="text-2xl font-bold">A</span>
+                            </div>
+                            <div className="flex justify-between px-6 text-[10px] text-slate-400 -mt-2">
+                                <span>Pequeno</span>
+                                <span>Padrão</span>
+                                <span className="font-bold">Sênior</span>
+                                <span>Máximo</span>
+                            </div>
                         </div>
 
                         {/* Voice Enabled Toggle */}
@@ -567,6 +580,37 @@ const Profile = () => {
                                     type="checkbox"
                                     checked={accessibility?.voiceEnabled || false}
                                     onChange={(e) => updateAccessibility({ voiceEnabled: e.target.checked })}
+                                    className="sr-only peer"
+                                />
+                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                            </label>
+                        </div>
+
+                        {/* Biometric Login Toggle */}
+                        <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-700">
+                            <div className="flex items-center gap-3">
+                                <Fingerprint className="text-slate-400" size={20} />
+                                <div>
+                                    <h4 className="font-semibold text-slate-900 dark:text-white">Login Biométrico</h4>
+                                    <p className="text-sm text-slate-500">Use sua digital ou rosto para entrar.</p>
+                                </div>
+                            </div>
+                            <label className="relative inline-flex items-center cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={accessibility?.biometricsEnabled || false}
+                                    onChange={async (e) => {
+                                        const enabled = e.target.checked;
+                                        if (enabled) {
+                                            if (window.confirm('Deseja ativar o acesso por biometria neste dispositivo?')) {
+                                                localStorage.setItem('sig_biometric_enabled', 'true');
+                                                updateAccessibility({ biometricsEnabled: true });
+                                            }
+                                        } else {
+                                            localStorage.removeItem('sig_biometric_enabled');
+                                            updateAccessibility({ biometricsEnabled: false });
+                                        }
+                                    }}
                                     className="sr-only peer"
                                 />
                                 <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>

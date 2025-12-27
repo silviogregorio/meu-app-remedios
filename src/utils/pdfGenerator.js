@@ -588,3 +588,141 @@ export const generatePDFHealthDiary = async (logs, filters, patients, medication
 
     return doc;
 };
+
+/**
+ * Generates a professional PDF report for stock movements
+ * @param {Array} stockData - Stock movement data
+ * @param {Object} filters - Applied filters
+ * @param {Array} patients - List of patients
+ * @returns {Promise<jsPDF>}
+ */
+export const generatePDFStockReport = async (stockData, filters, patients) => {
+    const doc = new jsPDF({ orientation: 'landscape' });
+    const pageWidth = doc.internal.pageSize.width;
+    const pageHeight = doc.internal.pageSize.height;
+
+    const colors = {
+        primary: [15, 118, 110], // Teal-700
+        secondary: [45, 212, 191], // Teal-400
+        text: [51, 65, 85], // Slate-700
+        heading: [30, 41, 59], // Slate-800
+        lightBg: [248, 250, 252], // Slate-50
+        border: [226, 232, 240], // Slate-200
+        accent: [244, 63, 94] // Rose-500
+    };
+
+    let logoData = null;
+    try {
+        logoData = await loadImage('/assets/logo.png');
+    } catch (error) { }
+
+    // --- Header ---
+    doc.setFillColor(...colors.primary);
+    doc.rect(0, 0, pageWidth, 40, 'F');
+
+    if (logoData) {
+        doc.setFillColor(255, 255, 255);
+        doc.circle(25, 20, 14, 'F');
+        doc.addImage(logoData, 'PNG', 16, 11, 18, 18);
+    }
+
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(22);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Relatório de Estoque', 45, 20);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Histórico de Movimentações e Ajustes', 45, 28);
+
+    doc.setFontSize(9);
+    doc.text(`Gerado em: ${format(new Date(), "dd/MM/yyyy HH:mm")}`, pageWidth - 15, 18, { align: 'right' });
+
+    const period = `${format(new Date(filters.startDate + 'T00:00:00'), "dd/MM/yyyy")} a ${format(new Date(filters.endDate + 'T00:00:00'), "dd/MM/yyyy")}`;
+    doc.text(`Período: ${period}`, pageWidth - 15, 26, { align: 'right' });
+
+    let yPos = 55;
+
+    // --- Summary Stats ---
+    const totalChanges = stockData.reduce((acc, curr) => acc + Math.abs(curr.quantity_change), 0);
+    const refills = stockData.filter(i => i.quantity_change > 0).length;
+    const consumptions = stockData.filter(i => i.quantity_change < 0).length;
+
+    const summaryData = [
+        { label: 'MOVIMENTAÇÕES', value: stockData.length, color: [59, 130, 246] },
+        { label: 'ENTRADAS', value: refills, color: [34, 197, 94] },
+        { label: 'SAÍDAS', value: consumptions, color: [249, 115, 22] },
+        { label: 'VOLUME TOTAL', value: totalChanges, color: [168, 85, 247] }
+    ];
+
+    const cardWidth = (pageWidth - 28 - (summaryData.length - 1) * 5) / summaryData.length;
+    let xCurr = 14;
+
+    summaryData.forEach(item => {
+        doc.setDrawColor(...colors.border);
+        doc.setFillColor(255, 255, 255);
+        doc.roundedRect(xCurr, yPos, cardWidth, 16, 2, 2, 'FD');
+        doc.setFillColor(...item.color);
+        doc.rect(xCurr, yPos + 3, 3, 10, 'F');
+        doc.setTextColor(...colors.heading);
+        doc.setFontSize(12);
+        doc.setFont('helvetica', 'bold');
+        doc.text(String(item.value), xCurr + 8, yPos + 7);
+        doc.setTextColor(100, 116, 139);
+        doc.setFontSize(6.5);
+        doc.text(item.label, xCurr + 8, yPos + 13);
+        xCurr += cardWidth + 5;
+    });
+
+    yPos += 25;
+
+    // --- Table ---
+    const reasonMap = {
+        'consumption': 'Consumo',
+        'refill': 'Entrada',
+        'adjustment': 'Ajuste',
+        'correction': 'Correção'
+    };
+
+    const tableData = stockData.map(item => [
+        format(new Date(item.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR }),
+        item.medications?.name || '-',
+        item.medications?.dosage || '-',
+        (item.quantity_change > 0 ? '+' : '') + item.quantity_change,
+        reasonMap[item.reason] || item.reason,
+        item.patients?.name || '-',
+        item.profiles?.full_name || 'Sistema'
+    ]);
+
+    autoTable(doc, {
+        startY: yPos,
+        head: [['Data/Hora', 'Medicamento', 'Dosagem', 'Qtd', 'Motivo', 'Paciente', 'Usuário']],
+        body: tableData,
+        theme: 'striped',
+        styles: { fontSize: 8, cellPadding: 2 },
+        headStyles: { fillColor: [241, 245, 249], textColor: colors.heading, fontStyle: 'bold' },
+        columnStyles: {
+            3: { fontStyle: 'bold', halign: 'center' },
+            4: { halign: 'center' }
+        },
+        didParseCell: function (data) {
+            if (data.section === 'body' && data.column.index === 3) {
+                const isPositive = data.cell.raw.startsWith('+');
+                data.cell.styles.textColor = isPositive ? [22, 101, 52] : [154, 52, 18];
+            }
+        },
+        margin: { left: 14, right: 14 }
+    });
+
+    // --- Footer ---
+    const pageCount = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.setTextColor(148, 163, 184);
+        doc.line(14, pageHeight - 15, pageWidth - 14, pageHeight - 15);
+        doc.text('SiG Remédios - Gestão de Estoque', 14, pageHeight - 10);
+        doc.text(`Página ${i} de ${pageCount}`, pageWidth - 14, pageHeight - 10, { align: 'right' });
+    }
+
+    return doc;
+};

@@ -5,14 +5,15 @@ import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Modal from '../components/ui/Modal';
 import Pagination from '../components/ui/Pagination';
-import { FileText, Printer, Calendar, CheckCircle, Clock, Mail, MessageCircle, Download, Gift, Activity, Filter, ArrowRight, PieChart, Eye, Share2 } from 'lucide-react';
+import { FileText, Printer, Calendar, CheckCircle, Clock, Timer, Mail, MessageCircle, Download, Gift, Activity, Filter, ArrowRight, PieChart, Eye, Share2, History, ClipboardList } from 'lucide-react';
 import AdherenceChart from '../components/analytics/AdherenceChart';
 import ActivityChart from '../components/analytics/ActivityChart';
 import { supabase } from '../lib/supabase';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isToday, isSameDay, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { generatePDFReport } from '../utils/pdfGenerator';
+import { generatePDFReport, generatePDFStockReport } from '../utils/pdfGenerator';
 import { getApiEndpoint } from '../config/api';
+import { formatDateTime, formatDate } from '../utils/dateFormatter';
 
 
 const ITEMS_PER_PAGE = 6;
@@ -22,12 +23,14 @@ const Reports = () => {
 
     const getDefaultDates = () => {
         const today = new Date();
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(today.getDate() - 30);
         const sevenDaysLater = new Date();
         sevenDaysLater.setDate(today.getDate() + 7);
 
-        const year = today.getFullYear();
-        const month = String(today.getMonth() + 1).padStart(2, '0');
-        const day = String(today.getDate()).padStart(2, '0');
+        const year = thirtyDaysAgo.getFullYear();
+        const month = String(thirtyDaysAgo.getMonth() + 1).padStart(2, '0');
+        const day = String(thirtyDaysAgo.getDate()).padStart(2, '0');
         const startDate = `${year}-${month}-${day}`;
 
         const endYear = sevenDaysLater.getFullYear();
@@ -139,6 +142,8 @@ const Reports = () => {
     }, [activeTab, filters.startDate, filters.endDate, filters.patientId, filters.medicationId]);
 
     const fetchStockHistory = async () => {
+        if (!filters.startDate || !filters.endDate) return;
+
         setLoadingStock(true);
         try {
             let query = supabase
@@ -333,7 +338,12 @@ const Reports = () => {
 
     const handlePrint = async () => {
         try {
-            const doc = await generatePDFReport(reportData, filters, patients);
+            let doc;
+            if (activeTab === 'stock') {
+                doc = await generatePDFStockReport(stockData, filters, patients);
+            } else {
+                doc = await generatePDFReport(reportData, filters, patients);
+            }
             // AutoPrint logic
             doc.autoPrint();
             const blob = doc.output('blob');
@@ -347,8 +357,15 @@ const Reports = () => {
 
     const handleDownloadPDF = async () => {
         try {
-            const doc = await generatePDFReport(reportData, filters, patients);
-            const filename = `relatorio-sig-remedios-${format(new Date(), 'dd-MM-yyyy-HHmm')}.pdf`;
+            let doc;
+            let theme = 'geral';
+            if (activeTab === 'stock') {
+                doc = await generatePDFStockReport(stockData, filters, patients);
+                theme = 'estoque';
+            } else {
+                doc = await generatePDFReport(reportData, filters, patients);
+            }
+            const filename = `relatorio-${theme}-sig-remedios-${format(new Date(), 'dd-MM-yyyy-HHmm')}.pdf`;
             doc.save(filename);
             showToast('PDF salvo com sucesso!', 'success');
         } catch (error) {
@@ -359,7 +376,12 @@ const Reports = () => {
 
     const handleViewPDF = async () => {
         try {
-            const doc = await generatePDFReport(reportData, filters, patients);
+            let doc;
+            if (activeTab === 'stock') {
+                doc = await generatePDFStockReport(stockData, filters, patients);
+            } else {
+                doc = await generatePDFReport(reportData, filters, patients);
+            }
             const blob = doc.output('blob');
             const url = URL.createObjectURL(blob);
             window.open(url, '_blank');
@@ -376,8 +398,8 @@ const Reports = () => {
             item => filters.status === 'all' || item.status === filters.status
         );
 
-        let text = '*RELATORIO DE MEDICACOES*\n\n';
-        text += '*Periodo:* ' + formatDate(reportData.filters.startDate) + ' ate ' + formatDate(reportData.filters.endDate) + '\n';
+        let text = '*RELATÓRIO DE MEDICAÇÕES*\n\n';
+        text += '*Período:* ' + formatDate(reportData.filters.startDate) + ' até ' + formatDate(reportData.filters.endDate) + '\n';
 
         if (reportData.filters.patientId !== 'all') {
             const patient = patients.find(p => p.id === reportData.filters.patientId);
@@ -388,20 +410,20 @@ const Reports = () => {
         text += 'Total: ' + reportData.summary.total + '\n';
         text += 'Tomadas: ' + reportData.summary.taken + '\n';
         text += 'Pendentes: ' + reportData.summary.pending + '\n';
-        text += 'Taxa de Adesao: ' + reportData.summary.adherenceRate + '%\n';
+        text += 'Taxa de Adesão: ' + reportData.summary.adherenceRate + '%\n';
 
         text += '\n*DETALHAMENTO*\n';
         filteredItems.slice(0, 20).forEach((item, idx) => {
             const status = item.status === 'taken' ? '[TOMADO]' : '[PENDENTE]';
-            text += '\n' + (idx + 1) + '. ' + status + ' ' + formatDate(item.date) + ' as ' + item.time + '\n';
+            text += '\n' + (idx + 1) + '. ' + status + ' ' + formatDate(item.date) + ' às ' + item.time + '\n';
             text += '   ' + item.patient + ' - ' + item.medication + '\n';
         });
 
         if (filteredItems.length > 20) {
-            text += '\n... e mais ' + (filteredItems.length - 20) + ' medicacoes\n';
+            text += '\n... e mais ' + (filteredItems.length - 20) + ' medicações\n';
         }
 
-        text += '\n---\n_Gerado pelo Sistema de Controle de Medicamentos_';
+        text += '\n---\n_Gerado via SiG Remédios - Sistema de Controle de Medicamentos_\nhttps://sigremedios.vercel.app';
 
         return text;
     };
@@ -537,8 +559,19 @@ const Reports = () => {
     const generateStockReportText = () => {
         if (!stockData || stockData.length === 0) return '';
 
-        let text = '*RELATORIO DE ESTOQUE E MOVIMENTACOES*\n\n';
-        text += '*Periodo:* ' + formatDate(filters.startDate) + ' ate ' + formatDate(filters.endDate) + '\n';
+        const reasonMap = {
+            'consumption': 'Consumo',
+            'manual_adjustment': 'Ajuste Manual',
+            'prescription_cancel': 'Cancelamento de Prescrição',
+            'initial_stock': 'Estoque Inicial',
+            'purchase': 'Compra/Entrada',
+            'refill': 'Reposição de Estoque',
+            'adjustment': 'Ajuste de Saldo',
+            'correction': 'Correção de Erro'
+        };
+
+        let text = '*RELATÓRIO DE ESTOQUE E MOVIMENTAÇÕES*\n\n';
+        text += '*Período:* ' + formatDate(filters.startDate) + ' até ' + formatDate(filters.endDate) + '\n';
 
         if (filters.patientId !== 'all') {
             const patient = patients.find(p => p.id === filters.patientId);
@@ -549,20 +582,21 @@ const Reports = () => {
             text += '*Medicamento:* ' + (med ? `${med.name} ${med.dosage}` : 'N/A') + '\n';
         }
 
-        text += '\n*MOVIMENTACOES RECENTES*\n';
+        text += '\n*MOVIMENTAÇÕES RECENTES*\n';
 
         stockData.slice(0, 30).forEach((item, idx) => {
             const isPositive = item.quantity_change > 0;
+            const translatedReason = reasonMap[item.reason] || item.reason;
             text += '\n' + (idx + 1) + '. ' + formatDateTime(item.created_at) + '\n';
             text += '   ' + (item.medications?.name || 'Medicamento') + ' (' + (isPositive ? '+' : '') + item.quantity_change + ')\n';
-            text += '   Motivo: ' + item.reason + ' | Usuario: ' + (item.profiles?.full_name || 'Sistema') + '\n';
+            text += '   Motivo: ' + translatedReason + ' | Usuário: ' + (item.profiles?.full_name || 'Sistema') + '\n';
         });
 
         if (stockData.length > 30) {
             text += '\n... e mais ' + (stockData.length - 30) + ' registros\n';
         }
 
-        text += '\n---\n_Gerado pelo Sistema de Controle de Medicamentos_';
+        text += '\n---\n_Gerado via SiG Remédios - Sistema de Controle de Medicamentos_\nhttps://sigremedios.vercel.app';
         return text;
     };
 
@@ -584,14 +618,23 @@ const Reports = () => {
                         <div style="font-size: 12px; color: #64748b;">${item.profiles?.full_name || 'Usuário'}</div>
                     </td>
                     <td style="padding: 12px; border-bottom: 1px solid #e2e8f0; color: #334155;">
-                        <div style="font-weight: 600;">${item.medications?.name}</div>
+                         <div style="font-weight: 600;">${item.medications?.name}</div>
                         <div style="font-size: 12px; color: #64748b;">${item.medications?.dosage}</div>
                     </td>
                     <td style="padding: 12px; border-bottom: 1px solid #e2e8f0;">
                          <span style="background-color: ${bg}; color: ${color}; padding: 4px 8px; border-radius: 9999px; font-size: 12px; font-weight: bold; display: inline-block;">
                             ${isPositive ? '+' : ''}${item.quantity_change}
                         </span>
-                        <div style="font-size: 11px; margin-top: 4px; color: #64748b;">${item.reason}</div>
+                 <div style="font-size: 11px; margin-top: 4px; color: #64748b;">
+                            ${item.reason === 'consumption' ? 'Consumo' :
+                    item.reason === 'manual_adjustment' ? 'Ajuste Manual' :
+                        item.reason === 'prescription_cancel' ? 'Cancelamento' :
+                            item.reason === 'initial_stock' ? 'Estoque Inicial' :
+                                item.reason === 'purchase' ? 'Compra' :
+                                    item.reason === 'refill' ? 'Reposição' :
+                                        item.reason === 'adjustment' ? 'Ajuste' :
+                                            item.reason === 'correction' ? 'Correção' : item.reason}
+                        </div>
                     </td>
                 </tr>
             `;
@@ -629,21 +672,30 @@ const Reports = () => {
     };
 
     const handleWhatsApp = () => {
-        if (activeTab === 'stock') {
-            const text = generateStockReportText();
-            window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
-            return;
-        }
+        // Ensure report data is calculated for accurate summary
+        generateReport();
 
-        // Safe extraction for standard report
         const patientName = filters.patientId !== 'all'
             ? patients.find(p => p.id === filters.patientId)?.name || 'Todos'
             : 'Todos os Pacientes';
 
+        // Get fresh stats after generateReport runs (though setState is async, we can approximate)
+        // If we want it perfectly sync, we'd need to return the summary from generateReport.
+        // For now, let's use the current reportData or a fallback.
         const stats = reportData?.summary || { adherenceRate: 0, taken: 0, pending: 0 };
-        const text = `*RELATÓRIO DE SAÚDE - SIMPLIFICADO*\n\n*Paciente:* ${patientName}\n*Período:* ${formatDate(filters.startDate)} a ${formatDate(filters.endDate)}\n\n*Adesão:* ${stats.adherenceRate}%\n*Tomados:* ${stats.taken}\n*Pendentes:* ${stats.pending}\n\n_Gerado via SiG Remédios_`;
 
-        window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+        const summaryText = `*RESUMO DE SAÚDE*\n*Paciente:* ${patientName}\n*Adesão:* ${stats.adherenceRate}%\n*Tomados:* ${stats.taken}\n*Pendentes:* ${stats.pending}`;
+
+        let finalText = '';
+
+        if (activeTab === 'stock') {
+            const stockText = generateStockReportText().replace('\n---\n_Gerado via SiG Remédios - Sistema de Controle de Medicamentos_\nhttps://sigremedios.vercel.app', '');
+            finalText = `${stockText}\n\n${summaryText}\n\n---\n_Gerado via SiG Remédios - Sistema de Controle de Medicamentos_\nhttps://sigremedios.vercel.app`;
+        } else {
+            finalText = `*RELATÓRIO DE SAÚDE - SIMPLIFICADO*\n\n*Paciente:* ${patientName}\n*Período:* ${formatDate(filters.startDate)} a ${formatDate(filters.endDate)}\n\n*Adesão:* ${stats.adherenceRate}%\n*Tomadas:* ${stats.taken}\n*Pendentes:* ${stats.pending}\n\n---\n_Gerado via SiG Remédios - Sistema de Controle de Medicamentos_\nhttps://sigremedios.vercel.app`;
+        }
+
+        window.open(`https://wa.me/?text=${encodeURIComponent(finalText)}`, '_blank');
     };
 
     const handleEmail = (type) => { // Updated to accept type override
@@ -798,66 +850,56 @@ const Reports = () => {
                     <p className="text-slate-500 dark:text-slate-400 mt-1">Visualize e imprima relatórios de medicações.</p>
                 </div>
 
-                {/* Tabs Navigation */}
-                <div className="flex gap-4 border-b border-slate-200 dark:border-slate-800 no-print overflow-x-auto">
-                    <button
-                        onClick={() => setActiveTab('dashboard')}
-                        className={`pb-4 px-2 font-medium text-sm transition-colors relative whitespace-nowrap ${activeTab === 'dashboard'
-                            ? 'text-primary'
-                            : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
-                            }`}
-                    >
-                        <div className="flex items-center gap-2">
-                            <PieChart size={16} />
-                            Visão Geral
-                        </div>
-                        {activeTab === 'dashboard' && (
-                            <span className="absolute bottom-0 left-0 w-full h-0.5 bg-primary rounded-full" />
-                        )}
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('history')}
-                        className={`pb-4 px-2 font-medium text-sm transition-colors relative whitespace-nowrap ${activeTab === 'history'
-                            ? 'text-primary'
-                            : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
-                            }`}
-                    >
-                        Histórico de Consumo
-                        {activeTab === 'history' && (
-                            <span className="absolute bottom-0 left-0 w-full h-0.5 bg-primary rounded-full" />
-                        )}
-                    </button>
-                    {/* ... other buttons ... */}
-                    <button
-                        onClick={() => setActiveTab('birthdays')}
-                        className={`pb-4 px-2 font-medium text-sm transition-colors relative ${activeTab === 'birthdays'
-                            ? 'text-primary'
-                            : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
-                            }`}
-                    >
-                        Aniversariantes
-                        {activeTab === 'birthdays' && (
-                            <span className="absolute bottom-0 left-0 w-full h-0.5 bg-primary rounded-full" />
-                        )}
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('stock')}
-                        className={`pb-4 px-2 font-medium text-sm transition-colors relative ${activeTab === 'stock'
-                            ? 'text-primary'
-                            : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
-                            }`}
-                    >
-                        Movimentações
-                        {activeTab === 'stock' && (
-                            <span className="absolute bottom-0 left-0 w-full h-0.5 bg-primary rounded-full" />
-                        )}
-                    </button>
+                {/* Tabs Navigation - Premium Segmented Control */}
+                <div className="bg-slate-100/80 dark:bg-slate-800/50 p-1.5 rounded-3xl no-print overflow-hidden">
+                    <div className="flex flex-wrap md:grid md:grid-cols-4 gap-1.5">
+                        <button
+                            onClick={() => setActiveTab('dashboard')}
+                            className={`flex-1 min-w-[140px] md:min-w-0 flex items-center justify-center gap-2 px-3 py-3 rounded-2xl font-bold text-xs sm:text-sm transition-all duration-300 ${activeTab === 'dashboard'
+                                ? 'bg-white dark:bg-slate-700 text-primary dark:text-white shadow-sm ring-1 ring-slate-200/50 dark:ring-slate-600'
+                                : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+                                }`}
+                        >
+                            <PieChart size={18} className="shrink-0" />
+                            <span className="whitespace-nowrap">Visão Geral</span>
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('history')}
+                            className={`flex-1 min-w-[100px] md:min-w-0 flex items-center justify-center gap-2 px-3 py-3 rounded-2xl font-bold text-xs sm:text-sm transition-all duration-300 ${activeTab === 'history'
+                                ? 'bg-white dark:bg-slate-700 text-primary dark:text-white shadow-sm ring-1 ring-slate-200/50 dark:ring-slate-600'
+                                : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+                                }`}
+                        >
+                            <History size={18} className="shrink-0" />
+                            <span className="whitespace-nowrap">Histórico</span>
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('birthdays')}
+                            className={`flex-1 min-w-[120px] md:min-w-0 flex items-center justify-center gap-2 px-3 py-3 rounded-2xl font-bold text-xs sm:text-sm transition-all duration-300 ${activeTab === 'birthdays'
+                                ? 'bg-white dark:bg-slate-700 text-primary dark:text-white shadow-sm ring-1 ring-slate-200/50 dark:ring-slate-600'
+                                : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+                                }`}
+                        >
+                            <Gift size={18} className="shrink-0" />
+                            <span className="whitespace-nowrap">Aniversários</span>
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('stock')}
+                            className={`flex-1 min-w-[80px] md:min-w-0 flex items-center justify-center gap-2 px-3 py-3 rounded-2xl font-bold text-xs sm:text-sm transition-all duration-300 ${activeTab === 'stock'
+                                ? 'bg-white dark:bg-slate-700 text-primary dark:text-white shadow-sm ring-1 ring-slate-200/50 dark:ring-slate-600'
+                                : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+                                }`}
+                        >
+                            <ClipboardList size={18} className="shrink-0" />
+                            <span className="whitespace-nowrap">Estoque</span>
+                        </button>
+                    </div>
                 </div>
 
                 {activeTab === 'stock' && (
                     <div className="flex flex-col gap-6">
-                        <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 text-slate-600 text-sm no-print">
-                            Gerencie o fluxo do seu estoque de medicamentos. Aqui você pode visualizar todas as entradas (compras) e saídas (consumo ou ajustes), permitindo um controle preciso do inventário e identificação de quando é necessário repor seus medicamentos.
+                        <div className="bg-amber-50 border border-amber-100 rounded-xl p-4 text-amber-700 text-sm no-print leading-snug">
+                            Gerencie seu estoque: acompanhe entradas, saídas e saiba o momento exato de repor.
                         </div>
                         <Card className="no-print">
                             <CardHeader>
@@ -884,11 +926,11 @@ const Reports = () => {
                                     </div>
                                     <div className="flex flex-col md:flex-row gap-4">
                                         <div className="flex flex-col gap-1.5 flex-1">
-                                            <label className="text-sm font-semibold text-slate-700 ml-1">Medicamento</label>
+                                            <label className="text-sm font-semibold text-slate-700">Medicamento</label>
                                             <select
                                                 value={filters.medicationId}
                                                 onChange={(e) => setFilters({ ...filters, medicationId: e.target.value })}
-                                                className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-slate-900 focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-200"
+                                                className="w-full h-12 pl-4 pr-9 rounded-xl border border-slate-200 bg-white text-slate-900 focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-200 appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20fill%3D%22none%22%20viewBox%3D%220%200%2024%2024%22%20stroke%3D%22%2364748b%22%3E%3Cpath%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20stroke-width%3D%222%22%20d%3D%22M19%209l-7%207-7-7%22%2F%3E%3C%2Fsvg%3E')] bg-[length:1.25em_1.25em] bg-[right_0.4rem_center] bg-no-repeat"
                                             >
                                                 <option value="all">Todos os Medicamentos</option>
                                                 {medications.map(med => (
@@ -897,11 +939,11 @@ const Reports = () => {
                                             </select>
                                         </div>
                                         <div className="flex flex-col gap-1.5 flex-1">
-                                            <label className="text-sm font-semibold text-slate-700 ml-1">Paciente</label>
+                                            <label className="text-sm font-semibold text-slate-700">Paciente</label>
                                             <select
                                                 value={filters.patientId}
                                                 onChange={(e) => setFilters({ ...filters, patientId: e.target.value })}
-                                                className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-slate-900 focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-200"
+                                                className="w-full h-12 pl-4 pr-9 rounded-xl border border-slate-200 bg-white text-slate-900 focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-200 appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20fill%3D%22none%22%20viewBox%3D%220%200%2024%2024%22%20stroke%3D%22%2364748b%22%3E%3Cpath%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20stroke-width%3D%222%22%20d%3D%22M19%209l-7%207-7-7%22%2F%3E%3C%2Fsvg%3E')] bg-[length:1.25em_1.25em] bg-[right_0.4rem_center] bg-no-repeat"
                                             >
                                                 <option value="all">Todos os Pacientes</option>
                                                 {patients.map(p => (
@@ -918,19 +960,44 @@ const Reports = () => {
                         </Card>
 
                         {stockData.length > 0 && (
-                            <div className="flex flex-wrap gap-3 no-print">
-                                <Button variant="outline" onClick={handlePrint}>
-                                    <Printer size={18} className="mr-2" /> Imprimir
-                                </Button>
-                                {/* PDF generation for Stock is not yet implemented, maybe skip or add later? 
-                                   User asked for Email specifically. 
-                                */}
-                                <Button variant="outline" onClick={() => handleEmail('stock')}>
-                                    <Mail size={18} className="mr-2" /> Email
-                                </Button>
-                                <Button variant="outline" onClick={handleWhatsApp}>
-                                    <MessageCircle size={18} className="mr-2" /> WhatsApp
-                                </Button>
+                            <div className="bg-slate-100/50 dark:bg-slate-800/40 p-4 rounded-3xl border border-slate-200/50 dark:border-slate-700/50 no-print mb-6">
+                                <div className="grid grid-cols-2 sm:grid-cols-3 md:flex md:flex-wrap gap-3 justify-center">
+                                    <Button
+                                        variant="outline"
+                                        onClick={handlePrint}
+                                        className="w-full md:w-auto bg-white dark:bg-slate-700 border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-50 text-xs sm:text-sm h-11 rounded-2xl shadow-sm"
+                                    >
+                                        <Printer size={16} className="mr-2 shrink-0" /> Imprimir
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        onClick={handleDownloadPDF}
+                                        className="w-full md:w-auto bg-white dark:bg-slate-700 border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-50 text-xs sm:text-sm h-11 rounded-2xl shadow-sm"
+                                    >
+                                        <Download size={16} className="mr-2 shrink-0" /> Baixar
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        onClick={handleViewPDF}
+                                        className="w-full md:w-auto bg-white dark:bg-slate-700 border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-50 text-xs sm:text-sm h-11 rounded-2xl shadow-sm"
+                                    >
+                                        <Eye size={16} className="mr-2 shrink-0" /> Visualizar
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        onClick={handleWhatsApp}
+                                        className="w-full md:w-auto bg-white dark:bg-slate-700 border-slate-200 dark:border-slate-600 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/10 text-xs sm:text-sm h-11 rounded-2xl shadow-sm"
+                                    >
+                                        <MessageCircle size={16} className="mr-2 shrink-0" /> WhatsApp
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => handleEmail('stock')}
+                                        className="w-full md:w-auto col-span-2 sm:col-span-1 border-slate-200 dark:border-slate-600 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/10 text-xs sm:text-sm h-11 rounded-2xl shadow-sm bg-white dark:bg-slate-700"
+                                    >
+                                        <Mail size={16} className="mr-2 shrink-0" /> Email
+                                    </Button>
+                                </div>
                             </div>
                         )}
 
@@ -941,36 +1008,29 @@ const Reports = () => {
                                 Nenhum registro encontrado para estes filtros.
                             </div>
                         ) : (
-                            <Card>
-                                <div className="overflow-x-auto">
-                                    <table className="w-full text-sm text-left">
-                                        <thead className="bg-slate-50 text-slate-500 font-medium border-b border-slate-100">
-                                            <tr>
-                                                <th className="px-6 py-4">Data/Hora</th>
-                                                <th className="px-6 py-4">Medicamento</th>
-                                                <th className="px-6 py-4">Qtd.</th>
-                                                <th className="px-6 py-4">Motivo</th>
-                                                <th className="px-6 py-4">Paciente</th>
-                                                <th className="px-6 py-4">Usuário</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-slate-100">
-                                            {stockData.map((item) => {
-                                                const isPositive = item.quantity_change > 0;
-                                                const reasonMap = {
-                                                    'consumption': 'Consumo',
-                                                    'refill': 'Compra/Entrada',
-                                                    'adjustment': 'Ajuste Manual',
-                                                    'correction': 'Correção'
-                                                };
-                                                return (
-                                                    <tr key={item.id} className="hover:bg-slate-50 transition-colors">
-                                                        <td className="px-6 py-4 text-slate-600">
-                                                            {formatDateTime(item.created_at)}
-                                                        </td>
-                                                        <td className="px-6 py-4 font-medium text-slate-900">
-                                                            {item.medications?.name}
-                                                            <div className="flex gap-1 text-xs text-slate-500 font-normal mt-0.5">
+                            <div className="space-y-4">
+                                {/* Mobile View: Cards */}
+                                <div className="grid grid-cols-1 gap-4 md:hidden">
+                                    {stockData.map((item) => {
+                                        const isPositive = item.quantity_change > 0;
+                                        const reasonMap = {
+                                            'consumption': 'Consumo',
+                                            'refill': 'Compra/Entrada',
+                                            'adjustment': 'Ajuste Manual',
+                                            'correction': 'Correção'
+                                        };
+                                        return (
+                                            <Card key={item.id} className="overflow-hidden border-l-4 transition-all active:scale-[0.98]" style={{ borderLeftColor: isPositive ? '#16a34a' : '#ea580c' }}>
+                                                <CardContent className="p-4">
+                                                    <div className="flex justify-between items-start mb-3">
+                                                        <div>
+                                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                                                                {formatDateTime(item.created_at)}
+                                                            </p>
+                                                            <h4 className="font-bold text-slate-900 leading-tight">
+                                                                {item.medications?.name}
+                                                            </h4>
+                                                            <div className="flex gap-1 text-[11px] text-slate-500 mt-0.5">
                                                                 <span>{item.medications?.dosage}</span>
                                                                 {item.medications?.type && (
                                                                     <>
@@ -979,110 +1039,208 @@ const Reports = () => {
                                                                     </>
                                                                 )}
                                                             </div>
-                                                        </td>
-                                                        <td className={`px-6 py-4 font-bold ${isPositive ? 'text-green-600' : 'text-orange-600'}`}>
+                                                        </div>
+                                                        <div className={`text-lg font-black shrink-0 ${isPositive ? 'text-green-600' : 'text-orange-600'}`}>
                                                             {isPositive ? '+' : ''}{item.quantity_change}
-                                                        </td>
-                                                        <td className="px-6 py-4 text-slate-600">
-                                                            <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium ${item.reason === 'consumption' ? 'bg-orange-50 text-orange-700' :
-                                                                item.reason === 'refill' ? 'bg-green-50 text-green-700' : 'bg-slate-100 text-slate-600'
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="grid grid-cols-2 gap-3 pt-3 border-t border-slate-50">
+                                                        <div>
+                                                            <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Motivo</p>
+                                                            <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold ${item.reason === 'consumption' ? 'bg-orange-50 text-orange-700 border border-orange-100' :
+                                                                item.reason === 'refill' ? 'bg-green-50 text-green-700 border border-green-100' : 'bg-slate-50 text-slate-600 border border-slate-100'
                                                                 }`}>
                                                                 {reasonMap[item.reason] || item.reason}
                                                             </span>
-                                                        </td>
-                                                        <td className="px-6 py-4 text-slate-600">
-                                                            {item.patients?.name || '-'}
-                                                        </td>
-                                                        <td className="px-6 py-4 text-slate-500 text-xs">
-                                                            {item.profiles?.full_name || 'Usuário'}
-                                                        </td>
-                                                    </tr>
-                                                );
-                                            })}
-                                        </tbody>
-                                    </table>
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Paciente</p>
+                                                            <p className="text-xs font-medium text-slate-700 truncate">{item.patients?.name || '-'}</p>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="mt-3 flex items-center gap-1.5 text-[10px] text-slate-400 bg-slate-50/50 p-1.5 rounded-lg border border-slate-100/50">
+                                                        <span className="font-bold">Realizado por:</span>
+                                                        <span className="truncate">{item.profiles?.full_name || 'Usuário'}</span>
+                                                    </div>
+                                                </CardContent>
+                                            </Card>
+                                        );
+                                    })}
                                 </div>
-                            </Card>
+
+                                {/* Desktop View: Table */}
+                                <div className="hidden md:block">
+                                    <Card className="overflow-hidden">
+                                        <div className="overflow-x-auto">
+                                            <table className="w-full text-sm text-left">
+                                                <thead className="bg-slate-50 text-slate-500 font-medium border-b border-slate-100">
+                                                    <tr>
+                                                        <th className="px-6 py-4 whitespace-nowrap">Data/Hora</th>
+                                                        <th className="px-6 py-4 whitespace-nowrap">Medicamento</th>
+                                                        <th className="px-6 py-4 whitespace-nowrap">Qtd.</th>
+                                                        <th className="px-6 py-4 whitespace-nowrap">Motivo</th>
+                                                        <th className="px-6 py-4 whitespace-nowrap">Paciente</th>
+                                                        <th className="px-6 py-4 whitespace-nowrap">Usuário</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-slate-100">
+                                                    {stockData.map((item) => {
+                                                        const isPositive = item.quantity_change > 0;
+                                                        const reasonMap = {
+                                                            'consumption': 'Consumo',
+                                                            'refill': 'Compra/Entrada',
+                                                            'adjustment': 'Ajuste Manual',
+                                                            'correction': 'Correção'
+                                                        };
+                                                        return (
+                                                            <tr key={item.id} className="hover:bg-slate-50 transition-colors">
+                                                                <td className="px-6 py-4 text-slate-600 whitespace-nowrap text-xs">
+                                                                    {formatDateTime(item.created_at)}
+                                                                </td>
+                                                                <td className="px-6 py-4 font-medium text-slate-900 whitespace-nowrap">
+                                                                    {item.medications?.name}
+                                                                    <div className="flex gap-1 text-[10px] text-slate-500 font-normal mt-0.5">
+                                                                        <span>{item.medications?.dosage}</span>
+                                                                        {item.medications?.type && (
+                                                                            <>
+                                                                                <span>•</span>
+                                                                                <span>{item.medications?.type}</span>
+                                                                            </>
+                                                                        )}
+                                                                    </div>
+                                                                </td>
+                                                                <td className={`px-6 py-4 font-bold ${isPositive ? 'text-green-600' : 'text-orange-600'}`}>
+                                                                    {isPositive ? '+' : ''}{item.quantity_change}
+                                                                </td>
+                                                                <td className="px-6 py-4 text-slate-600 text-xs">
+                                                                    <span className={`inline-flex items-center px-2 py-1 rounded-md text-[10px] font-bold ${item.reason === 'consumption' ? 'bg-orange-50 text-orange-700 border border-orange-100' :
+                                                                        item.reason === 'refill' ? 'bg-green-50 text-green-700 border border-green-100' : 'bg-slate-100 text-slate-600 border border-slate-100'
+                                                                        }`}>
+                                                                        {reasonMap[item.reason] || item.reason}
+                                                                    </span>
+                                                                </td>
+                                                                <td className="px-6 py-4 text-slate-600 whitespace-nowrap text-xs">
+                                                                    {item.patients?.name || '-'}
+                                                                </td>
+                                                                <td className="px-6 py-4 text-slate-500 text-[10px] whitespace-nowrap italic">
+                                                                    {item.profiles?.full_name || 'Usuário'}
+                                                                </td>
+                                                            </tr>
+                                                        );
+                                                    })}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </Card>
+                                </div>
+                            </div>
                         )}
                     </div>
                 )}
 
                 {activeTab === 'dashboard' && reportData && (
-                    <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                        <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 text-slate-700 text-sm no-print">
-                            Acompanhe o desempenho geral do tratamento em um só lugar. Visualize métricas essenciais como taxas de adesão, total de doses tomadas e pendentes, além de gráficos interativos que ilustram sua atividade semanal e o sucesso do tratamento ao longo do tempo.
+                    <div className="flex flex-col gap-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 text-blue-700 text-sm no-print leading-snug">
+                            Acompanhe seu progresso em um só lugar. Visualize taxas de adesão e atividade semanal com gráficos dinâmicos.
                         </div>
                         {/* Summary Cards */}
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                             <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-                                <CardContent className="p-6">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-12 h-12 rounded-xl bg-blue-500 flex items-center justify-center text-white">
-                                            <FileText size={24} />
+                                <CardContent className="p-3 sm:p-5">
+                                    <div className="flex flex-col gap-1.5 min-w-0">
+                                        <div className="flex items-center gap-2 min-w-0">
+                                            <div className="w-7 h-7 rounded-full bg-blue-500 flex items-center justify-center text-white shadow-md shadow-blue-200 shrink-0">
+                                                <FileText size={14} />
+                                            </div>
+                                            <p className="text-[11px] sm:text-sm text-blue-600 font-bold uppercase tracking-tight">Total</p>
                                         </div>
-                                        <div>
-                                            <p className="text-sm text-blue-600 font-medium">Total</p>
-                                            <p className="text-2xl font-bold text-blue-900">{reportData.summary.total}</p>
+                                        <div className="pl-9 sm:pl-0">
+                                            <p className="text-2xl font-black text-blue-900">{reportData.summary.total}</p>
                                         </div>
                                     </div>
                                 </CardContent>
                             </Card>
 
                             <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-                                <CardContent className="p-6">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-12 h-12 rounded-xl bg-green-500 flex items-center justify-center text-white">
-                                            <CheckCircle size={24} />
+                                <CardContent className="p-3 sm:p-5">
+                                    <div className="flex flex-col gap-1.5 min-w-0">
+                                        <div className="flex items-center gap-2 min-w-0">
+                                            <div className="w-7 h-7 rounded-full bg-green-500 flex items-center justify-center text-white shadow-md shadow-green-200 shrink-0">
+                                                <CheckCircle size={14} />
+                                            </div>
+                                            <p className="text-[11px] sm:text-sm text-green-600 font-bold uppercase tracking-tight">Tomadas</p>
                                         </div>
-                                        <div>
-                                            <p className="text-sm text-green-600 font-medium">Tomadas</p>
-                                            <p className="text-2xl font-bold text-green-900">{reportData.summary.taken}</p>
+                                        <div className="pl-9 sm:pl-0">
+                                            <p className="text-2xl font-black text-green-900">{reportData.summary.taken}</p>
                                         </div>
                                     </div>
                                 </CardContent>
                             </Card>
 
                             <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
-                                <CardContent className="p-6">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-12 h-12 rounded-xl bg-orange-500 flex items-center justify-center text-white">
-                                            <Clock size={24} />
+                                <CardContent className="p-3 sm:p-5">
+                                    <div className="flex flex-col gap-1.5 min-w-0">
+                                        <div className="flex items-center gap-2 min-w-0">
+                                            <div className="w-7 h-7 rounded-full bg-orange-500 flex items-center justify-center text-white shadow-md shadow-orange-200 shrink-0">
+                                                <Timer size={14} />
+                                            </div>
+                                            <p className="text-[11px] sm:text-sm text-orange-600 font-bold uppercase tracking-tight">Pendentes</p>
                                         </div>
-                                        <div>
-                                            <p className="text-sm text-orange-600 font-medium">Pendentes</p>
-                                            <p className="text-2xl font-bold text-orange-900">{reportData.summary.pending}</p>
+                                        <div className="pl-9 sm:pl-0">
+                                            <p className="text-2xl font-black text-orange-900">{reportData.summary.pending}</p>
                                         </div>
                                     </div>
                                 </CardContent>
                             </Card>
 
                             <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
-                                <CardContent className="p-6">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-12 h-12 rounded-xl bg-purple-500 flex items-center justify-center text-white">
-                                            <Calendar size={24} />
+                                <CardContent className="p-3 sm:p-5">
+                                    <div className="flex flex-col gap-1.5 min-w-0">
+                                        <div className="flex items-center gap-2 min-w-0">
+                                            <div className="w-7 h-7 rounded-full bg-purple-500 flex items-center justify-center text-white shadow-md shadow-purple-200 shrink-0">
+                                                <Calendar size={14} />
+                                            </div>
+                                            <p className="text-[11px] sm:text-sm text-purple-600 font-bold uppercase tracking-tight">Adesão</p>
                                         </div>
-                                        <div>
-                                            <p className="text-sm text-purple-600 font-medium">Adesão</p>
-                                            <p className="text-2xl font-bold text-purple-900">{reportData.summary.adherenceRate}%</p>
+                                        <div className="pl-9 sm:pl-0">
+                                            <p className="text-2xl font-black text-purple-900">{reportData.summary.adherenceRate}%</p>
                                         </div>
                                     </div>
                                 </CardContent>
                             </Card>
                         </div>
 
-                        {/* Charts Section - Now correctly placed in Dashboard */}
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 print:break-inside-avoid">
-                            <AdherenceChart data={dashboardData.adherence} />
-                            <ActivityChart data={dashboardData.activity} />
+                        {/* Charts Section - Improved Responsiveness */}
+                        {/* Charts Section - Improved Responsiveness */}
+                        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 print:break-inside-avoid">
+                            <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col">
+                                <h4 className="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+                                    <span className="w-2 h-6 bg-purple-500 rounded-full"></span>
+                                    Taxa de Adesão
+                                </h4>
+                                <div className="flex-1">
+                                    <AdherenceChart data={dashboardData.adherence} />
+                                </div>
+                            </div>
+                            <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col">
+                                <h4 className="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+                                    <span className="w-2 h-6 bg-blue-500 rounded-full"></span>
+                                    Atividade Semanal
+                                </h4>
+                                <div className="flex-1">
+                                    <ActivityChart data={dashboardData.activity} />
+                                </div>
+                            </div>
                         </div>
                     </div>
                 )}
 
                 {activeTab === 'history' && (
                     <div className="flex flex-col gap-6">
-                        <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 text-slate-600 text-sm no-print">
-                            Consulte o histórico detalhado de todas as doses prescritas e consumidas. Utilize os filtros avançados para buscar registros por paciente, período específico ou status da medicação, e exporte os dados para impressão ou arquivo PDF para levar ao médico.
+                        <div className="bg-violet-50 border border-violet-100 rounded-xl p-4 text-violet-700 text-sm no-print leading-snug">
+                            Histórico de doses: filtre registros e gere relatórios detalhados para seu médico.
                         </div>
                         <Card className="no-print">
                             <CardHeader>
@@ -1093,11 +1251,11 @@ const Reports = () => {
                                 <div className="flex flex-col gap-6">
                                     <div className="flex flex-col md:flex-row gap-4">
                                         <div className="flex flex-col gap-1.5 flex-1">
-                                            <label className="text-sm font-semibold text-slate-700 ml-1">Paciente</label>
+                                            <label className="text-sm font-semibold text-slate-700">Paciente</label>
                                             <select
                                                 value={filters.patientId}
                                                 onChange={(e) => setFilters({ ...filters, patientId: e.target.value })}
-                                                className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-slate-900 focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-200"
+                                                className="w-full h-12 pl-4 pr-9 rounded-xl border border-slate-200 bg-white text-slate-900 focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-200 appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20fill%3D%22none%22%20viewBox%3D%220%200%2024%2024%22%20stroke%3D%22%2364748b%22%3E%3Cpath%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20stroke-width%3D%222%22%20d%3D%22M19%209l-7%207-7-7%22%2F%3E%3C%2Fsvg%3E')] bg-[length:1.25em_1.25em] bg-[right_0.4rem_center] bg-no-repeat"
                                             >
                                                 <option value="all">Todos os Pacientes</option>
                                                 {patients.map(patient => (
@@ -1125,11 +1283,11 @@ const Reports = () => {
                                     </div>
 
                                     <div className="flex flex-col gap-1.5">
-                                        <label className="text-sm font-semibold text-slate-700 ml-1">Status</label>
+                                        <label className="text-sm font-semibold text-slate-700">Status</label>
                                         <select
                                             value={filters.status}
                                             onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-                                            className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-slate-900 focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-200"
+                                            className="w-full h-12 pl-4 pr-9 rounded-xl border border-slate-200 bg-white text-slate-900 focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-200 appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20fill%3D%22none%22%20viewBox%3D%220%200%2024%2024%22%20stroke%3D%22%2364748b%22%3E%3Cpath%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20stroke-width%3D%222%22%20d%3D%22M19%209l-7%207-7-7%22%2F%3E%3C%2Fsvg%3E')] bg-[length:1.25em_1.25em] bg-[right_0.4rem_center] bg-no-repeat"
                                         >
                                             <option value="all">Todos os Status</option>
                                             <option value="taken">Tomadas</option>
@@ -1147,22 +1305,45 @@ const Reports = () => {
                         {/* History Table Results */}
                         {reportData && (
                             <>
-                                <div className="flex flex-wrap gap-3 no-print justify-end">
-                                    <Button variant="outline" onClick={handlePrint}>
-                                        <Printer size={18} className="mr-2" /> Imprimir
-                                    </Button>
-                                    <Button variant="outline" onClick={handleDownloadPDF}>
-                                        <Download size={18} className="mr-2" /> Baixar
-                                    </Button>
-                                    <Button variant="outline" onClick={handleViewPDF}>
-                                        <Eye size={18} className="mr-2" /> Visualizar
-                                    </Button>
-                                    <Button variant="outline" onClick={handleWhatsApp}>
-                                        <MessageCircle size={18} className="mr-2" /> WhatsApp
-                                    </Button>
-                                    <Button variant="outline" onClick={handleEmail}>
-                                        <Mail size={18} className="mr-2" /> Email
-                                    </Button>
+                                {/* Quick Actions Panel - Senior UI/UX Refinement */}
+                                <div className="bg-slate-100/50 dark:bg-slate-800/40 p-4 rounded-3xl border border-slate-200/50 dark:border-slate-700/50 no-print mb-6">
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 md:flex md:flex-wrap gap-3 justify-center">
+                                        <Button
+                                            variant="outline"
+                                            onClick={handlePrint}
+                                            className="w-full md:w-auto bg-white dark:bg-slate-700 border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-50 text-xs sm:text-sm h-11 rounded-2xl shadow-sm"
+                                        >
+                                            <Printer size={16} className="mr-2 shrink-0" /> Imprimir
+                                        </Button>
+                                        <Button
+                                            variant="outline"
+                                            onClick={handleDownloadPDF}
+                                            className="w-full md:w-auto bg-white dark:bg-slate-700 border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-50 text-xs sm:text-sm h-11 rounded-2xl shadow-sm"
+                                        >
+                                            <Download size={16} className="mr-2 shrink-0" /> Baixar
+                                        </Button>
+                                        <Button
+                                            variant="outline"
+                                            onClick={handleViewPDF}
+                                            className="w-full md:w-auto bg-white dark:bg-slate-700 border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-50 text-xs sm:text-sm h-11 rounded-2xl shadow-sm"
+                                        >
+                                            <Eye size={16} className="mr-2 shrink-0" /> Visualizar
+                                        </Button>
+                                        <Button
+                                            variant="outline"
+                                            onClick={handleWhatsApp}
+                                            className="w-full md:w-auto bg-white dark:bg-slate-700 border-slate-200 dark:border-slate-600 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/10 text-xs sm:text-sm h-11 rounded-2xl shadow-sm"
+                                        >
+                                            <MessageCircle size={16} className="mr-2 shrink-0" /> WhatsApp
+                                        </Button>
+                                        <Button
+                                            variant="outline"
+                                            onClick={handleEmail}
+                                            className="w-full md:w-auto col-span-2 sm:col-span-1 border-slate-200 dark:border-slate-600 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/10 text-xs sm:text-sm h-11 rounded-2xl shadow-sm bg-white dark:bg-slate-700"
+                                        >
+                                            <Mail size={16} className="mr-2 shrink-0" /> Email
+                                        </Button>
+                                    </div>
                                 </div>
 
                                 {paginatedItems.length > 0 ? (
@@ -1173,8 +1354,8 @@ const Reports = () => {
                                                     <CardContent className="p-4">
                                                         <div className="flex items-center justify-between">
                                                             <div className="flex items-center gap-4">
-                                                                <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${item.status === 'taken' ? 'bg-green-500' : 'bg-orange-500'} text-white`}>
-                                                                    {item.status === 'taken' ? <CheckCircle size={24} /> : <Clock size={24} />}
+                                                                <div className={`w-9 h-9 rounded-full flex items-center justify-center ${item.status === 'taken' ? 'bg-green-500 shadow-green-100' : 'bg-orange-500 shadow-orange-100'} text-white shadow-lg shrink-0`}>
+                                                                    {item.status === 'taken' ? <CheckCircle size={18} /> : <Timer size={18} />}
                                                                 </div>
                                                                 <div>
                                                                     <p className="font-semibold text-slate-900">{item.medication}</p>
@@ -1214,35 +1395,35 @@ const Reports = () => {
 
                 {activeTab === 'birthdays' && (
                     <div className="flex flex-col gap-6">
-                        <div className="bg-pink-50 border border-pink-100 rounded-xl p-4 text-pink-700 text-sm no-print">
-                            Não esqueça nenhuma data importante! Identifique rapidamente os pacientes que fazem aniversário no dia selecionado, veja a idade completa e utilize os atalhos para enviar mensagens carinhosas de felicitações via WhatsApp ou E-mail diretamente por aqui.
+                        <div className="bg-pink-50 border border-pink-100 rounded-xl p-4 text-pink-700 text-sm no-print leading-snug">
+                            Celebre a vida! Identifique aniversariantes e envie felicitações via WhatsApp ou E-mail com um toque.
                         </div>
-                        <Card className="no-print">
+                        <Card className="no-print overflow-visible">
                             <CardHeader>
                                 <h3 className="font-bold text-xl text-slate-900 dark:text-white">Buscar Aniversariantes</h3>
                                 <p className="text-sm text-slate-500 dark:text-slate-400">Selecione uma data para ver os aniversariantes do dia</p>
                             </CardHeader>
                             <CardContent>
                                 <div className="flex flex-col md:flex-row gap-4 items-end">
-                                    <div className="flex-1 flex gap-4">
-                                        <div className="flex-1">
-                                            <label className="text-sm font-semibold text-slate-700 ml-1 mb-1.5 block">Dia</label>
+                                    <div className="flex-1 flex gap-3">
+                                        <div className="w-24 shrink-0">
+                                            <label className="text-sm font-semibold text-slate-700 mb-1.5 block">Dia</label>
                                             <select
                                                 value={selectedDay}
                                                 onChange={(e) => setSelectedDay(Number(e.target.value))}
-                                                className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-slate-900 focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-200"
+                                                className="w-full h-12 pl-4 pr-9 rounded-xl border border-slate-200 bg-white text-slate-900 focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-200 appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20fill%3D%22none%22%20viewBox%3D%220%200%2024%2024%22%20stroke%3D%22%2364748b%22%3E%3Cpath%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20stroke-width%3D%222%22%20d%3D%22M19%209l-7%207-7-7%22%2F%3E%3C%2Fsvg%3E')] bg-[length:1.25em_1.25em] bg-[right_0.4rem_center] bg-no-repeat"
                                             >
                                                 {Array.from({ length: 31 }, (_, i) => i + 1).map(day => (
                                                     <option key={day} value={day}>{day}</option>
                                                 ))}
                                             </select>
                                         </div>
-                                        <div className="flex-[2]">
-                                            <label className="text-sm font-semibold text-slate-700 ml-1 mb-1.5 block">Mês</label>
+                                        <div className="flex-1 min-w-[170px]">
+                                            <label className="text-sm font-semibold text-slate-700 mb-1.5 block">Mês</label>
                                             <select
                                                 value={selectedMonth}
                                                 onChange={(e) => setSelectedMonth(Number(e.target.value))}
-                                                className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-slate-900 focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-200"
+                                                className="w-full h-12 pl-4 pr-9 rounded-xl border border-slate-200 bg-white text-slate-900 focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-200 appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20fill%3D%22none%22%20viewBox%3D%220%200%2024%2024%22%20stroke%3D%22%2364748b%22%3E%3Cpath%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20stroke-width%3D%222%22%20d%3D%22M19%209l-7%207-7-7%22%2F%3E%3C%2Fsvg%3E')] bg-[length:1.25em_1.25em] bg-[right_0.4rem_center] bg-no-repeat"
                                             >
                                                 {['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'].map((month, idx) => (
                                                     <option key={idx} value={idx + 1}>{month}</option>
@@ -1272,8 +1453,8 @@ const Reports = () => {
                                         <CardContent className="p-4">
                                             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                                                 <div className="flex items-center gap-4">
-                                                    <div className="w-12 h-12 rounded-xl bg-pink-500 shrink-0 flex items-center justify-center text-white">
-                                                        <Gift size={24} />
+                                                    <div className="w-9 h-9 rounded-full bg-pink-500 shrink-0 flex items-center justify-center text-white">
+                                                        <Gift size={18} />
                                                     </div>
                                                     <div>
                                                         <p className="font-semibold text-slate-900">{patient.name}</p>
@@ -1365,6 +1546,8 @@ const Reports = () => {
 
 
             </div >
+            {/* Spacing for dropdowns */}
+            <div className="h-64 no-print sm:hidden" />
 
 
         </>

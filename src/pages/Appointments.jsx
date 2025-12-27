@@ -574,13 +574,13 @@ const Appointments = () => {
                         <div className="w-20 h-20 bg-slate-50 dark:bg-slate-800/50 rounded-full flex items-center justify-center mb-4 text-slate-300 dark:text-slate-700">
                             {viewMode === 'calendar' ? <CalendarDays size={40} /> : <Calendar size={40} />}
                         </div>
-                        <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-1">
+                        <h3 className="text-xl md:text-2xl font-bold text-slate-800 dark:text-white mb-2 text-center px-4">
                             {viewMode === 'calendar'
                                 ? `Nenhuma consulta em ${format(selectedDay, "dd 'de' MMMM", { locale: ptBR })}`
                                 : 'Nenhuma consulta encontrada'
                             }
                         </h3>
-                        <p className="text-slate-500 dark:text-slate-400 text-center max-w-xs px-4">
+                        <p className="text-slate-500 dark:text-slate-400 text-center max-w-sm px-6 text-sm md:text-base leading-relaxed">
                             {viewMode === 'calendar'
                                 ? 'Selecione outro dia no calendário ou agende uma nova consulta.'
                                 : 'Você não tem consultas agendadas que correspondam aos filtros atuais.'

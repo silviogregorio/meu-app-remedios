@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, forwardRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Menu, Bell, Sun, Moon, LogOut, User as UserIcon, Heart, Search, Siren } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
@@ -8,7 +8,7 @@ import MedicationSearchModal from '../features/MedicationSearchModal';
 
 import { useTheme } from '../../context/ThemeContext';
 
-const Header = ({ onMenuClick, isPinned }) => {
+const Header = forwardRef(({ onMenuClick, isPinned }, ref) => {
     const { user, pendingShares, logout, patients, triggerPanicAlert, showToast } = useApp();
     const { theme, setTheme } = useTheme();
     const navigate = useNavigate();
@@ -249,8 +249,9 @@ const Header = ({ onMenuClick, isPinned }) => {
 
     return (
         <header
-            className={`fixed top-0 left-0 right-0 h-[64px] bg-white dark:bg-slate-900 border-b border-[#e2e8f0] dark:border-slate-800 z-30 px-4 flex items-center justify-between shadow-sm transition-all duration-300 ${isPinned ? 'md:left-64' : ''
-                }`}
+            ref={ref}
+            className={`fixed top-0 left-0 right-0 bg-white dark:bg-slate-900 border-b border-[#e2e8f0] dark:border-slate-800 z-50 px-4 flex items-center justify-between shadow-sm transition-all duration-300 ${isPinned ? 'md:left-64' : ''}`}
+            style={{ minHeight: '64px' }}
         >
             {/* 1. Menu Toggle (Sempre Visível) */}
             <button
@@ -269,9 +270,9 @@ const Header = ({ onMenuClick, isPinned }) => {
             </div>
 
             {user && (
-                <div className="flex items-center gap-3 sm:gap-4 md:gap-6 ml-auto">
-                    {/* Ações Mobile - Gap aumentado e Tamanho Uniforme */}
-                    <div className="flex items-center gap-6 md:hidden">
+                <div className="flex items-center gap-2 sm:gap-4 md:gap-6 ml-auto min-w-0">
+                    {/* Ações Mobile - Gap reduzido para caber com fontes grandes */}
+                    <div className="flex items-center gap-2 md:hidden">
                         <button
                             onClick={() => setShowSearch(true)}
                             className="w-10 h-10 flex items-center justify-center text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-full transition-colors"
@@ -335,10 +336,11 @@ const Header = ({ onMenuClick, isPinned }) => {
                     <button
                         id="tour-sos-btn"
                         onClick={() => setShowSOS(true)}
-                        className="bg-red-600 hover:bg-red-700 text-white p-2 sm:px-4 sm:py-1.5 rounded-full font-bold shadow-lg shadow-red-500/30 transition-all hover:scale-105 flex items-center gap-1.5 animate-pulse-slow"
+                        className="bg-red-600 hover:bg-red-700 text-white p-1.5 sm:px-4 sm:py-1.5 rounded-full font-bold shadow-lg shadow-red-500/30 transition-all hover:scale-105 flex items-center gap-1.5 animate-pulse-slow shrink-0"
                     >
-                        <Heart size={18} fill="currentColor" />
+                        <Heart size={16} fill="currentColor" />
                         <span className="hidden md:inline">SOS</span>
+                        <span className="md:hidden text-xs">Ficha</span>
                     </button>
 
                     {/* 6. Notificações (Desktop) */}
@@ -470,6 +472,6 @@ const Header = ({ onMenuClick, isPinned }) => {
             />
         </header >
     );
-};
+});
 
 export default Header;

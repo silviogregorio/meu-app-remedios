@@ -25,6 +25,8 @@ import { MedicationCardShimmer, HeroCardShimmer, StatsCardShimmer } from '../com
 import SimplifiedHome from '../components/features/SimplifiedHome';
 import ConfirmationModal from '../components/ui/ConfirmationModal';
 import WeeklySummaryCard from '../components/features/WeeklySummaryCard';
+import FamilyDashboard from '../components/features/FamilyDashboard';
+import HealthTips from '../components/features/HealthTips';
 
 
 const ITEMS_PER_PAGE = 6;
@@ -258,32 +260,42 @@ const Home = () => {
     return (
         <div className="flex flex-col gap-4 pb-12">
             {/* ... Header ... */}
-            <div className="flex items-center justify-between w-full">
-                <div>
-                    <h1 className="text-2xl font-bold text-slate-800 dark:text-white">
-                        Olá, {user?.user_metadata?.full_name?.split(' ')[0] || 'Visitante'}
-                    </h1>
-                    <p className="text-slate-500 dark:text-slate-400 text-sm">
-                        Vamos cuidar da sua saúde hoje?
-                    </p>
-                </div>
-                <div className="flex items-center gap-2">
-                    <button
-                        onClick={() => updateUserPreferences({ simplified_mode: true })}
-                        className="flex items-center gap-2 px-3 py-2 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 transition-colors text-sm font-medium"
-                        title="Modo Simplificado"
-                    >
-                        <Armchair size={20} />
-                        <span className="hidden sm:inline">Modo Idoso</span>
-                    </button>
-                    <button
-                        onClick={() => setStartTour(true)}
-                        className="flex items-center gap-2 px-3 py-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition-colors text-sm font-medium"
-                    >
-                        <CircleHelp size={18} />
-                        <span className="font-semibold block sm:hidden">Manual</span>
-                        <span className="font-semibold hidden sm:block">Como usar</span>
-                    </button>
+            {/* Premium Header Section */}
+            <div className="relative overflow-hidden bg-white dark:bg-slate-800 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-700 mb-2">
+                <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 bg-primary/5 rounded-full blur-3xl"></div>
+                <div className="absolute bottom-0 left-0 -ml-16 -mb-16 w-48 h-48 bg-emerald-500/5 rounded-full blur-3xl"></div>
+
+                <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                        <div className="flex items-center gap-2 mb-1">
+                            <span className="w-8 h-1 bg-primary rounded-full"></span>
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-primary">Painel de Saúde</span>
+                        </div>
+                        <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+                            Olá, <span className="text-primary">{user?.user_metadata?.full_name?.split(' ')[0] || 'Visitante'}</span>
+                        </h1>
+                        <p className="text-slate-500 dark:text-slate-400 font-medium italic mt-1">
+                            Vamos cuidar da sua saúde hoje?
+                        </p>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => updateUserPreferences({ simplified_mode: true })}
+                            className="flex items-center gap-2 px-4 py-2.5 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-600 transition-all text-sm font-bold shadow-sm border border-slate-200/50 dark:border-slate-600"
+                            title="Modo Simplificado"
+                        >
+                            <Armchair size={18} />
+                            <span>Modo Idoso</span>
+                        </button>
+                        <button
+                            onClick={() => setStartTour(true)}
+                            className="flex items-center gap-2 px-4 py-2.5 bg-primary/10 text-primary rounded-xl hover:bg-primary/20 transition-all text-sm font-bold shadow-sm border border-primary/10"
+                        >
+                            <CircleHelp size={18} />
+                            <span>Manual</span>
+                        </button>
+                    </div>
                 </div>
             </div>
             {/* {!offersLoading && offers.length > 0 && ( // Removed
@@ -297,13 +309,16 @@ const Home = () => {
                 </section>
             )} */}
 
-            {/* Local Offers Carousel (NEW) */}
-            <div className="mt-4 sm:mt-0">
-                <LocalOffersCarousel userIbge={user?.user_metadata?.ibge_code} />
-            </div>
 
             {/* Weekly Summary Card */}
             <WeeklySummaryCard />
+
+            {/* Family Dashboard (Visão Geral de Todos) */}
+            <FamilyDashboard
+                patients={patients}
+                todaysSchedule={todaysSchedule}
+                visible={selectedPatient === 'all' && !hasActiveFilters}
+            />
 
             {/* Motivation Card */}
             <MotivationCard />
@@ -642,8 +657,17 @@ const Home = () => {
                 )}
             </div>
 
-            {/* Sponsor Display (Banner) */}
+            {/* Local Offers Carousel (Moved below critical health info) */}
+            <div className="mt-2">
+                <LocalOffersCarousel userIbge={user?.user_metadata?.ibge_code} />
+            </div>
+
             <SponsorDisplay user={user} variant="banner" />
+
+            {/* Health Tips Section */}
+            <div className="mt-4 mb-8">
+                <HealthTips />
+            </div>
 
             {/* Late Doses Alert */}
             {
