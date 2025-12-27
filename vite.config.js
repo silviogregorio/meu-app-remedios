@@ -55,16 +55,9 @@ export default defineConfig({
   },
   build: {
     chunkSizeWarningLimit: 1000,
-    // Use terser for safer console removal in production
-    minify: 'terser',
-    terserOptions: {
-      compress: {
-        // Mark console.log/warn/info as pure (no side effects) so they get removed
-        pure_funcs: ['console.log', 'console.warn', 'console.info'],
-        // Keep console.error for real error debugging
-        drop_debugger: true,
-      },
-    },
+    // NOTE: terser pure_funcs was removed because it was causing runtime errors
+    // Console.log removal is NOT worth breaking the app
+    // If needed, use conditional logging in the code instead
     rollupOptions: {
       output: {
         manualChunks: {
