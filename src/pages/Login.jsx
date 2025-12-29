@@ -56,21 +56,123 @@ const Login = () => {
         }
     }, [user, navigate]);
 
+    const [showMfa, setShowMfa] = useState(false);
+    const [mfaCode, setMfaCode] = useState('');
+    const [challengeId, setChallengeId] = useState('');
+    const [factorId, setFactorId] = useState('');
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
         setError('');
 
-        const { error: signInError } = await signIn(email.trim(), password.trim());
+        const { data, error: signInError } = await signIn(email.trim(), password.trim());
 
         if (signInError) {
             setError(signInError.message || 'Email ou senha inválidos');
+            setLoading(false);
+            return;
+        }
+
+        // Check if MFA is required
+        const { data: factorsData, error: factorsError } = await supabase.auth.mfa.listFactors();
+
+        console.log('🔐 MFA Factors Data:', factorsData);
+
+        // Supabase returns { totp: [...], phone: [...] }
+        const totpFactors = factorsData?.totp || [];
+        const verifiedFactor = totpFactors.find(f => f.status === 'verified');
+
+        console.log('🔐 Verified TOTP Factor:', verifiedFactor);
+
+        if (!factorsError && verifiedFactor) {
+            const { data: challengeData, error: challengeError } = await supabase.auth.mfa.challenge({
+                factorId: verifiedFactor.id
+            });
+
+            console.log('🔐 Challenge Data:', challengeData, 'Error:', challengeError);
+
+            if (!challengeError && challengeData) {
+                setFactorId(verifiedFactor.id);
+                setChallengeId(challengeData.id);
+                setShowMfa(true);
+                setLoading(false);
+                return;
+            }
+        }
+
+        localStorage.setItem('sig_last_email', email);
+        navigate('/app');
+    };
+
+    const handleVerifyMfa = async (e) => {
+        e.preventDefault();
+        setLoading(true);
+        setError('');
+
+        const { error: verifyError } = await supabase.auth.mfa.verify({
+            factorId,
+            challengeId,
+            code: mfaCode
+        });
+
+        if (verifyError) {
+            setError('Código de verificação inválido.');
             setLoading(false);
         } else {
             localStorage.setItem('sig_last_email', email);
             navigate('/app');
         }
     };
+
+    if (showMfa) {
+        return (
+            <div className="min-h-screen flex flex-col items-center justify-center bg-[#f8fafc] dark:bg-slate-950 p-4">
+                <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-xl p-8">
+                    <div className="flex flex-col items-center mb-8">
+                        <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center text-white mb-4 shadow-lg">
+                            <Shield size={40} />
+                        </div>
+                        <h1 className="text-2xl font-bold text-[#0f172a] dark:text-white">Autenticação em Duas Etapas</h1>
+                        <p className="text-[#64748b] dark:text-slate-400 text-center">Digite o código de 6 dígitos gerado pelo seu aplicativo de autenticação.</p>
+                    </div>
+
+                    <form onSubmit={handleVerifyMfa} className="flex flex-col gap-6">
+                        {error && (
+                            <div className="p-3 bg-red-50 text-red-600 text-sm rounded-lg text-center font-semibold">
+                                {error}
+                            </div>
+                        )}
+
+                        <div className="flex justify-center">
+                            <input
+                                type="text"
+                                maxLength="6"
+                                placeholder="000000"
+                                value={mfaCode}
+                                onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, ''))}
+                                className="w-full text-center text-4xl tracking-[0.5em] font-mono py-4 border-2 border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-white focus:border-blue-500 outline-none transition-all"
+                                autoFocus
+                                required
+                            />
+                        </div>
+
+                        <Button type="submit" fullWidth disabled={loading || mfaCode.length !== 6}>
+                            {loading ? 'Verificando...' : 'Confirmar Código'}
+                        </Button>
+
+                        <button
+                            type="button"
+                            onClick={() => setShowMfa(false)}
+                            className="text-slate-500 hover:text-slate-700 text-sm font-semibold"
+                        >
+                            Voltar para o login
+                        </button>
+                    </form>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen flex flex-col items-center justify-center bg-[#f8fafc] dark:bg-slate-950 p-4">
@@ -143,6 +245,7 @@ const Login = () => {
                         {loading ? 'Entrando...' : 'Entrar'}
                     </Button>
 
+                    {/* Biometric Login - Temporarily Disabled
                     {hasBiometrics && (
                         <div className="relative my-4">
                             <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-slate-200 dark:border-slate-800"></span></div>
@@ -166,6 +269,7 @@ const Login = () => {
                             </p>
                         </div>
                     )}
+                    */}
                 </form>
 
                 <div className="mt-6 text-center text-sm text-[#64748b]">

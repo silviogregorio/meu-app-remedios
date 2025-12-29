@@ -21,7 +21,7 @@ import SponsorDisplay from '../components/features/SponsorDisplay';
 import LocalOffersCarousel from '../components/features/LocalOffersCarousel';
 import { fetchActiveWeightedOffers } from '../services/offerService';
 import { OfferCard } from '../components/features/OfferCard';
-import { MedicationCardShimmer, HeroCardShimmer, StatsCardShimmer } from '../components/ui/Shimmer';
+import { MedicationCardShimmer, HeroCardShimmer, StatsCardShimmer, OfferCarouselShimmer } from '../components/ui/Shimmer';
 import SimplifiedHome from '../components/features/SimplifiedHome';
 import ConfirmationModal from '../components/ui/ConfirmationModal';
 import WeeklySummaryCard from '../components/features/WeeklySummaryCard';
@@ -201,10 +201,10 @@ const Home = () => {
     // Disable loading once data is available (with minimum visible time)
     useEffect(() => {
         if (prescriptions.length >= 0 && medications.length >= 0) {
-            // Keep shimmer visible for at least 1500ms (1.5s)
+            // Keep shimmer visible for at least 3000ms (3s)
             setTimeout(() => {
                 setIsInitialLoading(false);
-            }, 1500);
+            }, 3000);
         }
     }, [prescriptions, medications]);
 
@@ -243,6 +243,64 @@ const Home = () => {
 
     if (userPreferences?.simplified_mode) {
         return <SimplifiedHome />;
+    }
+
+    // Full Page Shimmer Loading State
+    if (isInitialLoading) {
+        return (
+            <div className="flex flex-col gap-4 pb-12 animate-pulse">
+                {/* Header Shimmer */}
+                <div className="bg-white dark:bg-slate-800 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-700 mb-2">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div className="space-y-3">
+                            <div className="flex items-center gap-2">
+                                <div className="w-8 h-1 bg-slate-200 dark:bg-slate-700 rounded-full"></div>
+                                <div className="h-3 w-24 bg-slate-200 dark:bg-slate-700 rounded"></div>
+                            </div>
+                            <div className="h-9 w-48 bg-slate-200 dark:bg-slate-700 rounded"></div>
+                            <div className="h-5 w-64 bg-slate-200 dark:bg-slate-700 rounded"></div>
+                        </div>
+                        <div className="flex gap-2">
+                            <div className="h-10 w-28 bg-slate-200 dark:bg-slate-700 rounded-full"></div>
+                            <div className="h-10 w-24 bg-slate-200 dark:bg-slate-700 rounded-full"></div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Weekly Summary Shimmer */}
+                <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border-2 border-indigo-100 dark:border-slate-800">
+                    <div className="flex items-center gap-3 mb-4">
+                        <div className="w-10 h-10 bg-slate-200 dark:bg-slate-700 rounded-xl"></div>
+                        <div className="h-4 w-40 bg-slate-200 dark:bg-slate-700 rounded"></div>
+                    </div>
+                    <div className="h-7 w-3/4 bg-slate-200 dark:bg-slate-700 rounded mb-3"></div>
+                    <div className="h-4 w-full bg-slate-200 dark:bg-slate-700 rounded mb-4"></div>
+                    <div className="h-10 w-40 bg-slate-200 dark:bg-slate-700 rounded-xl"></div>
+                </div>
+
+                {/* Hero + Stats Grid Shimmer */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div className="md:col-span-2">
+                        <HeroCardShimmer />
+                    </div>
+                    <div className="flex flex-col gap-3">
+                        <StatsCardShimmer />
+                        <div className="bg-white dark:bg-slate-800 rounded-2xl h-32 shimmer"></div>
+                    </div>
+                </div>
+
+                {/* Offers Carousel Shimmer */}
+                <OfferCarouselShimmer />
+
+                {/* Schedule Section Shimmer */}
+                <div className="space-y-4">
+                    <div className="h-6 w-40 bg-slate-200 dark:bg-slate-700 rounded"></div>
+                    <MedicationCardShimmer />
+                    <MedicationCardShimmer />
+                    <MedicationCardShimmer />
+                </div>
+            </div>
+        );
     }
 
     return (

@@ -95,17 +95,14 @@ const WeeklySummaryCard = () => {
                     )}
                 </div>
 
-                <Button
+                <button
                     onClick={handleShare}
-                    variant="primary"
-                    fullWidth
-                    className="py-4 font-black text-lg rounded-2xl flex items-center justify-center gap-3 transition-all hover:scale-[1.02]"
-                    style={{ fontSize: accessibility?.largeText ? '1.5rem' : '1.125rem' }}
+                    className="w-full sm:w-auto px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm rounded-xl flex items-center justify-center gap-2 transition-all hover:scale-[1.02] shadow-lg shadow-emerald-200 dark:shadow-emerald-900/30"
                 >
-                    <Share2 size={24} />
+                    <Share2 size={18} />
                     Compartilhar Resumo
-                    <ArrowRight size={20} className="ml-1 opacity-70" />
-                </Button>
+                    <ArrowRight size={16} className="opacity-70" />
+                </button>
             </div>
         </div>
     );

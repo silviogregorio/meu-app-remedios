@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import Card, { CardHeader, CardContent } from '../components/ui/Card';
-import { Shield, AlertTriangle, Activity, Clock, MapPin, TrendingUp } from 'lucide-react';
+import { Shield, AlertTriangle, Activity, Clock, MapPin, TrendingUp, Key, QrCode } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { supabase } from '../lib/supabase';
+import { useAuth } from '../context/AuthContext';
+import { QRCodeSVG } from 'qrcode.react';
 
 const AdminSecurity = () => {
     const { showToast } = useApp();
@@ -11,6 +13,119 @@ const AdminSecurity = () => {
     const [stats, setStats] = useState({ critical: 0, high: 0, medium: 0, low: 0 });
     const [activityData, setActivityData] = useState([]);
     const [loading, setLoading] = useState(true);
+
+    // MFA States
+    const { enrollMFA, verifyMFA, unenrollMFA, getMFAFactors, mfaEnabled } = useAuth();
+    const [mfaData, setMfaData] = useState(null); // { qrCode: '', factorId: '', challengeId: '' }
+    const [mfaStep, setMfaStep] = useState('status'); // 'status', 'enroll', 'verify'
+    const [verificationCode, setVerificationCode] = useState('');
+    const [isMfaLoading, setIsMfaLoading] = useState(false);
+
+    const handleStartMfaEnroll = async () => {
+        setIsMfaLoading(true);
+        try {
+            // Fix: Check if there are already factors to prevent the "friendly name exists" error
+            const { data: factorsData } = await getMFAFactors();
+            const unverifiedFactor = factorsData?.all?.find(f => f.status === 'unverified');
+
+            if (unverifiedFactor) {
+                // If there's an unverified factor, we unenroll it first to start clean
+                await unenrollMFA(unverifiedFactor.id);
+            }
+
+            const { data, error } = await enrollMFA();
+            if (error) throw error;
+
+            // Generate QR Code URL using Google Charts API (more stable and usually whitelisted)
+            const qrUrl = `https://chart.googleapis.com/chart?cht=qr&chs=250x250&chl=${encodeURIComponent(data.totp.qr_code)}`;
+
+            setMfaData({
+                factorId: data.id,
+                uri: data.totp.uri // Fixed: Use .uri, not .qr_code (which is an SVG)
+            });
+            setMfaStep('enroll');
+        } catch (error) {
+            console.error('Error starting MFA enroll:', error);
+            showToast('Erro ao iniciar configuração de 2FA', 'error');
+        } finally {
+            setIsMfaLoading(false);
+        }
+    };
+
+    const handleVerifyAndEnableMfa = async () => {
+        if (verificationCode.length !== 6) return;
+        setIsMfaLoading(true);
+        try {
+            // First we need a challenge
+            const { data: challengeData, error: challengeError } = await supabase.auth.mfa.challenge({
+                factorId: mfaData.factorId
+            });
+
+            if (challengeError) throw challengeError;
+
+            const { error: verifyError } = await verifyMFA(mfaData.factorId, challengeData.id, verificationCode);
+            if (verifyError) throw verifyError;
+
+            showToast('2FA ativado com sucesso!', 'success');
+            setMfaStep('status');
+            setMfaData(null);
+            setVerificationCode('');
+            // Refresh factors
+            window.location.reload(); // Simple way to refresh mfaEnabled from context
+        } catch (error) {
+            console.error('Error verifying MFA:', error);
+            showToast('Código inválido ou erro na verificação', 'error');
+        } finally {
+            setIsMfaLoading(false);
+        }
+    };
+
+    const handleDisableMfa = async () => {
+        if (!window.confirm('Tem certeza que deseja desativar o 2FA? Isso reduzirá a segurança da sua conta.')) return;
+
+        setIsMfaLoading(true);
+        try {
+            const { data: factors } = await getMFAFactors();
+            const totpFactor = factors?.all?.find(f => f.factor_type === 'totp' && f.status === 'verified');
+
+            if (totpFactor) {
+                const { error } = await unenrollMFA(totpFactor.id);
+                if (error) throw error;
+                showToast('2FA desativado.', 'info');
+                window.location.reload();
+            }
+        } catch (error) {
+            console.error('Error disabling MFA:', error);
+            showToast('Erro ao desativar 2FA', 'error');
+        } finally {
+            setIsMfaLoading(false);
+        }
+    };
+
+    const handleClearAllMfaFactors = async () => {
+        if (!window.confirm('Isso vai remover TODOS os fatores de 2FA. Você será deslogado. Continuar?')) return;
+
+        setIsMfaLoading(true);
+        try {
+            const { data: factors } = await getMFAFactors();
+            const allFactors = [...(factors?.totp || []), ...(factors?.phone || [])];
+
+            console.log('🧹 Cleaning up all MFA factors:', allFactors);
+
+            for (const factor of allFactors) {
+                await unenrollMFA(factor.id);
+                console.log('🗑️ Removed factor:', factor.id, factor.status);
+            }
+
+            showToast('2FA removido. Redirecionando...', 'success');
+            await supabase.auth.signOut();
+            window.location.href = '/login';
+        } catch (error) {
+            console.error('Error clearing MFA factors:', error);
+            showToast('Erro ao limpar fatores de 2FA', 'error');
+            setIsMfaLoading(false);
+        }
+    };
 
     // Fetch suspicious activities
     const fetchSuspiciousActivities = async () => {
@@ -139,9 +254,133 @@ const AdminSecurity = () => {
                 </div>
                 <div>
                     <h1 className="text-3xl font-bold text-slate-900">Dashboard de Segurança</h1>
-                    <p className="text-slate-500">Monitoramento em tempo real de atividades suspeitas</p>
+                    <p className="text-slate-500">Monitoramento em tempo real e proteção avançada</p>
                 </div>
             </div>
+
+            {/* MFA Management Section */}
+            <Card className={`border-2 ${mfaEnabled ? 'border-green-200 bg-green-50/30' : 'border-blue-200 bg-blue-50/30'}`}>
+                <CardHeader>
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <Key size={24} className={mfaEnabled ? 'text-green-600' : 'text-blue-600'} />
+                            <h2 className="text-xl font-bold">Autenticação em Duas Etapas (2FA)</h2>
+                        </div>
+                        <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase ${mfaEnabled ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
+                            {mfaEnabled ? 'Ativado' : 'Configuração Recomendada'}
+                        </span>
+                    </div>
+                </CardHeader>
+                <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div>
+                            <p className="text-slate-600 mb-4">
+                                Adicione uma camada extra de segurança à sua conta de administrador. Após logar com sua senha,
+                                você precisará fornecer um código de 6 dígitos gerado por um aplicativo (Google Authenticator, Authy, etc).
+                            </p>
+
+                            {mfaStep === 'status' && (
+                                <div className="space-y-4">
+                                    {mfaEnabled ? (
+                                        <button
+                                            onClick={handleDisableMfa}
+                                            disabled={isMfaLoading}
+                                            className="px-6 py-2 bg-white border-2 border-red-200 text-red-600 rounded-xl font-semibold hover:bg-red-50 transition-colors flex items-center gap-2"
+                                        >
+                                            {isMfaLoading ? 'Processando...' : 'Desativar 2FA'}
+                                        </button>
+                                    ) : (
+                                        <button
+                                            onClick={handleStartMfaEnroll}
+                                            disabled={isMfaLoading}
+                                            className="px-6 py-2 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all flex items-center gap-2"
+                                        >
+                                            <QrCode size={18} />
+                                            {isMfaLoading ? 'Iniciando...' : 'Configurar 2FA Agora'}
+                                        </button>
+                                    )}
+                                </div>
+                            )}
+
+                            {mfaStep === 'enroll' && (
+                                <div className="space-y-6">
+                                    <div className="bg-white p-6 rounded-2xl border-2 border-blue-100 inline-block shadow-sm">
+                                        <QRCodeSVG
+                                            value={mfaData.uri}
+                                            size={200}
+                                            level="L"
+                                            includeMargin={false}
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <p className="font-bold text-slate-800">1. Escaneie o código acima</p>
+                                        <p className="text-sm text-slate-500 italic">Ou insira manualmente: <code className="bg-slate-100 px-2 py-0.5 rounded text-xs select-all text-blue-600 font-bold">{mfaData.uri.split('secret=')[1]?.split('&')[0]}</code></p>
+                                        <button
+                                            onClick={() => setMfaStep('verify')}
+                                            className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition-all"
+                                        >
+                                            Já escaneei, continuar
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {mfaStep === 'verify' && (
+                                <div className="space-y-4">
+                                    <p className="font-bold text-slate-800">2. Confirme o código de 6 dígitos</p>
+                                    <input
+                                        type="text"
+                                        maxLength="6"
+                                        placeholder="000000"
+                                        value={verificationCode}
+                                        onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, ''))}
+                                        className="w-full max-w-[200px] text-center text-3xl font-mono py-3 border-2 border-blue-200 rounded-xl bg-white outline-none focus:border-blue-500"
+                                    />
+                                    <div className="flex gap-2">
+                                        <button
+                                            onClick={handleVerifyAndEnableMfa}
+                                            disabled={isMfaLoading || verificationCode.length !== 6}
+                                            className="px-6 py-2 bg-green-600 text-white rounded-xl font-semibold hover:bg-green-700 transition-all disabled:opacity-50"
+                                        >
+                                            {isMfaLoading ? 'Verificando...' : 'Ativar Proteção'}
+                                        </button>
+                                        <button
+                                            onClick={() => setMfaStep('enroll')}
+                                            className="px-4 py-2 text-slate-500 hover:text-slate-700"
+                                        >
+                                            Voltar
+                                        </button>
+                                        <button
+                                            onClick={handleClearAllMfaFactors}
+                                            className="px-4 py-2 text-red-500 hover:text-red-700 underline text-sm"
+                                        >
+                                            Limpar e Reiniciar
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="bg-white/50 p-6 rounded-2xl border border-slate-200 hidden md:block">
+                            <h3 className="font-bold text-slate-800 mb-2">Por que usar 2FA?</h3>
+                            <ul className="text-sm text-slate-600 space-y-2">
+                                <li className="flex items-start gap-2">
+                                    <Shield size={16} className="text-blue-500 mt-0.5 shrink-0" />
+                                    <span>Impede acesso mesmo se sua senha for roubada.</span>
+                                </li>
+                                <li className="flex items-start gap-2">
+                                    <Shield size={16} className="text-blue-500 mt-0.5 shrink-0" />
+                                    <span>Proteção robusta contra ataques de força bruta.</span>
+                                </li>
+                                <li className="flex items-start gap-2">
+                                    <Shield size={16} className="text-blue-500 mt-0.5 shrink-0" />
+                                    <span>Padrão de segurança exigido por regulamentações de dados.</span>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
 
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

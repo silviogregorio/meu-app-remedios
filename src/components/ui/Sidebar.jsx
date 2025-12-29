@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Home, Users, Pill, FileText, User, X, LogOut, ClipboardList, Share2, Briefcase, Pin, PinOff, Heart, BookOpen, LifeBuoy, MessageSquare, Settings, Calendar } from 'lucide-react';
+import { Home, Users, Pill, FileText, User, X, LogOut, ClipboardList, Share2, Briefcase, Pin, PinOff, Heart, BookOpen, LifeBuoy, MessageSquare, Settings, Calendar, Shield } from 'lucide-react';
 import clsx from 'clsx';
 import { useApp } from '../../context/AppContext';
 import { supabase } from '../../lib/supabase';
@@ -66,6 +66,7 @@ const Sidebar = ({ isOpen, onClose, isPinned, onTogglePin }) => {
         navGroups[2].items.push(
             { path: '/admin/settings', icon: Settings, label: 'Configurações' },
             { path: '/admin/sponsors', icon: Briefcase, label: 'Parceiros' },
+            { path: '/admin/security', icon: Shield, label: 'Segurança' },
             { path: '/admin/support', icon: MessageSquare, label: 'Suporte' }
         );
     }

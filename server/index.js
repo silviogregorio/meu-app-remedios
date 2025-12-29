@@ -54,6 +54,17 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' })); // Limit payload size
 app.use(generalLimiter);
 
+// Security Headers Middleware
+app.use((req, res, next) => {
+    // Content Security Policy (Simplified for API but allowing QR API for consistency if needed)
+    res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline' https://va.vercel-scripts.com; img-src 'self' data: https://*.googleusercontent.com; object-src 'none';");
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('X-XSS-Protection', '1; mode=block');
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    next();
+});
+
 // Middleware de Verificação de JWT (Supabase)
 const verifyJWT = async (req, res, next) => {
     const authHeader = req.headers.authorization;

@@ -26,16 +26,74 @@ export const AuthProvider = ({ children }) => {
         }
     }, []);
 
+    const [mfaRequired, setMfaRequired] = useState(false);
+    const [mfaChallenge, setMfaChallenge] = useState(null); // { factorId, challengeId }
+
+    // Check if user needs MFA verification (has factors but session is aal1)
+    const checkMfaRequirement = useCallback(async () => {
+        try {
+            const { data: aalData, error: aalError } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+            if (aalError) {
+                console.warn('🔐 Error getting AAL:', aalError);
+                return false;
+            }
+
+            const { data: factorsData, error: factorsError } = await supabase.auth.mfa.listFactors();
+            if (factorsError) {
+                console.warn('🔐 Error listing factors:', factorsError);
+                return false;
+            }
+
+            const verifiedFactor = factorsData?.totp?.find(f => f.status === 'verified');
+
+            console.log('🔐 AAL Level:', aalData?.currentLevel, 'Has verified TOTP:', !!verifiedFactor);
+
+            if (verifiedFactor && aalData?.currentLevel === 'aal1') {
+                // User has MFA but hasn't verified yet - create challenge
+                const { data: challengeData, error } = await supabase.auth.mfa.challenge({
+                    factorId: verifiedFactor.id
+                });
+
+                if (!error && challengeData) {
+                    setMfaChallenge({ factorId: verifiedFactor.id, challengeId: challengeData.id });
+                    setMfaRequired(true);
+                    console.log('🔐 MFA Challenge created, user needs to verify');
+                    return true;
+                }
+            }
+
+            setMfaRequired(false);
+            setMfaChallenge(null);
+            return false;
+        } catch (err) {
+            console.error('🔐 MFA Check failed:', err);
+            setMfaRequired(false);
+            setMfaChallenge(null);
+            return false;
+        }
+    }, []);
+
     useEffect(() => {
         // Check active session
-        supabase.auth.getSession().then(({ data: { session } }) => {
+        supabase.auth.getSession().then(async ({ data: { session } }) => {
             setUser(session?.user ?? null);
+
+            // MFA check temporarily disabled to prevent blocking
+            // if (session?.user) {
+            //     await checkMfaRequirement();
+            // }
+
             setLoading(false);
         });
 
         // Listen for auth changes
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
             setUser(session?.user ?? null);
+
+            // MFA check temporarily disabled
+            // if (session?.user && _event === 'SIGNED_IN') {
+            //     await checkMfaRequirement();
+            // }
         });
 
         return () => subscription.unsubscribe();
@@ -124,6 +182,44 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
+    // MFA Methods
+    const enrollMFA = async (friendlyName = 'Admin SiG') => {
+        const { data, error } = await supabase.auth.mfa.enroll({
+            factorType: 'totp',
+            friendlyName
+        });
+        return { data, error };
+    };
+
+    const challengeMFA = async (factorId) => {
+        const { data, error } = await supabase.auth.mfa.challenge({ factorId });
+        return { data, error };
+    };
+
+    const verifyMFA = async (factorId, challengeId, code) => {
+        const { data, error } = await supabase.auth.mfa.verify({
+            factorId,
+            challengeId,
+            code
+        });
+        return { data, error };
+    };
+
+    const getMFAFactors = async () => {
+        const { data, error } = await supabase.auth.mfa.listFactors();
+        return { data, error };
+    };
+
+    const unenrollMFA = async (factorId) => {
+        const { data, error } = await supabase.auth.mfa.unenroll({ factorId });
+        return { data, error };
+    };
+
+    const clearMfaState = useCallback(() => {
+        setMfaRequired(false);
+        setMfaChallenge(null);
+    }, []);
+
     const value = {
         user,
         loading,
@@ -131,7 +227,16 @@ export const AuthProvider = ({ children }) => {
         signUp,
         signOut,
         signInWithGoogle,
-        verifySession
+        verifySession,
+        enrollMFA,
+        challengeMFA,
+        verifyMFA,
+        getMFAFactors,
+        unenrollMFA,
+        mfaRequired,
+        mfaChallenge,
+        clearMfaState,
+        mfaEnabled: user?.factors?.some(f => f.status === 'verified') || false
     };
 
     return (
