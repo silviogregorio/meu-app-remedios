@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, Bell, ArrowRight, Activity, Heart, Send, CheckCircle2, AlertCircle, Smartphone, Rocket, Zap, Globe, Layers, Instagram, Facebook, Youtube, MessageCircle, Video, BookOpen, LifeBuoy, FileText, Pill, Shield, Calendar, Download, Printer, Share2, Lock, Gift, Headset, ThumbsUp } from 'lucide-react';
+import { Users, Bell, ArrowRight, Activity, Heart, Send, CheckCircle2, AlertCircle, Smartphone, Rocket, Zap, Globe, Layers, Instagram, Facebook, Youtube, MessageCircle, Video, BookOpen, LifeBuoy, FileText, Pill, Shield, Calendar, Download, Printer, Share2, Lock, Gift, Headset, ThumbsUp, Volume2, BadgePercent, Stethoscope, Siren, CircleDollarSign } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import confetti from 'canvas-confetti';
 import { getApiEndpoint } from '../config/api';
 import HealthTips from '../components/features/HealthTips';
+import CustomUserLock from '../components/ui/CustomUserLock';
 
 
 const Landing = () => {
@@ -629,7 +630,19 @@ const featuresList = [
         description: "Baixa automática a cada dose tomada. O sistema avisa você dias antes do remédio acabar."
     },
     {
-        icon: <LifeBuoy className="w-8 h-8 text-teal-600" />,
+        icon: <Volume2 className="w-8 h-8 text-cyan-600" />,
+        color: "cyan",
+        title: "Leitura Inteligente",
+        description: "O App lê as prescrições para você. Voz feminina e suave para facilitar o entendimento sem precisar ler letras miúdas."
+    },
+    {
+        icon: <CircleDollarSign className="w-8 h-8 text-amber-500" />,
+        color: "amber",
+        title: "Economia Real",
+        description: "Acesse ofertas do nosso parceiro exclusivo em sua cidade. Promoções selecionadas e garantia de procedência."
+    },
+    {
+        icon: <Headset className="w-8 h-8 text-teal-600" />,
         color: "teal",
         title: "Suporte VIP Integrado",
         description: "Teve dúvida? Chame nosso suporte humanizado direto pelo App ou WhatsApp. Você nunca está sozinho."
@@ -641,7 +654,7 @@ const featuresList = [
         description: "Aprenda a usar cada recurso com nosso guia visual passo a passo. Tecnologia acessível para todas as idades."
     },
     {
-        icon: <FileText className="w-8 h-8 text-cyan-600" />,
+        icon: <Stethoscope className="w-8 h-8 text-cyan-600" />,
         color: "cyan",
         title: "Relatórios Médicos",
         description: "Gere históricos detalhados em PDF para seu médico. Mostre a evolução do tratamento com dados reais."
@@ -653,7 +666,7 @@ const featuresList = [
         description: "Integração nativa. Seus horários de medicação sincronizados direto no seu calendário pessoal."
     },
     {
-        icon: <Shield className="w-8 h-8 text-red-600" />,
+        icon: <Siren className="w-8 h-8 text-red-600" />,
         color: "red",
         title: "SOS Digital",
         description: "Cartão de emergência vital. Socorristas acessam tipagem sanguínea, alergias e remédios em 1 clique."
@@ -665,7 +678,7 @@ const featuresList = [
         description: "Você escolhe como compartilhar: gerar PDF, enviar por Email, mandar no WhatsApp ou Imprimir. Tudo em 1 clique."
     },
     {
-        icon: <Lock className="w-8 h-8 text-slate-700" />,
+        icon: <CustomUserLock size={32} className="w-8 h-8" />,
         color: "slate",
         title: "Segurança dos Dados",
         description: "Tecnologia de criptografia avançada. Seus dados médicos blindados e acessíveis somente a você ou quem compartilhar."
