@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, Bell, ArrowRight, Activity, Heart, Send, CheckCircle2, AlertCircle, Smartphone, Rocket, Zap, Globe, Layers, Instagram, Facebook, Youtube, MessageCircle, Video, BookOpen, LifeBuoy, FileText, Pill, Shield, Calendar, Download, Printer, Share2, Lock, Gift, Headset } from 'lucide-react';
+import { Users, Bell, ArrowRight, Activity, Heart, Send, CheckCircle2, AlertCircle, Smartphone, Rocket, Zap, Globe, Layers, Instagram, Facebook, Youtube, MessageCircle, Video, BookOpen, LifeBuoy, FileText, Pill, Shield, Calendar, Download, Printer, Share2, Lock, Gift, Headset, ThumbsUp } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import confetti from 'canvas-confetti';
 import { getApiEndpoint } from '../config/api';
@@ -246,15 +246,15 @@ const Landing = () => {
                 <div className="absolute bottom-20 right-10 w-64 h-64 bg-purple-400/5 rounded-full filter blur-3xl animate-blob animation-delay-2000"></div>
 
                 <div className="max-w-7xl mx-auto relative z-10">
-                    <div className="text-center max-w-3xl mx-auto mb-16 animate-fade-in-up space-y-6 px-4">
+                    <div className="text-center max-w-3xl mx-auto mb-16 animate-fade-in-up space-y-6 px-0 md:px-4">
                         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-indigo-50 text-indigo-600 text-sm font-bold border border-indigo-100 shadow-sm">
                             <Heart className="w-4 h-4 animate-pulse fill-current" />
                             <span>Cuidar de sua saúde é nossa maior missão.</span>
                         </div>
-                        <h2 className="text-2xl md:text-5xl font-extrabold text-slate-900 tracking-tight leading-tight px-2">
+                        <h2 className="text-2xl md:text-5xl font-extrabold text-slate-900 tracking-tight leading-tight">
                             Sua Saúde e Segurança <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">Levadas a Sério</span>
                         </h2>
-                        <p className="text-sm md:text-xl text-slate-600 leading-relaxed max-w-2xl mx-auto px-2">
+                        <p className="text-sm md:text-xl text-slate-600 leading-relaxed max-w-2xl mx-auto">
                             Uma suíte completa de ferramentas projetada para dar superpoderes ao seu cuidado diário.
                         </p>
                     </div>
@@ -593,10 +593,22 @@ const Landing = () => {
 
 const featuresList = [
     {
-        icon: <Users className="w-8 h-8 text-blue-600" />,
+        icon: <ThumbsUp className="w-8 h-8 text-blue-600" />,
         color: "blue",
-        title: "Compartilhamento Familiar",
-        description: "Conecte cuidadores e familiares em tempo real. Quem ama, cuida junto e fica sempre sincronizado."
+        title: "Simplicidade Real",
+        description: "Interface limpa, botões grandes e navegação intuitiva. Desenhamos cada detalhe pensando em facilitar a vida de quem usa."
+    },
+    {
+        icon: <Zap className="w-8 h-8 text-amber-500" />,
+        color: "amber",
+        title: "Eficiente e Rápido",
+        description: "Carregamento instantâneo e controle de estoque automatizado. O sistema trabalha por você, garantindo que o cuidado não pare."
+    },
+    {
+        icon: <Users className="w-8 h-8 text-emerald-600" />,
+        color: "emerald",
+        title: "Cuidado Compartilhado",
+        description: "Conecte cuidadores e familiares em tempo real. Quem ama cuida junto, acompanha o histórico e recebe alertas sincronizados."
     },
     {
         icon: <Bell className="w-8 h-8 text-purple-600" />,

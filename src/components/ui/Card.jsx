@@ -18,7 +18,7 @@ const Card = ({ children, className, onClick, 'aria-label': ariaLabel, role }) =
                 }
             } : undefined}
             className={clsx(
-                "bg-white dark:bg-slate-900 rounded-2xl shadow-soft border border-slate-100 dark:border-slate-800 overflow-hidden transition-all duration-300",
+                "bg-slate-50/40 dark:bg-slate-900 rounded-2xl shadow-soft border border-slate-100 dark:border-slate-800 overflow-hidden transition-all duration-300",
                 onClick && "cursor-pointer hover:shadow-lg hover:-translate-y-1 hover:border-primary/20 dark:hover:border-primary/20 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/50 focus-visible:ring-offset-2",
                 className
             )}

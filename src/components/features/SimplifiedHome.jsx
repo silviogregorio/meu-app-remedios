@@ -27,7 +27,7 @@ const SimplifiedHome = () => {
     const [showExitConfirm, setShowExitConfirm] = useState(false);
     const [sosLoading, setSosLoading] = useState(false);
 
-    // Text-to-Speech function
+    // Text-to-Speech function com voz feminina suave
     const speak = (text) => {
         if ('speechSynthesis' in window) {
             // Cancel any ongoing speech
@@ -35,8 +35,24 @@ const SimplifiedHome = () => {
 
             const utterance = new SpeechSynthesisUtterance(text);
             utterance.lang = 'pt-BR';
-            utterance.rate = 0.9;
-            utterance.pitch = 1;
+
+            // Voz feminina suave e tranquila
+            utterance.rate = 0.85; // Mais devagar para maior clareza
+            utterance.pitch = 0.9; // Pitch mais suave e feminino
+            utterance.volume = 1.0; // Volume pleno
+
+            // Tentar usar voz feminina do sistema
+            const voices = window.speechSynthesis.getVoices();
+            const femaleVoice = voices.find(v =>
+                v.lang.includes('pt-BR') && v.name.toLowerCase().includes('female')
+            ) || voices.find(v =>
+                v.lang.includes('pt-BR') && (v.name.includes('Luciana') || v.name.includes('Google'))
+            );
+
+            if (femaleVoice) {
+                utterance.voice = femaleVoice;
+            }
+
             window.speechSynthesis.speak(utterance);
         } else {
             console.warn('Speech synthesis not supported');
@@ -243,28 +259,28 @@ const SimplifiedHome = () => {
                 {/* 1. NEXT MEDICATION (Giant Button) */}
                 {nextMedication ? (
                     <div
-                        className="w-full bg-blue-600 rounded-[2rem] p-6 shadow-xl shadow-blue-200 transition-all flex flex-wrap sm:flex-nowrap items-center justify-between gap-4 min-h-[12rem]"
+                        className="w-full bg-gradient-to-br from-blue-600 to-blue-700 rounded-[2.5rem] p-8 shadow-2xl shadow-blue-300 transition-all flex flex-col gap-6 min-h-[18rem]"
                     >
-                        <div className="flex items-center gap-6">
-                            <div className="bg-white/20 p-4 rounded-full backdrop-blur-sm shrink-0">
+                        <div className="flex items-center gap-6 w-full">
+                            <div className="bg-white/30 p-5 rounded-2xl backdrop-blur-sm border-2 border-white/50 shrink-0 shadow-xl">
                                 <PillIcon
                                     shape={nextMedication.medication.shape}
                                     color={nextMedication.medication.color}
-                                    size={56}
+                                    size={64}
                                     className="drop-shadow-lg"
                                 />
                             </div>
-                            <div className="text-left">
-                                <p className="text-blue-100 text-lg font-medium mb-0.5">
+                            <div className="text-left flex-1">
+                                <p className="text-blue-100 text-xl font-bold mb-1">
                                     Tomar Agora ({nextMedication.time})
                                     {nextMedication.pendingCount > 1 && (
-                                        <span className="ml-2 bg-white/30 px-2 py-0.5 rounded-full text-white text-sm">
+                                        <span className="ml-2 bg-white/40 px-3 py-1 rounded-full text-white text-base font-black">
                                             {nextMedication.pendingCount} doses
                                         </span>
                                     )}
                                 </p>
-                                <div className="flex flex-wrap items-center gap-2">
-                                    <h2 className="text-3xl font-black text-white leading-tight">
+                                <div className="flex flex-wrap items-center gap-3">
+                                    <h2 className="text-4xl sm:text-5xl font-black text-white leading-none break-words">
                                         {nextMedication.medication.name}
                                     </h2>
                                     <span
@@ -281,13 +297,14 @@ const SimplifiedHome = () => {
                                                 speak(`Remédio: ${nextMedication.medication.name}. Dose: ${nextMedication.doseAmount} ${nextMedication.medication.unit || 'unidade'}. ${nextMedication.instructions || ''}`);
                                             }
                                         }}
-                                        className="p-4 bg-white/30 hover:bg-white/50 active:bg-white/60 rounded-full transition-colors cursor-pointer"
+                                        className="p-4 bg-white/40 hover:bg-white/60 active:bg-white/70 rounded-2xl transition-colors cursor-pointer min-h-[64px] min-w-[64px] flex items-center justify-center"
                                         title="Ouvir Instrução"
+                                        aria-label="Ouvir instruções do medicamento"
                                     >
-                                        <Volume2 size={28} className="text-white" />
+                                        <Volume2 size={32} className="text-white" />
                                     </span>
                                 </div>
-                                <p className="text-blue-200 text-lg font-medium">
+                                <p className="text-blue-50 text-2xl font-black mt-2">
                                     {Number(nextMedication.doseAmount)} {nextMedication.medication.unit || 'unidade(s)'}
                                     {nextMedication.pendingCount > 1 && ` (confirme ${nextMedication.pendingCount}x)`}
                                 </p>
@@ -295,9 +312,10 @@ const SimplifiedHome = () => {
                         </div>
                         <button
                             onClick={handleTakeMedication}
-                            className="px-6 py-3 bg-white text-blue-700 rounded-full font-bold text-lg uppercase tracking-wider shadow-sm shrink-0 hover:bg-blue-50 active:scale-95 transition-all"
+                            className="w-full px-8 py-5 bg-white text-blue-700 rounded-2xl font-black text-2xl uppercase tracking-wide shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all min-h-[64px]"
+                            aria-label="Confirmar que tomou o medicamento"
                         >
-                            Confirmar
+                            ✓ Confirmar
                         </button>
                     </div>
                 ) : (
@@ -317,10 +335,11 @@ const SimplifiedHome = () => {
                     {/* SOS Button */}
                     <button
                         onClick={() => setShowSOSConfirm(true)}
-                        className="bg-red-500 rounded-3xl p-6 shadow-lg shadow-red-200 active:scale-95 transition-all flex flex-col items-center justify-center gap-2 min-h-[10rem]"
+                        className="bg-gradient-to-br from-red-500 to-red-600 rounded-3xl p-8 shadow-2xl shadow-red-300 active:scale-95 transition-all flex flex-col items-center justify-center gap-3 min-h-[14rem] border-4 border-red-700"
+                        aria-label="Botão de emergência SOS"
                     >
-                        <AlertTriangle size={48} className="text-white fill-red-500 stroke-2" />
-                        <span className="text-white font-black text-2xl tracking-wide">SOS</span>
+                        <AlertTriangle size={56} className="text-white fill-red-500 stroke-[3]" />
+                        <span className="text-white font-black text-3xl tracking-wide">SOS</span>
                     </button>
 
                     {/* Remote Assistance Button */}

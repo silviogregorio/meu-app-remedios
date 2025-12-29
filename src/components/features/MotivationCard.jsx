@@ -10,6 +10,13 @@ const MotivationCard = () => {
     const [isPlaying, setIsPlaying] = useState(false);
     const [period, setPeriod] = useState('');
 
+    const categoryTranslations = {
+        faith: 'Fé',
+        health: 'Saúde',
+        motivation: 'Força',
+        inspiration: 'Inspiração'
+    };
+
     useEffect(() => {
         const hour = new Date().getHours();
         let currentPeriod = 'morning';
@@ -105,7 +112,23 @@ const MotivationCard = () => {
 
         const utterance = new SpeechSynthesisUtterance(message.text);
         utterance.lang = 'pt-BR';
-        utterance.rate = 0.9;
+
+        // Voz feminina suave e tranquila
+        utterance.rate = 0.85; // Mais devagar para maior clareza
+        utterance.pitch = 0.9; // Pitch mais suave e feminino
+        utterance.volume = 1.0; // Volume pleno
+
+        // Tentar usar voz feminina do sistema
+        const voices = window.speechSynthesis.getVoices();
+        const femaleVoice = voices.find(v =>
+            v.lang.includes('pt-BR') && v.name.toLowerCase().includes('female')
+        ) || voices.find(v =>
+            v.lang.includes('pt-BR') && (v.name.includes('Luciana') || v.name.includes('Google'))
+        );
+
+        if (femaleVoice) {
+            utterance.voice = femaleVoice;
+        }
 
         utterance.onend = () => setIsPlaying(false);
         utterance.onerror = () => setIsPlaying(false);
@@ -172,54 +195,57 @@ const MotivationCard = () => {
             <div className="absolute -right-6 -top-6 w-32 h-32 rounded-full bg-white/20 blur-2xl"></div>
             <div className="absolute -left-8 -bottom-8 w-24 h-24 rounded-full bg-white/30 blur-xl"></div>
 
-            {/* Floating Icon */}
-            <div className={clsx(
-                "absolute top-4 left-4 w-10 h-10 rounded-xl flex items-center justify-center shadow-lg",
-                theme.iconBg
-            )}>
-                <PeriodIcon size={20} className="text-white" />
-            </div>
-
-            <div className="relative z-10 pl-14">
-                {/* Header */}
-                <div className="flex justify-between items-start mb-3">
-                    <div>
-                        <span className={clsx("text-xs font-bold uppercase tracking-wider opacity-80", theme.textSecondary)}>
-                            {theme.greeting} • {message.category || 'Inspiração'}
-                        </span>
+            <div className="relative z-10">
+                {/* Header with Icon and Controls */}
+                <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                        <div className={clsx(
+                            "w-10 h-10 rounded-xl flex items-center justify-center shadow-lg shrink-0",
+                            theme.iconBg
+                        )}>
+                            <PeriodIcon size={20} className="text-white" />
+                        </div>
+                        <div className="min-w-0">
+                            <span className={clsx("text-xs font-bold uppercase tracking-widest opacity-80 block", theme.textSecondary)}>
+                                {theme.greeting} • {categoryTranslations[message.category] || message.category || 'Inspiração'}
+                            </span>
+                        </div>
                     </div>
 
                     {/* Audio Button */}
                     <button
                         onClick={handleSpeak}
                         className={clsx(
-                            "p-2 rounded-xl transition-all duration-300 shadow-sm",
+                            "p-2.5 rounded-xl transition-all duration-300 shadow-sm shrink-0",
                             isPlaying
                                 ? "bg-red-100 text-red-600 scale-105"
                                 : "bg-white/70 hover:bg-white text-slate-500 hover:text-slate-700"
                         )}
                         title={isPlaying ? "Parar leitura" : "Ouvir mensagem"}
                     >
-                        {isPlaying ? <VolumeX size={18} /> : <Volume2 size={18} />}
+                        {isPlaying ? <VolumeX size={20} /> : <Volume2 size={20} />}
                     </button>
                 </div>
 
-                {/* Message Title (if exists) */}
-                {message.title && (
-                    <h3 className={clsx("font-bold text-base mb-1", theme.text)}>
-                        {message.title}
-                    </h3>
-                )}
+                {/* Content Section */}
+                <div className="space-y-2">
+                    {/* Message Title (if exists) */}
+                    {message.title && (
+                        <h3 className={clsx("font-black text-xl leading-snug", theme.text)}>
+                            {message.title}
+                        </h3>
+                    )}
 
-                {/* Main Message */}
-                <p className={clsx("text-base md:text-lg font-medium leading-relaxed", theme.text)}>
-                    "{message.text}"
-                </p>
+                    {/* Main Message */}
+                    <p className={clsx("text-lg md:text-xl font-bold leading-relaxed italic break-words", theme.text)}>
+                        "{message.text}"
+                    </p>
+                </div>
 
-                {/* Navigation Arrows (Optional - for future carousel) */}
-                <div className="absolute right-4 top-1/2 -translate-y-1/2 flex flex-col gap-1 opacity-20">
-                    <ChevronLeft size={20} className="text-slate-400" />
-                    <ChevronRight size={20} className="text-slate-400" />
+                {/* Subtle Navigation Visual (Optional) */}
+                <div className="flex justify-end mt-4 opacity-10 gap-2">
+                    <ChevronLeft size={16} />
+                    <ChevronRight size={16} />
                 </div>
             </div>
         </div>

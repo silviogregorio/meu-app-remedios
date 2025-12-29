@@ -36,7 +36,7 @@ const Input = ({
     return (
         <div className={clsx("flex flex-col gap-1.5", containerClassName)}>
             {label && (
-                <label htmlFor={inputId} className="text-sm font-semibold text-slate-700 dark:text-slate-300 ml-1">
+                <label htmlFor={inputId} className="text-base font-bold text-slate-800 dark:text-slate-200 ml-1 mb-1">
                     {label} {required && <span className="text-danger" aria-hidden="true">*</span>}
                     {required && <span className="sr-only">(obrigatório)</span>}
                 </label>
@@ -47,13 +47,13 @@ const Input = ({
                     name={name}
                     type={inputType}
                     className={clsx(
-                        "w-full px-4 py-3 rounded-xl border bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 min-h-[48px]",
+                        "w-full px-4 py-3.5 rounded-xl border bg-white dark:bg-slate-900 text-lg text-slate-900 dark:text-white placeholder:text-slate-500 dark:placeholder:text-slate-400 min-h-[52px]",
                         "focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/30 transition-all duration-200",
                         "disabled:bg-slate-50 dark:disabled:bg-slate-800 disabled:text-slate-500",
                         error
                             ? "border-danger focus:border-danger focus-visible:ring-danger/30"
                             : "border-slate-200 dark:border-slate-700 focus:border-primary",
-                        isPasswordField && "pr-12", // Extra padding for icon
+                        isPasswordField && "pr-14", // Extra padding for icon
                         className
                     )}
                     placeholder={placeholder}
@@ -72,7 +72,7 @@ const Input = ({
                     <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors p-1 min-h-[44px] min-w-[44px] flex items-center justify-center"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors p-2 min-h-[48px] min-w-[48px] flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
                         tabIndex={-1}
                         aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
                         aria-pressed={showPassword}

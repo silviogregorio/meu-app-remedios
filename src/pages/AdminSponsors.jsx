@@ -7,17 +7,16 @@ import Toast from '../components/ui/Toast';
 import {
     Loader2, Plus, Pencil, Trash2, X, Save, Upload, ExternalLink,
     MapPin, Search, AlertTriangle, Tag, Eye, EyeOff, Globe,
-    CheckCircle2, Ban, Instagram, Facebook, Youtube, Video, MessageCircle
+    CheckCircle2, Ban, Instagram, Facebook, Youtube, Video, MessageCircle, BarChart3
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { fetchCitiesByState, filterCities } from '../services/cityService';
 import ManageOffersModal from '../components/features/ManageOffersModal';
+import OfferReportModal from '../components/features/OfferReportModal';
 import clsx from 'clsx';
 
 const ESTADOS_BRASIL = [
-    'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA',
-    'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN',
-    'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'
+    // ... (lines 17-21)
 ];
 
 const AdminSponsors = () => {
@@ -30,6 +29,7 @@ const AdminSponsors = () => {
     const [toast, setToast] = useState(null);
     const [sponsorToDelete, setSponsorToDelete] = useState(null);
     const [selectedSponsorForOffers, setSelectedSponsorForOffers] = useState(null);
+    const [selectedSponsorForReport, setSelectedSponsorForReport] = useState(null);
 
     // Pagination
     const [currentPage, setCurrentPage] = useState(1);
@@ -552,64 +552,68 @@ const AdminSponsors = () => {
                 </div>
             )}
 
-            {/* List of Sponsors - Premium List View */}
-            <div className="flex flex-col gap-4">
-                {currentSponsors.map(sponsor => (
-                    <div key={sponsor.id} className="group bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md hover:border-blue-200 transition-all duration-200 p-4 flex flex-col md:flex-row items-center gap-6">
-                        {/* Status Stripe (Mobile only) */}
-                        <div className={`md:hidden h-1.5 w-16 mx-auto ${sponsor.active ? 'bg-green-500' : 'bg-slate-300'} rounded-full mb-2`} />
-
-                        {/* Logo */}
-                        <div className="shrink-0 relative">
-                            <div className="w-20 h-20 rounded-xl border border-slate-100 bg-slate-50 p-2 flex items-center justify-center">
-                                <img
-                                    src={sponsor.logo_url || 'https://via.placeholder.com/150?text=Sem+Logo'}
-                                    alt={sponsor.name}
-                                    className="max-w-full max-h-full object-contain mix-blend-multiply"
-                                />
-                            </div>
-                            <div className={`hidden md:block absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-white ${sponsor.active ? 'bg-green-500' : 'bg-slate-300'}`} />
-                        </div>
-
-                        {/* Info */}
-                        <div className="flex-1 min-w-0 text-center md:text-left w-full">
-                            <h3 className="font-bold text-lg text-slate-900 leading-tight md:truncate break-words px-1">{sponsor.name}</h3>
-                            <div className="flex flex-col md:flex-row items-center justify-center md:justify-start text-slate-500 text-sm mt-1 gap-2 md:gap-4">
-                                <span className="flex items-center gap-1">
-                                    <MapPin size={14} className="shrink-0 text-slate-400" />
-                                    {sponsor.city ? `${sponsor.city} - ${sponsor.state}` : 'Sem local'}
-                                </span>
-                                {sponsor.show_on_landing_page && (
-                                    <span className="flex items-center gap-1 text-blue-600 bg-blue-50 px-2 py-0.5 rounded text-xs font-bold">
-                                        <Eye size={12} /> Landing
-                                    </span>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* Actions */}
-                        <div className="flex items-center gap-3 shrink-0 w-full md:w-auto justify-center border-t md:border-t-0 border-slate-100 pt-4 md:pt-0 mt-2 md:mt-0">
-                            <button
-                                onClick={() => openOffersModal(sponsor)}
-                                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-pink-50 text-pink-700 font-bold text-sm hover:bg-pink-100 transition-colors"
-                            >
-                                <Tag size={16} />
-                                <span className="hidden sm:inline">Ofertas</span>
-                            </button>
-
-                            <div className="w-px h-8 bg-slate-200 hidden md:block" />
-
-                            <div className="flex gap-1">
-                                <button onClick={() => handleEdit(sponsor)} className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Editar">
-                                    <Pencil size={20} />
-                                </button>
-                                <button onClick={() => handleDeleteClick(sponsor)} className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Excluir">
-                                    <Trash2 size={20} />
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                ))}
+            {/* Sponsors List - Table View (Cleaner) */}
+            <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                        <thead>
+                            <tr className="bg-slate-50 border-b border-slate-200">
+                                <th className="px-6 py-4 text-[11px] font-black text-slate-400 uppercase tracking-wider">Parceiro</th>
+                                <th className="px-6 py-4 text-[11px] font-black text-slate-400 uppercase tracking-wider">Localização</th>
+                                <th className="px-6 py-4 text-[11px] font-black text-slate-400 uppercase tracking-wider text-right">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                            {currentSponsors.map(sponsor => (
+                                <tr key={sponsor.id} className="hover:bg-slate-50 transition-colors">
+                                    <td className="px-6 py-4">
+                                        <div>
+                                            <p className="font-bold text-slate-900 text-sm leading-tight">{sponsor.name}</p>
+                                            {sponsor.show_on_landing_page && (
+                                                <span className="text-[9px] font-black text-blue-600 bg-blue-50 px-1 rounded uppercase tracking-tighter">Landing Page</span>
+                                            )}
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4 text-sm text-slate-500 font-medium">
+                                        {sponsor.city ? `${sponsor.city} - ${sponsor.state}` : '-'}
+                                    </td>
+                                    <td className="px-6 py-4 text-right">
+                                        <div className="flex items-center justify-end gap-2">
+                                            <button
+                                                onClick={() => setSelectedSponsorForReport(sponsor)}
+                                                className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                                                title="Relatório"
+                                            >
+                                                <BarChart3 size={20} />
+                                            </button>
+                                            <button
+                                                onClick={() => openOffersModal(sponsor)}
+                                                className="p-2 text-pink-600 hover:bg-pink-50 rounded-lg transition-all"
+                                                title="Ofertas"
+                                            >
+                                                <Tag size={20} />
+                                            </button>
+                                            <button
+                                                onClick={() => handleEdit(sponsor)}
+                                                className="p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-all"
+                                                title="Editar"
+                                            >
+                                                <Pencil size={20} />
+                                            </button>
+                                            <button
+                                                onClick={() => handleDeleteClick(sponsor)}
+                                                className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                                                title="Excluir"
+                                            >
+                                                <Trash2 size={20} />
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
             {/* Pagination Controls */}
@@ -680,6 +684,14 @@ const AdminSponsors = () => {
                 <ManageOffersModal
                     sponsor={selectedSponsorForOffers}
                     onClose={() => setSelectedSponsorForOffers(null)}
+                />
+            )}
+
+            {/* Report Modal */}
+            {selectedSponsorForReport && (
+                <OfferReportModal
+                    sponsor={selectedSponsorForReport}
+                    onClose={() => setSelectedSponsorForReport(null)}
                 />
             )}
         </div>

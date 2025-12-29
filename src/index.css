@@ -276,10 +276,12 @@ textarea {
 .senior-contrast button[class*="bg-purple"],
 .senior-contrast button[class*="bg-pink"],
 .senior-contrast button[class*="bg-cyan"],
+.senior-contrast button[class*="bg-["],
 .senior-contrast a[class*="bg-primary"],
 .senior-contrast a[class*="bg-teal"],
 .senior-contrast a[class*="bg-emerald"],
-.senior-contrast a[class*="bg-green"] {
+.senior-contrast a[class*="bg-green"],
+.senior-contrast a[class*="bg-["] {
   background-color: #1a1a1a !important;
   color: #ffffff !important;
 }
@@ -291,10 +293,12 @@ textarea {
 .senior-contrast button[class*="bg-green"] *,
 .senior-contrast button[class*="bg-blue"] *,
 .senior-contrast button[class*="bg-indigo"] *,
+.senior-contrast button[class*="bg-["] *,
 .senior-contrast a[class*="bg-primary"] *,
 .senior-contrast a[class*="bg-teal"] *,
 .senior-contrast a[class*="bg-emerald"] *,
-.senior-contrast a[class*="bg-green"] * {
+.senior-contrast a[class*="bg-green"] *,
+.senior-contrast a[class*="bg-["] * {
   color: #ffffff !important;
 }
 

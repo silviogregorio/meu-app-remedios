@@ -9,10 +9,13 @@ import { PrescriptionService } from '../services/prescriptionService';
 import { AppointmentService } from '../services/appointmentService';
 import { SpecialtyService } from '../services/specialtyService';
 import { LogService } from '../services/logService';
+import * as SharingService from '../services/sharingService';
+import { AlertService } from '../services/alertService';
+import { SOSService } from '../services/sosService';
 import { requestForToken } from '../utils/firebase';
 import { setBadge } from '../utils/badge';
 import { getISODate, parseISODate } from '../utils/dateFormatter';
-import * as SharingService from '../services/sharingService';
+
 
 const AppContext = createContext();
 
@@ -432,112 +435,8 @@ export const AppProvider = ({ children }) => {
 
     // --- Simulação do Modo Cuidador (Para Testes) ---
     const runCaregiverCheck = async () => {
-        showToast('Iniciando verificação de cuidador...', 'info');
-        console.log('--- Iniciando Check de Cuidador (Simulado) ---');
-
-        let alertsSent = 0;
-        const now = new Date(); // Hora "Servidor"
-        const todayStr = getISODate();
-
-        // Iterar prescrições ativas
-        const activePrescriptions = prescriptions.filter(p => !p.endDate || new Date(p.endDate) >= new Date().setHours(0, 0, 0, 0));
-
-        for (const p of activePrescriptions) {
-            if (!p.times || !Array.isArray(p.times)) continue;
-
-            const med = medications.find(m => m.id === p.medicationId);
-            const patient = patients.find(pt => pt.id === p.patientId);
-
-            for (const timeStr of p.times) {
-                const [h, m] = timeStr.split(':').map(Number);
-                const scheduledDate = new Date();
-                scheduledDate.setHours(h, m, 0, 0);
-
-                const diffMs = now.getTime() - scheduledDate.getTime();
-                const diffMins = diffMs / (1000 * 60);
-
-                // Lógica: Atraso > 30 min E < 24h
-                if (diffMins > 30 && diffMins < 1440) {
-                    // 1. Checar Consumo
-                    const hasConsumed = consumptionLog.some(l =>
-                        l.prescriptionId === p.id &&
-                        l.date === todayStr &&
-                        l.scheduledTime === timeStr
-                    );
-
-                    if (hasConsumed) {
-                        console.log(`✅ ${patient?.name} tomou ${med?.name} das ${timeStr}`);
-                        continue;
-                    }
-
-                    // 2. Checar se já alertamos (No Front simulamos verificando se já mandamos nessa sessão ou mock)
-                    // Num cenário real consultaríamos tabela 'alert_logs'
-                    const { data: existingAlert } = await supabase
-                        .from('alert_logs')
-                        .select('id')
-                        .eq('prescription_id', p.id)
-                        .eq('alert_date', todayStr)
-                        .eq('alert_time', timeStr + ':00') // DB time often has seconds
-                        .maybeSingle();
-
-                    if (existingAlert) {
-                        console.log(`⚠️ Alerta já enviado para ${patient?.name} - ${med?.name} (${timeStr})`);
-                        continue;
-                    }
-
-                    // 3. Disparar Alerta
-                    console.log(`🚨 ALERTA: ${patient?.name} perdeu ${med?.name} das ${timeStr}! (+${Math.floor(diffMins)}m)`);
-                    alertsSent++;
-
-                    // Enviar Email Real
-                    if (user?.email) {
-                        try {
-                            // Tentar usar a função send-email existente
-                            // Nota: Num ambiente real, isso pegaria os emails de 'patient_shares' tb
-                            const recipients = [user.email]; // Demo: manda pro dono logado
-                            if (patient?.sharedWith) {
-                                patient.sharedWith.forEach(s => recipients.push(s.email));
-                            }
-
-                            const { data: { session } } = await supabase.auth.getSession();
-                            await fetch(`${import.meta.env.VITE_API_URL || ''}/api/send-email`, {
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                    'Authorization': `Bearer ${session?.access_token}`
-                                },
-                                body: JSON.stringify({
-                                    to: recipients.join(','),
-                                    subject: `🚨 ALERTA DE ATRASO: ${patient?.name}`,
-                                    text: `O paciente ${patient?.name} não tomou ${med?.name} agendado para ${timeStr}.\nAtraso de ${Math.floor(diffMins)} minutos.`,
-                                    type: 'alert'
-                                })
-                            });
-
-                            // Logar no DB para não repetir
-                            await supabase.from('alert_logs').insert({
-                                prescription_id: p.id,
-                                patient_id: p.patientId,
-                                alert_date: todayStr,
-                                alert_time: timeStr,
-                                sent_to: recipients
-                            });
-
-                            showToast(`Alerta enviado: ${patient?.name} / ${med?.name}`, 'warning');
-
-                        } catch (err) {
-                            console.error('Falha ao enviar email de alerta', err);
-                        }
-                    }
-                }
-            }
-        }
-
-        if (alertsSent === 0) {
-            showToast('Verificação concluída. Nenhuns atrasos novos.', 'success');
-        } else {
-            showToast(`${alertsSent} alertas de atraso enviados!`, 'warning');
-        }
+        if (!user) return;
+        return await AlertService.runCaregiverCheck(user, prescriptions, medications, patients, consumptionLog, showToast);
     };
 
     // Medicamentos
@@ -648,177 +547,16 @@ export const AppProvider = ({ children }) => {
 
     // --- Lógica de Alerta de Estoque Inteligente ---
     const calculateStockDays = (medicationId) => {
-        const med = medications.find(m => m.id === medicationId);
-        if (!med || !med.quantity) return null;
-
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-
-        const activePrescriptions = prescriptions.filter(p =>
-            p.medicationId === medicationId &&
-            p.active !== false &&
-            (!p.endDate || new Date(p.endDate) >= today)
-        );
-
-        if (activePrescriptions.length === 0) return null;
-
-        let dailyUsage = 0;
-        activePrescriptions.forEach(p => {
-            const dose = parseFloat(p.doseAmount) || 1;
-            const freq = p.times ? p.times.length : 0;
-            dailyUsage += (dose * freq);
-        });
-
-        if (dailyUsage <= 0) return null;
-
-        return med.quantity / dailyUsage;
+        return AlertService.calculateStockDays(medicationId, medications, prescriptions);
     };
 
     const checkLowStock = async (medicationId) => {
-        const daysRemaining = calculateStockDays(medicationId);
-        if (daysRemaining === null) return;
-
-        const med = medications.find(m => m.id === medicationId);
-        if (!med) return;
-
-        try {
-            // 1. Buscar configuração dinâmica do threshold
-            const { data: config } = await supabase
-                .from('system_settings')
-                .select('low_stock_threshold_days')
-                .eq('key', 'alerts')
-                .single();
-
-            const threshold = config?.low_stock_threshold_days || 4; // Padrão 4 dias
-
-            // Verificar se está abaixo do threshold
-            if (daysRemaining > threshold) return;
-
-            // 2. Calcular uso diário
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            const activePrescriptions = prescriptions.filter(p =>
-                p.medicationId === medicationId &&
-                p.active !== false &&
-                (!p.endDate || new Date(p.endDate) >= today)
-            );
-
-            let dailyUsage = 0;
-            activePrescriptions.forEach(p => {
-                const dose = parseFloat(p.doseAmount) || 1;
-                const freq = p.times ? p.times.length : 0;
-                dailyUsage += (dose * freq);
-            });
-
-            // 3. Buscar paciente relacionado
-            const relatedPrescription = activePrescriptions[0];
-            if (!relatedPrescription) return;
-
-            const patient = patients.find(p => p.id === relatedPrescription.patientId);
-            if (!patient) return;
-
-            const daysDisplay = Math.floor(daysRemaining);
-
-            // Alerta Visual (Toast) para o usuário atual
-            const { formatLowStockMessage } = await import('../utils/whatsappUtils');
-            showToast(formatLowStockMessage(med.name, daysRemaining), 'warning');
-
-            // 4. Throttling: Verificar se já alertou hoje
-            const todayStr = getISODate();
-            if (med.last_alert_date === todayStr) {
-                console.log('Alerta de estoque já enviado hoje para', med.name);
-                return;
-            }
-
-            // 5. Atualizar DB PRIMEIRO para evitar race condition
-            const { error: updateError } = await supabase
-                .from('medications')
-                .update({ last_alert_date: todayStr })
-                .eq('id', med.id);
-
-            if (updateError) throw updateError;
-
-            // Atualizar estado local
+        if (!user) return;
+        const result = await AlertService.checkLowStock(medicationId, user, medications, prescriptions, patients, showToast);
+        if (result?.lastAlertDate) {
             setMedications(prev => prev.map(m =>
-                m.id === med.id ? { ...m, last_alert_date: todayStr } : m
+                m.id === medicationId ? { ...m, last_alert_date: result.lastAlertDate } : m
             ));
-
-            // 6. Buscar destinatários: dono + cuidadores
-            const recipients = [];
-            recipients.push({ id: user.id, email: user.email, full_name: user.user_metadata?.full_name });
-
-            // Buscar cuidadores do paciente
-            if (patient.sharedWith && patient.sharedWith.length > 0) {
-                for (const share of patient.sharedWith) {
-                    if (share.status === 'accepted') {
-                        const { data: caregiver } = await supabase
-                            .from('profiles')
-                            .select('id, email, full_name')
-                            .eq('email', share.email)
-                            .single();
-
-                        if (caregiver && caregiver.email !== user.email) {
-                            recipients.push(caregiver);
-                        }
-                    }
-                }
-            }
-
-            // 7. Gerar link WhatsApp e quantidade sugerida
-            const { generatePharmacyWhatsAppLink, calculateSuggestedQuantity } = await import('../utils/whatsappUtils');
-            const whatsappLink = generatePharmacyWhatsAppLink(med, patient, daysRemaining);
-            const suggestedQuantity = calculateSuggestedQuantity(med);
-
-            // 8. Enviar notificações para TODOS os destinatários
-            const apiUrl = import.meta.env.VITE_API_URL || '';
-            const endpoint = apiUrl ? `${apiUrl}/api/send-email` : '/api/send-email';
-            const { data: { session } } = await supabase.auth.getSession();
-
-            for (const recipient of recipients) {
-                try {
-                    // Enviar Email com template HTML bonito
-                    await fetch(endpoint, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${session?.access_token}`
-                        },
-                        body: JSON.stringify({
-                            to: recipient.email,
-                            subject: `⚠️ Alerta de Estoque: ${med.name}`,
-                            text: 'Email HTML - baixo estoque',
-                            type: 'low_stock',
-                            lowStockData: {
-                                recipientName: recipient.full_name || recipient.email,
-                                medicationName: med.name,
-                                patientName: patient.name,
-                                currentStock: med.quantity || 0,
-                                daysRemaining: daysDisplay,
-                                dosage: med.dosage || 'N/A',
-                                dailyUsage: dailyUsage.toFixed(1),
-                                suggestedQuantity: suggestedQuantity,
-                                unit: med.type || 'unidades',
-                                whatsappLink: whatsappLink,
-                                threshold: threshold
-                            }
-                        })
-                    });
-
-                    console.log(`✅ Email enviado para ${recipient.email}`);
-
-                    // TODO: Enviar Push Notification (implementar posteriormente)
-                    // await sendPushNotification(recipient.id, {...});
-
-                } catch (err) {
-                    console.error(`Erro ao enviar para ${recipient.email}:`, err);
-                }
-            }
-
-            console.log(`📧 Alertas enviados para ${recipients.length} destinatário(s)`);
-
-        } catch (err) {
-            console.error('Erro ao processar alerta de estoque:', err);
-            // Não mostramos toast de erro pro usuário para não assustar
         }
     };
     const removeConsumption = async (prescriptionId, scheduledTime, date) => {
@@ -1094,7 +832,7 @@ export const AppProvider = ({ children }) => {
         document.documentElement.style.setProperty('--font-scale', (accessibility.fontSize || 100) / 100);
     }, [accessibility.fontSize]);
 
-    // Síntese de Voz (TTS)
+    // Síntese de Voz (TTS) com voz feminina suave
     const speak = (text) => {
         if (!('speechSynthesis' in window)) return;
 
@@ -1103,8 +841,23 @@ export const AppProvider = ({ children }) => {
 
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.lang = 'pt-BR';
-        utterance.rate = 0.9; // Um pouco mais devagar para idosos
-        utterance.pitch = 1.0;
+
+        // Voz feminina suave e tranquila para idosos
+        utterance.rate = 0.85; // Mais devagar para maior clareza
+        utterance.pitch = 0.9; // Pitch mais suave e feminino
+        utterance.volume = 1.0; // Volume pleno
+
+        // Tentar usar voz feminina do sistema
+        const voices = window.speechSynthesis.getVoices();
+        const femaleVoice = voices.find(v =>
+            v.lang.includes('pt-BR') && v.name.toLowerCase().includes('female')
+        ) || voices.find(v =>
+            v.lang.includes('pt-BR') && (v.name.includes('Luciana') || v.name.includes('Google'))
+        );
+
+        if (femaleVoice) {
+            utterance.voice = femaleVoice;
+        }
 
         window.speechSynthesis.speak(utterance);
     };
@@ -1119,24 +872,7 @@ export const AppProvider = ({ children }) => {
     const triggerPanicAlert = async (patientId, lat, lng, accuracy = null, address = null, type = 'emergency') => {
         if (!user) return;
         try {
-            // Tenta salvar o log no banco
-            const { data: newAlert, error: insertError } = await supabase
-                .from('sos_alerts')
-                .insert([{
-                    patient_id: patientId,
-                    triggered_by: user.id,
-                    location_lat: lat,
-                    location_lng: lng,
-                    accuracy: accuracy,
-                    status: 'active',
-                    alert_type: type,
-                    address: address
-                }])
-                .select()
-                .single();
-
-            if (insertError) throw insertError;
-
+            const newAlert = await SOSService.triggerPanicAlert(patientId, user.id, lat, lng, accuracy, address, type);
             showToast(type === 'emergency' ? 'SOS Enviado!' : 'Pedido de ajuda enviado!', 'success');
             return newAlert;
         } catch (error) {
@@ -1146,24 +882,8 @@ export const AppProvider = ({ children }) => {
     };
 
     const requestHelp = async (patientId) => {
-        if (!navigator.geolocation) {
-            // Se não tiver GPS, envia sem localização mesmo
-            return await triggerPanicAlert(patientId, null, null, null, null, 'help_request');
-        }
-
-        return new Promise((resolve) => {
-            navigator.geolocation.getCurrentPosition(
-                async (pos) => {
-                    const res = await triggerPanicAlert(patientId, pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy, null, 'help_request');
-                    resolve(res);
-                },
-                async () => {
-                    // Fallback se recusar GPS
-                    const res = await triggerPanicAlert(patientId, null, null, null, null, 'help_request');
-                    resolve(res);
-                }
-            );
-        });
+        if (!user) return;
+        return await SOSService.requestHelp(patientId, user.id);
     };
 
     // --- APPOINTMENTS METHODS ---

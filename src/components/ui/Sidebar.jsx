@@ -141,16 +141,16 @@ const Sidebar = ({ isOpen, onClose, isPinned, onTogglePin }) => {
                                                 onClick={onClose}
                                                 id={`tour-nav-${path.replace('/', '').replace(/\//g, '-')}`}
                                                 className={({ isActive }) => clsx(
-                                                    "flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-200 min-h-[48px] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/50",
+                                                    "flex items-center gap-4 px-5 py-3.5 rounded-xl transition-all duration-200 min-h-[52px] text-base focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/50",
                                                     isActive
-                                                        ? "bg-white dark:bg-slate-800 text-[#10b981] font-bold shadow-sm"
-                                                        : "text-slate-600 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-200"
+                                                        ? "bg-white dark:bg-slate-800 text-[#10b981] font-black shadow-md"
+                                                        : "text-slate-700 dark:text-slate-300 hover:bg-white/60 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-slate-100 font-medium"
                                                 )}
                                                 aria-current={({ isActive }) => isActive ? 'page' : undefined}
                                             >
                                                 {({ isActive }) => (
                                                     <>
-                                                        <Icon size={20} className={clsx(isActive ? "text-[#10b981]" : "text-slate-400")} aria-hidden="true" />
+                                                        <Icon size={22} className={clsx(isActive ? "text-[#10b981]" : "text-slate-500 dark:text-slate-400")} aria-hidden="true" />
                                                         <span>{label}</span>
                                                     </>
                                                 )}

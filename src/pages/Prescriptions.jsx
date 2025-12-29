@@ -563,109 +563,119 @@ const Prescriptions = () => {
                     ) : (
                         <div className="grid gap-4">
                             {paginatedPrescriptions.map(prescription => (
-                                <Card key={prescription.id} className="group hover:border-primary/30">
-                                    <div className="flex flex-col md:flex-row md:items-center p-6 gap-6">
-                                        {/* Icon */}
-                                        <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shrink-0 shadow-sm group-hover:scale-110 transition-transform duration-300">
-                                            <ClipboardList size={32} />
-                                        </div>
-
-                                        {/* Info */}
-                                        <div className="flex-1 min-w-0">
-                                            <h3 className="font-bold text-xl text-slate-900 dark:text-white mb-1">
-                                                {getMedicationInfo(prescription.medicationId)}
-                                            </h3>
-
-                                            <div className="flex flex-wrap items-center gap-3 text-sm text-slate-500 mb-3">
-                                                <span className="bg-slate-100 px-2.5 py-0.5 rounded-md font-medium text-slate-600 flex items-center gap-1">
-                                                    <User size={14} />
-                                                    {getPatientName(prescription.patientId)}
-                                                </span>
-                                                <span className="w-1.5 h-1.5 bg-slate-300 rounded-full"></span>
-                                                <span className="font-medium text-primary">{prescription.frequency}</span>
+                                <Card key={prescription.id} className="group hover:border-primary/30 transition-all duration-300">
+                                    <div className="p-5 flex flex-col gap-5">
+                                        {/* Top Section: Icon + Medication + Patient */}
+                                        <div className="flex items-start gap-4">
+                                            {/* Icon Box */}
+                                            <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center shadow-sm shrink-0 mt-1">
+                                                <Pill size={24} />
                                             </div>
 
-                                            <div className="flex items-center gap-2 text-sm text-slate-400">
-                                                <Clock size={16} className="shrink-0" />
-                                                <span>Horários: {prescription.times.join(', ')}</span>
-                                            </div>
-                                            <div className="flex items-center gap-2 text-xs text-slate-400 mt-1">
-                                                <Calendar size={14} className="shrink-0" />
-                                                <span>
-                                                    {formatDate(prescription.startDate)}
-                                                    {prescription.continuousUse ? ' (Uso Contínuo)' : ` até ${formatDate(prescription.endDate)}`}
-                                                </span>
+                                            <div className="flex-1 min-w-0 flex flex-col gap-3">
+                                                {/* Patient Name */}
+                                                <div>
+                                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-0.5">Paciente</p>
+                                                    <p className="text-base font-bold text-slate-700 dark:text-slate-300 truncate">
+                                                        {getPatientName(prescription.patientId)}
+                                                    </p>
+                                                </div>
+
+                                                {/* Medication Name */}
+                                                <div>
+                                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-0.5">Medicamento</p>
+                                                    <h3 className="font-black text-2xl text-slate-900 dark:text-white leading-tight break-words">
+                                                        {getMedicationInfo(prescription.medicationId)}
+                                                    </h3>
+                                                </div>
                                             </div>
                                         </div>
 
-                                        {/* Actions */}
-                                        <div className="flex flex-row gap-2 border-t md:border-t-0 pt-4 md:pt-0 mt-4 md:mt-0 justify-end items-center md:ml-auto">
+                                        {/* Specs Grid */}
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-50/50 p-4 rounded-xl border border-slate-100/50">
+                                            <div>
+                                                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">Frequência</p>
+                                                <p className="font-bold text-slate-700 text-sm">{prescription.frequency}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">Horários</p>
+                                                <div className="flex flex-wrap gap-1.5">
+                                                    {prescription.times.map(t => (
+                                                        <span key={t} className="bg-white border border-slate-200 px-2 py-0.5 rounded-md text-xs font-black text-slate-600 shadow-sm">
+                                                            {t}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                            <div className="sm:col-span-2 pt-2 border-t border-slate-200/50">
+                                                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">Período</p>
+                                                <div className="flex items-center gap-2 text-sm font-medium text-slate-600">
+                                                    <Calendar size={14} className="text-slate-400" />
+                                                    <span>
+                                                        {formatDate(prescription.startDate)}
+                                                        {prescription.continuousUse ? ' (Uso Contínuo)' : ` até ${formatDate(prescription.endDate)}`}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Actions Toolbar */}
+                                        <div className="flex items-center gap-2 pt-2">
                                             {patients.find(p => p.id === prescription.patientId)?.userId === user?.id ? (
                                                 <>
-                                                    {/* Calendar Export Button */}
-                                                    <div className="relative group">
+                                                    <Button
+                                                        variant="ghost"
+                                                        className="flex-1 bg-slate-50 hover:bg-emerald-50 text-slate-600 hover:text-emerald-700 border border-slate-100 h-10"
+                                                        onClick={() => {
+                                                            const med = medications.find(m => m.id === prescription.medicationId);
+                                                            const pat = patients.find(p => p.id === prescription.patientId);
+                                                            const urls = generateCalendarUrlsForPrescription(prescription, med, pat);
+
+                                                            if (urls.length === 1) {
+                                                                window.open(urls[0].url, '_blank');
+                                                            } else {
+                                                                const choice = confirm(
+                                                                    `Este medicamento tem ${urls.length} horários.\n\n` +
+                                                                    `Clique OK para abrir os links do Google Calendar\n` +
+                                                                    `ou Cancelar para baixar os arquivos .ics`
+                                                                );
+                                                                if (choice) {
+                                                                    urls.forEach(({ url }) => window.open(url, '_blank'));
+                                                                } else {
+                                                                    urls.forEach(({ time }) => {
+                                                                        downloadICalFile(prescription, med, pat, time);
+                                                                    });
+                                                                }
+                                                            }
+                                                            showToast('Processando calendário...', 'success');
+                                                        }}
+                                                    >
+                                                        <Calendar size={18} className="mr-2" />
+                                                        <span className="text-sm font-bold">Calendário</span>
+                                                    </Button>
+
+                                                    <div className="flex gap-2">
                                                         <Button
                                                             variant="ghost"
-                                                            size="sm"
-                                                            className="text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700 px-3"
-                                                            onClick={() => {
-                                                                const med = medications.find(m => m.id === prescription.medicationId);
-                                                                const pat = patients.find(p => p.id === prescription.patientId);
-                                                                const urls = generateCalendarUrlsForPrescription(prescription, med, pat);
-
-                                                                if (urls.length === 1) {
-                                                                    // Single time - open directly
-                                                                    window.open(urls[0].url, '_blank');
-                                                                } else {
-                                                                    // Multiple times - show options
-                                                                    const choice = confirm(
-                                                                        `Este medicamento tem ${urls.length} horários.\n\n` +
-                                                                        `Clique OK para abrir todos no Google Calendar\n` +
-                                                                        `ou Cancelar para baixar arquivos .ics`
-                                                                    );
-
-                                                                    if (choice) {
-                                                                        // Open all in Google Calendar
-                                                                        urls.forEach(({ url }) => window.open(url, '_blank'));
-                                                                    } else {
-                                                                        // Download .ics files
-                                                                        urls.forEach(({ time }) => {
-                                                                            downloadICalFile(prescription, med, pat, time);
-                                                                        });
-                                                                    }
-                                                                }
-
-                                                                showToast('Abrindo Google Calendar...', 'success');
-                                                            }}
-                                                            title="Adicionar ao Calendário"
+                                                            className="w-10 h-10 p-0 rounded-xl border border-slate-100 bg-white text-slate-400 hover:text-blue-600 hover:border-blue-200"
+                                                            onClick={() => handleEdit(prescription)}
+                                                            title="Editar"
                                                         >
-                                                            <Calendar size={18} />
+                                                            <Edit2 size={18} />
+                                                        </Button>
+                                                        <Button
+                                                            variant="ghost"
+                                                            className="w-10 h-10 p-0 rounded-xl border border-slate-100 bg-white text-slate-400 hover:text-rose-600 hover:border-rose-200"
+                                                            onClick={() => handleDeleteClick(prescription.id)}
+                                                            title="Excluir"
+                                                        >
+                                                            <Trash2 size={18} />
                                                         </Button>
                                                     </div>
-
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        className="text-slate-600 hover:text-primary px-3"
-                                                        onClick={() => handleEdit(prescription)}
-                                                        title="Editar"
-                                                    >
-                                                        <Edit2 size={18} />
-                                                    </Button>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        className="text-rose-500 hover:bg-rose-50 hover:text-rose-600 px-3"
-                                                        onClick={() => handleDeleteClick(prescription.id)}
-                                                        title="Excluir"
-                                                    >
-                                                        <Trash2 size={18} />
-                                                    </Button>
                                                 </>
                                             ) : (
-                                                <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 rounded-lg text-slate-500 text-sm font-medium">
-                                                    <User size={16} />
-                                                    Modo Leitura
+                                                <div className="w-full py-2 bg-slate-50 rounded-xl text-center text-slate-400 text-sm font-medium border border-slate-100">
+                                                    Modo Leitura (Compartilhado)
                                                 </div>
                                             )}
                                         </div>

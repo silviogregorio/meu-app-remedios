@@ -24,11 +24,13 @@ const Button = ({
     };
 
     // Minimum touch target sizes for accessibility (WCAG 2.5.5)
+    // All sizes now meet or exceed 44px minimum, md+ meets 48px recommended
     const sizes = {
-        sm: "px-3 py-2 text-sm min-h-[36px]",
-        md: "px-5 py-2.5 text-sm min-h-[44px]",
-        lg: "px-6 py-3 text-base min-h-[48px]",
-        icon: "p-2.5 min-h-[44px] min-w-[44px]"
+        sm: "px-4 py-2.5 text-sm min-h-[44px]",
+        md: "px-6 py-3 text-base min-h-[48px]",
+        lg: "px-8 py-3.5 text-lg min-h-[52px]",
+        senior: "px-10 py-4 text-xl min-h-[56px] font-black tracking-wide",
+        icon: "p-3 min-h-[48px] min-w-[48px]"
     };
 
     return (

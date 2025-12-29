@@ -30,36 +30,20 @@ import AdminSettings from './pages/AdminSettings';
 import Widget from './pages/Widget';
 
 import NotificationManager from './components/NotificationManager';
+import ScrollToTop from './components/ScrollToTop';
 import { ThemeProvider } from './context/ThemeContext';
-
 import { SpeedInsights } from "@vercel/speed-insights/react";
-import { useEffect } from 'react';
 
 function App() {
-  // FORCE SERVICE WORKER UPDATE - REMOVED TO PREVENT LOOP
-  /*
-  useEffect(() => {
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.getRegistrations().then(function (registrations) {
-        for (let registration of registrations) {
-          console.log('[App] Unregistering SW:', registration);
-          registration.unregister();
-        }
-      });
-    }
-  }, []);
-  */
-
   return (
     <ErrorBoundary>
       <AuthProvider>
         <ThemeProvider>
           <AppProvider>
             <SpeedInsights />
-            {/* <ReloadPrompt /> REMOVED TO PREVENT LOOP */}
             <NotificationManager />
             <BrowserRouter>
-              {/* <VersionCheck /> REMOVED TO PREVENT LOOP */}
+              <ScrollToTop />
               <Routes>
                 <Route path="/" element={<Landing />} />
                 <Route element={<Layout />}>

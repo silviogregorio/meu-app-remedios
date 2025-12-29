@@ -513,7 +513,7 @@ const Profile = () => {
                             </label>
                         </div>
 
-                        {/* High Contrast Toggle */}
+                        {/* High Contrast Toggle - DISABLED: Causing visibility issues with hex colors
                         <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-700">
                             <div className="flex items-center gap-3">
                                 <Shield className="text-slate-400" size={20} />
@@ -532,6 +532,7 @@ const Profile = () => {
                                 <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
                             </label>
                         </div>
+                        */}
 
                         {/* Font Size Scaling (Slider) */}
                         <div className="flex flex-col gap-4 p-4 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-700">

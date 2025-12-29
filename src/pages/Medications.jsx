@@ -7,6 +7,7 @@ import Modal from '../components/ui/Modal';
 import Pagination from '../components/ui/Pagination';
 import { Plus, Pill, Trash2, Edit2, X, AlertTriangle, Search, User, Camera, Box } from 'lucide-react';
 import PillIcon from '../components/ui/PillIcon'; // Import PillIcon
+import { MedicationCardShimmer } from '../components/ui/Shimmer';
 
 const ITEMS_PER_PAGE = 6;
 
@@ -38,6 +39,17 @@ const Medications = () => {
 
     const [editingMedId, setEditingMedId] = useState(null);
     const [deleteMedId, setDeleteMedId] = useState(null);
+    const [isInitialLoading, setIsInitialLoading] = useState(true);
+
+    // Simulate loading to match Home page shimmer effect
+    useEffect(() => {
+        if (medications.length >= 0) {
+            const timer = setTimeout(() => {
+                setIsInitialLoading(false);
+            }, 3000);
+            return () => clearTimeout(timer);
+        }
+    }, [medications]);
 
     const [medForm, setMedForm] = useState({
         name: '',
@@ -217,7 +229,7 @@ const Medications = () => {
                                     required
                                 />
                             </div>
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <Input
                                     label="Dosagem"
                                     id="medDosage"
@@ -290,7 +302,13 @@ const Medications = () => {
             {
                 !showForm && (
                     <>
-                        {filteredMedications.length === 0 ? (
+                        {isInitialLoading ? (
+                            <div className="grid gap-4">
+                                {[1, 2, 3, 4].map(n => (
+                                    <MedicationCardShimmer key={n} />
+                                ))}
+                            </div>
+                        ) : filteredMedications.length === 0 ? (
                             <div className="flex flex-col items-center justify-center py-16 text-center bg-white rounded-3xl border border-dashed border-slate-200">
                                 <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center text-slate-300 mb-6">
                                     <Pill size={40} />
@@ -304,66 +322,103 @@ const Medications = () => {
                         ) : (
                             <div className="grid gap-4">
                                 {paginatedItems.map(item => (
-                                    <Card key={item.id} className="group hover:border-primary/30">
-                                        <div className="flex flex-col md:flex-row md:items-center p-6 gap-6">
-
-                                            {/* Avatar Column */}
-                                            <div className="w-16 h-16 rounded-2xl bg-slate-50 flex items-center justify-center shrink-0 shadow-sm group-hover:scale-110 transition-transform duration-300 border border-slate-100">
-                                                <PillIcon shape={item.shape} color={item.color} size={32} />
-                                            </div>
-
-                                            <div className="flex-1 min-w-0">
-                                                <h3 className="font-bold text-xl text-slate-900 dark:text-white mb-1">
-                                                    {item.name}
-                                                    <span className="text-slate-500 dark:text-slate-400 text-base font-normal ml-2">{item.dosage}</span>
-                                                </h3>
-
-                                                <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
-                                                    <span className="bg-slate-100 dark:bg-slate-800 px-2.5 py-0.5 rounded-md font-medium text-slate-600 dark:text-slate-300">
-                                                        {item.type || 'Sem tipo'}
-                                                    </span>
-                                                    {item.unit_quantity && (
-                                                        <span className="text-slate-600 dark:text-slate-400">
-                                                            • Na Caixa: {item.unit_quantity}
-                                                        </span>
-                                                    )}
-                                                    {item.quantity && (
-                                                        <span className="text-slate-600 dark:text-slate-400">
-                                                            • Estoque: {item.quantity}
-                                                        </span>
-                                                    )}
+                                    <Card key={item.id} className="group hover:border-primary/30 transition-all duration-300">
+                                        <div className="p-4 md:p-5 flex flex-col md:flex-row md:items-center gap-3 md:gap-6">
+                                            {/* Left Section: Icon + Name */}
+                                            <div className="flex items-start md:items-center gap-3 md:gap-4 md:w-1/3">
+                                                {/* Icon Box */}
+                                                <div className="w-10 h-10 md:w-10 md:h-10 rounded-2xl bg-slate-50 flex items-center justify-center shrink-0 shadow-sm border border-slate-100">
+                                                    <PillIcon shape={item.shape} color={item.color} size={20} />
                                                 </div>
-                                                {item.observations && (
-                                                    <div className="mt-2 text-sm text-slate-500 bg-slate-50 dark:bg-slate-800/50 p-2 rounded-lg border border-slate-100 dark:border-slate-800">
-                                                        <span className="font-semibold text-slate-600 dark:text-slate-400">Obs:</span> {item.observations}
-                                                    </div>
-                                                )}
+
+                                                <div className="flex-1 min-w-0 flex flex-col gap-0.5 md:gap-1">
+                                                    <h3 className="font-black text-xl md:text-xl text-slate-900 dark:text-white leading-tight break-words">
+                                                        {item.name}
+                                                    </h3>
+                                                    <p className="text-base md:text-base font-bold text-slate-500 dark:text-slate-400">
+                                                        {item.dosage}
+                                                    </p>
+                                                </div>
                                             </div>
 
-                                            <div className="flex md:flex-col gap-2 border-t md:border-t-0 md:border-l border-slate-50 dark:border-slate-800 pt-4 md:pt-0 md:pl-6 mt-2 md:mt-0 justify-end">
+                                            {/* Middle Section: Specs Grid -- Compact on mobile */}
+                                            <div className="flex-1 grid grid-cols-[1.3fr_1fr] md:grid-cols-[2fr_1fr_1fr] gap-3 md:gap-4 bg-slate-50/50 md:bg-transparent p-3 md:p-0 rounded-xl md:rounded-none border md:border-none border-slate-100/50">
+                                                <div className="md:border-l md:border-slate-100 md:pl-6">
+                                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">Tipo</p>
+                                                    <p className="font-bold text-slate-700 text-sm">{item.type || 'N/A'}</p>
+                                                </div>
+
+                                                <div className="md:border-l md:border-slate-100 md:pl-6">
+                                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">Estoque</p>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className={`font-black text-base md:text-base ${!item.quantity ? 'text-slate-400' :
+                                                            Number(item.quantity) < 5 ? 'text-rose-500' : 'text-emerald-600'
+                                                            }`}>
+                                                            {item.quantity || '0'}
+                                                        </span>
+                                                        {Number(item.quantity) < 5 && (
+                                                            <div className="bg-rose-100 text-rose-600 text-[8px] font-bold px-1.5 py-0.5 rounded-md uppercase tracking-wider">
+                                                                Baixo
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+
+                                                {/* Observations */}
+                                                <div className="col-span-2 md:col-span-1 md:border-l md:border-slate-100 md:pl-6">
+                                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">Na Caixa</p>
+                                                    <p className="font-black text-slate-900 text-sm">
+                                                        {item.unit_quantity || '-'}
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            {/* Right Section: Actions */}
+                                            <div className="flex items-center gap-2 md:w-auto justify-end">
                                                 {item.user_id === user?.id ? (
-                                                    <>
+                                                    <div className="flex gap-2 w-full md:w-auto">
+                                                        {/* Mobile: Full Buttons */}
                                                         <Button
                                                             variant="ghost"
-                                                            size="sm"
-                                                            className="flex-1 md:flex-none justify-start text-slate-600 dark:text-slate-300 hover:text-primary"
+                                                            className="flex-1 md:hidden bg-white hover:bg-blue-50 text-slate-600 hover:text-blue-700 border border-slate-200 h-10 shadow-sm"
                                                             onClick={() => handleMedEdit(item)}
                                                         >
-                                                            <Edit2 size={18} className="mr-2" /> Editar
+                                                            <Edit2 size={18} className="mr-2" />
+                                                            <span className="font-bold text-sm">Editar</span>
                                                         </Button>
                                                         <Button
                                                             variant="ghost"
-                                                            size="sm"
-                                                            className="flex-1 md:flex-none justify-start text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 hover:text-rose-600"
+                                                            className="flex-1 md:hidden bg-white hover:bg-rose-50 text-slate-600 hover:text-rose-700 border border-slate-200 h-10 shadow-sm"
                                                             onClick={() => setDeleteMedId(item.id)}
                                                         >
-                                                            <Trash2 size={18} className="mr-2" /> Excluir
+                                                            <Trash2 size={18} className="mr-2" />
+                                                            <span className="font-bold text-sm">Excluir</span>
                                                         </Button>
-                                                    </>
+
+                                                        {/* Desktop: Text Buttons (Better than just icons) */}
+                                                        <div className="hidden md:flex gap-2">
+                                                            <Button
+                                                                variant="ghost"
+                                                                className="px-3 h-10 rounded-xl border border-slate-100 bg-white text-slate-500 hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50 transition-all"
+                                                                onClick={() => handleMedEdit(item)}
+                                                                title="Editar"
+                                                            >
+                                                                <Edit2 size={18} className="mr-2" />
+                                                                <span className="font-semibold text-sm">Editar</span>
+                                                            </Button>
+                                                            <Button
+                                                                variant="ghost"
+                                                                className="px-3 h-10 rounded-xl border border-slate-100 bg-white text-slate-500 hover:text-rose-600 hover:border-rose-200 hover:bg-rose-50 transition-all"
+                                                                onClick={() => setDeleteMedId(item.id)}
+                                                                title="Excluir"
+                                                            >
+                                                                <Trash2 size={18} />
+                                                            </Button>
+                                                        </div>
+                                                    </div>
                                                 ) : (
-                                                    <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 rounded-lg text-slate-500 text-sm font-medium">
-                                                        <User size={16} />
-                                                        Modo Leitura
+                                                    <div className="w-full md:w-auto py-2 px-3 bg-slate-50 rounded-xl text-center text-slate-400 text-xs font-medium border border-slate-100 whitespace-nowrap">
+                                                        Leitura
                                                     </div>
                                                 )}
                                             </div>

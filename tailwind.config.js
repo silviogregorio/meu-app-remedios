@@ -22,6 +22,20 @@ export default {
                 },
                 danger: '#f43f5e',    // Rose 500
                 surface: '#ffffff',
+                // High contrast text colors for better accessibility
+                'text-primary': '#0f172a',   // Slate 900 - Main text
+                'text-secondary': '#334155', // Slate 700 - Secondary text (better than 500)
+                'text-tertiary': '#475569',  // Slate 600 - Tertiary text (better than 400)
+            },
+            // Senior-friendly font sizes with improved line heights
+            fontSize: {
+                'senior-xs': ['14px', { lineHeight: '1.6' }],
+                'senior-sm': ['16px', { lineHeight: '1.6' }],
+                'senior-base': ['18px', { lineHeight: '1.6' }],
+                'senior-lg': ['20px', { lineHeight: '1.5' }],
+                'senior-xl': ['24px', { lineHeight: '1.4' }],
+                'senior-2xl': ['30px', { lineHeight: '1.3' }],
+                'senior-3xl': ['36px', { lineHeight: '1.2' }],
             },
             borderRadius: {
                 'xl': '1rem',

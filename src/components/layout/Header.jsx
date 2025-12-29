@@ -257,8 +257,9 @@ const Header = forwardRef(({ onMenuClick, isPinned }, ref) => {
             <button
                 id="header-menu-toggle"
                 onClick={onMenuClick}
-                className={`p-2 -ml-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-full transition-colors ${isPinned ? 'md:hidden' : ''
+                className={`p-3 -ml-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-full transition-colors min-h-[48px] min-w-[48px] flex items-center justify-center ${isPinned ? 'md:hidden' : ''
                     }`}
+                aria-label="Abrir menu de navegação"
             >
                 <Menu size={24} />
             </button>
@@ -275,16 +276,18 @@ const Header = forwardRef(({ onMenuClick, isPinned }, ref) => {
                     <div className="flex items-center gap-2 md:hidden">
                         <button
                             onClick={() => setShowSearch(true)}
-                            className="w-10 h-10 flex items-center justify-center text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-full transition-colors"
+                            className="min-w-[48px] min-h-[48px] flex items-center justify-center text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-full transition-colors"
                             title="Buscar Medicamento"
+                            aria-label="Buscar medicamento por nome"
                         >
                             <Search size={22} />
                         </button>
 
                         <button
-                            className="relative w-10 h-10 flex items-center justify-center text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-full transition-colors"
+                            className="relative min-w-[48px] min-h-[48px] flex items-center justify-center text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-full transition-colors"
                             onClick={() => setShowNotifications(true)}
                             title="Notificações"
+                            aria-label={`Notificações${pendingShares.length > 0 ? ` - ${pendingShares.length} pendente(s)` : ''}`}
                         >
                             <Bell size={22} />
                             {pendingShares.length > 0 && (
@@ -297,11 +300,12 @@ const Header = forwardRef(({ onMenuClick, isPinned }, ref) => {
                         <button
                             onClick={handlePanicClick}
                             disabled={isTriggeringPanic}
-                            className={`w-10 h-10 flex items-center justify-center rounded-full transition-all shadow-md border ${isTriggeringPanic
-                                ? 'bg-red-100 text-red-400 border-red-200 cursor-not-allowed'
-                                : 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100 hover:scale-110 active:scale-95'
+                            className={`min-w-[48px] min-h-[48px] flex items-center justify-center rounded-full transition-all shadow-md border ${isTriggeringPanic
+                                    ? 'bg-red-100 text-red-400 border-red-200 cursor-not-allowed'
+                                    : 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100 hover:scale-110 active:scale-95'
                                 }`}
                             title="BOTÃO DE PÂNICO"
+                            aria-label="Acionar botão de emergência"
                         >
                             <Siren size={24} className={isTriggeringPanic ? 'animate-spin' : 'animate-pulse'} />
                         </button>
@@ -311,8 +315,9 @@ const Header = forwardRef(({ onMenuClick, isPinned }, ref) => {
                     <button
                         id="tour-search-btn"
                         onClick={() => setShowSearch(true)}
-                        className="hidden md:flex items-center gap-2 p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-full transition-colors"
+                        className="hidden md:flex items-center gap-2 p-3 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-full transition-colors min-h-[48px]"
                         title="Buscar Medicamento"
+                        aria-label="Buscar medicamento por nome"
                     >
                         <Search size={22} />
                         <span className="hidden xl:inline text-sm font-medium">Buscar</span>
@@ -323,11 +328,12 @@ const Header = forwardRef(({ onMenuClick, isPinned }, ref) => {
                         id="emergency-alert-btn"
                         onClick={handlePanicClick}
                         disabled={isTriggeringPanic}
-                        className={`hidden md:flex p-2 rounded-full transition-all items-center justify-center ${isTriggeringPanic
-                            ? 'bg-red-100 text-red-400 cursor-not-allowed'
-                            : 'bg-red-50 text-red-600 hover:bg-red-100 hover:scale-110 active:scale-95 shadow-md border border-red-200'
+                        className={`hidden md:flex p-3 rounded-full transition-all items-center justify-center min-h-[48px] min-w-[48px] ${isTriggeringPanic
+                                ? 'bg-red-100 text-red-400 cursor-not-allowed'
+                                : 'bg-red-50 text-red-600 hover:bg-red-100 hover:scale-110 active:scale-95 shadow-md border border-red-200'
                             }`}
                         title="BOTÃO DE PÂNICO"
+                        aria-label="Acionar botão de emergência"
                     >
                         <Siren size={24} className={`text-red-600 ${isTriggeringPanic ? 'animate-spin' : 'animate-pulse'}`} />
                     </button>
@@ -336,7 +342,8 @@ const Header = forwardRef(({ onMenuClick, isPinned }, ref) => {
                     <button
                         id="tour-sos-btn"
                         onClick={() => setShowSOS(true)}
-                        className="bg-red-600 hover:bg-red-700 text-white p-1.5 sm:px-4 sm:py-1.5 rounded-full font-bold shadow-lg shadow-red-500/30 transition-all hover:scale-105 flex items-center gap-1.5 animate-pulse-slow shrink-0"
+                        className="bg-red-600 hover:bg-red-700 text-white px-5 py-2.5 rounded-full font-bold shadow-lg shadow-red-500/30 transition-all hover:scale-105 flex items-center gap-1.5 animate-pulse-slow shrink-0 min-h-[48px]"
+                        aria-label="Abrir ficha de emergência SOS"
                     >
                         <Heart size={16} fill="currentColor" />
                         <span className="hidden md:inline">SOS</span>
@@ -345,9 +352,10 @@ const Header = forwardRef(({ onMenuClick, isPinned }, ref) => {
 
                     {/* 6. Notificações (Desktop) */}
                     <button
-                        className="hidden md:block relative p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-full transition-colors"
+                        className="hidden md:block relative p-3 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-full transition-colors min-h-[48px] min-w-[48px]"
                         onClick={() => setShowNotifications(true)}
                         title="Notificações"
+                        aria-label={`Notificações${pendingShares.length > 0 ? ` - ${pendingShares.length} pendente(s)` : ''}`}
                     >
                         <Bell size={24} />
                         {pendingShares.length > 0 && (

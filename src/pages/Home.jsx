@@ -3,7 +3,7 @@ import { useApp } from '../context/AppContext';
 import Card, { CardContent } from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import Pagination from '../components/ui/Pagination';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useNavigate } from 'react-router-dom';
 import { Check, Clock, AlertCircle, Calendar, User, Pill, X, Bell, Calendar as CalendarIcon, DownloadCloud, CircleHelp, Trophy, Zap, Flame, Activity, Star, ShieldCheck, ThumbsUp, Medal, Sparkles, Stethoscope, ChevronRight, Accessibility } from 'lucide-react';
@@ -270,18 +270,19 @@ const Home = () => {
                     <div className="flex items-center gap-2">
                         <button
                             onClick={() => updateUserPreferences({ simplified_mode: true })}
-                            className="flex items-center gap-2 px-4 py-2.5 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-600 transition-all text-sm font-bold shadow-sm border border-slate-200/50 dark:border-slate-600"
-                            title="Modo Simplificado"
+                            className="flex items-center gap-2 px-4 py-2.5 bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-900 rounded-full transition-all text-sm font-semibold shadow-sm"
+                            title="Modo para Idosos"
                         >
-                            <Accessibility size={18} />
-                            <span>Modo Idoso</span>
+                            <Accessibility size={16} />
+                            Modo Sênior
                         </button>
                         <button
                             onClick={() => setStartTour(true)}
-                            className="flex items-center gap-2 px-4 py-2.5 bg-primary/10 text-primary rounded-xl hover:bg-primary/20 transition-all text-sm font-bold shadow-sm border border-primary/10"
+                            className="flex items-center gap-2 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-full transition-all text-sm font-semibold border border-slate-200 dark:border-slate-600 shadow-sm"
+                            title="Ajuda e Tutorial"
                         >
-                            <CircleHelp size={18} />
-                            <span>Manual</span>
+                            <CircleHelp size={16} />
+                            Manual
                         </button>
                     </div>
                 </div>
@@ -430,7 +431,7 @@ const Home = () => {
                                         const diffMinutes = Math.round((doseDate - now) / 60000);
 
                                         let timeText;
-                                        if (diffMinutes < 0) timeText = 'Agora';
+                                        if (diffMinutes < 0) timeText = 'Horário chegou!';
                                         else if (diffMinutes < 60) timeText = `Em ${diffMinutes} min`;
                                         else {
                                             const h = Math.floor(diffMinutes / 60);
@@ -439,17 +440,17 @@ const Home = () => {
                                         }
 
                                         return (
-                                            <div className="flex flex-col gap-4">
-                                                <div className="flex items-start justify-between">
-                                                    <div>
-                                                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-500/30 text-blue-50 text-xs font-medium backdrop-blur-sm border border-blue-400/30">
-                                                            <Clock size={12} />
+                                            <div className="flex flex-col gap-3">
+                                                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                                                    <div className="flex-1 min-w-0">
+                                                        <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-500/30 text-blue-50 text-sm font-bold backdrop-blur-sm border border-blue-400/30">
+                                                            <Clock size={14} />
                                                             Próxima Dose
                                                         </span>
 
                                                         {/* BIG Visual Identity for Accessibility */}
-                                                        <div className="flex items-center gap-4 mt-3">
-                                                            <div className="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center shrink-0 shadow-lg">
+                                                        <div className="flex items-center gap-3 mt-3">
+                                                            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-white/20 backdrop-blur-md border-2 border-white/40 flex items-center justify-center shrink-0 shadow-lg">
                                                                 <PillIcon
                                                                     shape={nextDose.medication?.shape || 'round'}
                                                                     color={nextDose.medication?.color || 'white'}
@@ -457,22 +458,22 @@ const Home = () => {
                                                                     className="drop-shadow-md"
                                                                 />
                                                             </div>
-                                                            <div>
-                                                                <h3 className="text-3xl font-bold">{nextDose.medicationName}</h3>
-                                                                <p className="text-blue-100 text-xl font-medium">
+                                                            <div className="min-w-0 flex-1">
+                                                                <h3 className="text-3xl sm:text-4xl font-black leading-tight break-words">{nextDose.medicationName}</h3>
+                                                                <p className="text-blue-100 text-xl sm:text-2xl font-bold mt-1">
                                                                     {Number(nextDose.doseAmount)} {nextDose.medicationType} {nextDose.dosage}
                                                                 </p>
                                                             </div>
                                                         </div>
                                                     </div>
-                                                    <div className="text-right">
-                                                        <div className="text-4xl font-bold tracking-tight">{nextDose.time}</div>
-                                                        <div className="text-blue-200 font-medium text-lg mt-1">{timeText}</div>
+                                                    <div className="text-left sm:text-right shrink-0">
+                                                        <div className="text-3xl sm:text-4xl font-bold tracking-tight">{nextDose.time}</div>
+                                                        <div className="text-blue-200 font-medium text-base sm:text-lg">{timeText}</div>
                                                     </div>
                                                 </div>
-                                                <div className="flex items-center gap-2 text-sm text-blue-100 bg-blue-800/20 p-3 rounded-lg backdrop-blur-sm mt-2">
-                                                    <User size={16} />
-                                                    Paciente: <span className="font-bold">{nextDose.patientName}</span>
+                                                <div className="flex items-start gap-2 text-base text-white bg-white/20 p-3.5 rounded-xl backdrop-blur-sm">
+                                                    <User size={18} className="shrink-0 mt-0.5" />
+                                                    <span>Paciente: <span className="font-black text-lg">{nextDose.patientName}</span></span>
                                                 </div>
                                             </div>
                                         );
@@ -518,8 +519,8 @@ const Home = () => {
                         </Card>
 
                         <div className="flex flex-col gap-3">
-                            <Card id="tour-summary-card" className="bg-white border-slate-200 shadow-sm relative overflow-hidden flex-1">
-                                <CardContent className="p-3 flex flex-col gap-2 relative z-10">
+                            <Card id="tour-summary-card" className="bg-white border-slate-200 shadow-sm">
+                                <CardContent className="px-4 pt-4 pb-5 flex flex-col gap-2 relative z-10">
                                     <div className="flex items-center justify-between mb-1">
                                         <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm flex items-center gap-2">
                                             <Zap className="text-amber-500 fill-amber-500" size={16} />
@@ -553,8 +554,8 @@ const Home = () => {
                                                     />
                                                 </div>
 
-                                                {/* Restored Message Box with Compact Padding */}
-                                                <div className="bg-slate-50 rounded-lg p-2 border border-slate-100 flex items-center gap-2.5">
+                                                {/* Restored Message Box with Better Padding */}
+                                                <div className="bg-slate-50 rounded-xl p-3 border border-slate-100 flex items-center gap-3 mb-1">
                                                     <div className={`p-1.5 rounded-full flex-shrink-0 ${isComplete ? 'bg-amber-100 border border-amber-200' : 'bg-blue-100 text-blue-600'
                                                         }`}>
                                                         {isComplete ? <Star size={18} color="#d97706" fill="#fbbf24" className="animate-bounce drop-shadow-sm" /> : <Activity size={18} />}
@@ -576,14 +577,11 @@ const Home = () => {
                                         );
                                     })()}
                                 </CardContent>
-
-                                {/* Decorative Background Elements */}
-                                <div className="absolute -bottom-10 -right-10 w-32 h-32 bg-gradient-to-br from-indigo-50 to-blue-50 rounded-full blur-2xl opacity-50 pointer-events-none"></div>
                             </Card>
 
                             {/* Card de Próxima Consulta */}
-                            <Card className="bg-white border-slate-200 shadow-sm relative overflow-hidden group flex-1">
-                                <CardContent className="p-3 flex flex-col gap-2 relative z-10">
+                            <Card className="bg-white border-slate-200 shadow-sm relative group">
+                                <CardContent className="p-4 flex flex-col gap-2 relative z-10">
                                     <div className="flex items-center justify-between mb-1">
                                         <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm flex items-center gap-2">
                                             <Stethoscope className="text-emerald-500" size={16} />
@@ -674,35 +672,78 @@ const Home = () => {
 
                     if (lateDoses.length > 0) {
                         return (
-                            <div className="bg-red-50 border border-red-200 rounded-xl p-4 animate-in slide-in-from-top-2">
-                                <div className="flex items-start gap-3">
-                                    <div className="p-2 bg-red-100 rounded-lg text-red-600">
-                                        <AlertCircle size={20} />
+                            <Card className="mb-6 overflow-hidden border-rose-200/40 shadow-sm bg-white/60 backdrop-blur-sm">
+                                {/* Header mais espaçoso e com ícone de alerta */}
+                                <div className="bg-gradient-to-r from-rose-50/50 to-amber-50/50 dark:from-slate-800 dark:to-slate-700 px-5 py-4 border-b border-rose-100/50 dark:border-slate-600 flex items-center justify-between gap-4">
+                                    <div className="flex items-center gap-3">
+                                        <div className="p-2.5 bg-rose-500 rounded-xl shadow-lg shadow-rose-500/20 ring-1 ring-rose-400/30">
+                                            <AlertCircle size={20} className="text-white" />
+                                        </div>
+                                        <h3 className="text-lg font-black text-rose-900 dark:text-white leading-tight">
+                                            Doses Pendentes
+                                        </h3>
                                     </div>
-                                    <div className="flex-1">
-                                        <h3 className="font-bold text-red-900">Atenção: Doses Atrasadas</h3>
-                                        <p className="text-sm text-red-700 mb-3">
-                                            Você tem {lateDoses.length} medicamento{lateDoses.length > 1 ? 's' : ''} pendente{lateDoses.length > 1 ? 's' : ''} de horários passados.
-                                        </p>
-                                        <div className="flex flex-col gap-2">
-                                            {lateDoses.map(dose => (
-                                                <div key={dose.id} className="flex items-center justify-between bg-white/50 p-2 rounded-lg border border-red-100">
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="font-bold text-red-800">{dose.time}</span>
-                                                        <span className="text-red-900">{dose.medicationName}</span>
+                                    <span className="shrink-0 bg-rose-100 dark:bg-slate-700 text-rose-700 dark:text-rose-300 text-[10px] font-black px-3 py-1.5 rounded-full ring-1 ring-rose-200 dark:ring-slate-600 uppercase tracking-wider">
+                                        {lateDoses.length} {lateDoses.length > 1 ? 'Itens' : 'Item'}
+                                    </span>
+                                </div>
+
+                                <div className="flex flex-col divide-y divide-rose-100/30">
+                                    {lateDoses.map((dose, index) => {
+                                        const today = new Date();
+                                        const isoToday = today.toISOString().split('T')[0];
+                                        const doseDate = dose.date || isoToday;
+                                        const isToday = doseDate === isoToday;
+                                        const dateLabel = isToday ? 'Hoje' : format(parseISO(doseDate), "dd/MM (EEE)", { locale: ptBR });
+                                        const isEven = index % 2 === 0;
+
+                                        return (
+                                            <div
+                                                key={dose.id}
+                                                className={clsx(
+                                                    "p-5 transition-all duration-300",
+                                                    isEven ? "bg-white/40" : "bg-rose-50/10",
+                                                    "hover:bg-rose-50/30"
+                                                )}
+                                            >
+                                                <div className="flex flex-col gap-5">
+                                                    {/* Linha Superior: Horário compacto + Paciente abaixo agora */}
+                                                    <div className="flex flex-col gap-2">
+                                                        <div className="bg-white px-3 py-1 rounded-lg border border-rose-100 shadow-sm flex items-center gap-2 shrink-0 self-start">
+                                                            <span className="font-black text-rose-600 text-sm leading-none">{dose.time}</span>
+                                                            <span className="text-[9px] font-black text-rose-400 uppercase tracking-widest">{dateLabel}</span>
+                                                        </div>
+                                                        <div className="min-w-0 w-full pl-1">
+                                                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-0 leading-none">Paciente</p>
+                                                            <p className="font-black text-slate-700 dark:text-slate-300 text-base leading-tight truncate">
+                                                                {dose.patientName || 'Não informado'}
+                                                            </p>
+                                                        </div>
                                                     </div>
+
+                                                    {/* Bloco Medicamento à esquerda */}
+                                                    <div className="flex flex-col items-start w-full pl-1">
+                                                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-0 leading-none">Medicamento</p>
+                                                        <h4 className="text-slate-900 dark:text-white font-black text-3xl leading-tight">
+                                                            {dose.medicationName}
+                                                        </h4>
+                                                    </div>
+
+                                                    {/* Botão Tomar Agora */}
+                                                    {/* Botão Tomar Agora */}
                                                     <button
                                                         onClick={() => handleToggleStatus(dose)}
-                                                        className="text-xs bg-red-600 text-white px-3 py-1.5 rounded-md font-medium hover:bg-red-700 transition-colors"
+                                                        className="w-full sm:w-auto self-end text-lg bg-emerald-400 hover:bg-emerald-500 text-white px-8 py-4 sm:px-10 rounded-2xl font-bold transition-all active:scale-95 shadow-lg shadow-emerald-200/50 flex items-center justify-center gap-3 min-h-[56px] group"
                                                     >
-                                                        Tomar Agora
+                                                        <Check size={28} className="group-hover:scale-110 transition-transform" />
+                                                        <span>Tomar Agora</span>
                                                     </button>
                                                 </div>
-                                            ))}
-                                        </div>
-                                    </div>
+                                            </div>
+                                        );
+                                    })}
                                 </div>
-                            </div>
+                            </Card>
                         );
                     }
                     return null;
@@ -895,18 +936,18 @@ const Home = () => {
                                                         </div>
                                                     </div>
                                                     <div className="flex-1 min-w-0">
-                                                        <h3 className={clsx("font-bold", item.isTaken ? "text-slate-500 line-through" : "text-[#0f172a]")}>
+                                                        <h3 className={clsx("font-black text-base sm:text-lg", item.isTaken ? "text-slate-500 line-through" : "text-[#0f172a]")}>
                                                             {Number(item.doseAmount)} {item.medicationType} {item.medicationName} {item.dosage}
                                                         </h3>
-                                                        <p className="text-sm text-[#64748b]">{item.patientName}</p>
+                                                        <p className="text-sm font-medium text-slate-700 dark:text-slate-300">{item.patientName}</p>
                                                         {/* Status Badge */}
                                                         <span className={clsx(
-                                                            "text-xs font-semibold px-2 py-0.5 rounded-full mt-1 inline-block",
+                                                            "text-sm font-bold px-3 py-1 rounded-full mt-1.5 inline-block",
                                                             item.isTaken
-                                                                ? "bg-green-100 text-green-700"
+                                                                ? "bg-green-100 text-green-800"
                                                                 : isLate
-                                                                    ? "bg-red-100 text-red-700"
-                                                                    : "bg-amber-100 text-amber-700"
+                                                                    ? "bg-red-100 text-red-800"
+                                                                    : "bg-amber-100 text-amber-800"
                                                         )}>
                                                             {item.isTaken ? 'Tomado' : isLate ? 'Atrasado' : 'Pendente'}
                                                         </span>

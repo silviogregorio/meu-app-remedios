@@ -92,12 +92,12 @@ export const OfferCard = ({ offer, variant = 'standard' }) => {
                     )}
                 </div>
 
-                <div className={isCarousel ? 'pr-6' : ''}>
-                    <h3 className="text-base font-bold text-slate-800 dark:text-white line-clamp-1 w-full">{title}</h3>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 w-full">{description}</p>
+                <div className={`flex flex-col items-center text-center ${isCarousel ? 'pr-6' : ''}`}>
+                    <h3 className="text-base font-bold text-slate-800 dark:text-white line-clamp-2 w-full leading-tight min-h-[2.5rem] flex items-center justify-center">{title}</h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 w-full mt-1 mb-2">{description}</p>
                 </div>
 
-                <div className={`flex items-baseline gap-2 mt-auto w-full ${isCarousel ? 'pr-6' : ''}`}>
+                <div className={`flex items-baseline justify-center gap-2 mt-auto w-full ${isCarousel ? 'pr-6' : ''}`}>
                     <span className="text-lg font-bold text-[#10b981]">{formatCurrency(price)}</span>
                     {original_price && (
                         <span className="text-xs line-through text-slate-400">{formatCurrency(original_price)}</span>

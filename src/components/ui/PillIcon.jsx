@@ -48,12 +48,15 @@ const PillIcon = ({ shape = 'round', color = '#e2e8f0', size = 32, className = '
                     <line x1="12" y1="6" x2="12" y2="18" stroke="currentColor" strokeOpacity="0.05" />
                 </svg>
             );
-        case 'liquid': // Drop / Bottle
+        case 'liquid': // Bottle
             return (
-                <svg {...commonProps} fill="none" strokeWidth="2">
-                    <path d="M12 2L12 22" stroke="transparent" /> {/* Spacer */}
-                    <path d="M14.666 8H9.334a1 1 0 0 0-.965 1.25l2.835 11.085a2 2 0 0 0 1.936 1.498h.857a-2 2 0 0 0 1.935-1.498l3.666-11.085A1 1 0 0 0 17 8z" fill={fill} stroke="#94a3b8" />
-                    <path d="M10 5h4v3h-4z" fill="#cbd5e1" stroke="#94a3b8" /> {/* Cap */}
+                <svg {...commonProps} fill="none" strokeWidth="1.5">
+                    {/* Bottle body */}
+                    <path d="M9 10a1 1 0 0 0-1 1v8a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2v-8a1 1 0 0 0-1-1H9z" fill={fill} stroke="#94a3b8" />
+                    {/* Bottle neck */}
+                    <path d="M10 7a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v3h-4V7z" fill="#cbd5e1" stroke="#94a3b8" />
+                    {/* Cap */}
+                    <rect x="9" y="3" width="6" height="3" rx="1" fill="#94a3b8" stroke="#94a3b8" />
                 </svg>
             );
         case 'triangle':

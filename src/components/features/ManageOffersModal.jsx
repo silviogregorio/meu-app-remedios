@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Tag, Plus, Trash2, X, Save, Loader2, Image as ImageIcon, ExternalLink, Eye, MousePointerClick, Pencil, Check, ChevronLeft, ChevronRight, Search, Filter } from 'lucide-react';
+import { Tag, Plus, Trash2, X, Save, Loader2, Image as ImageIcon, ExternalLink, Eye, MousePointerClick, Pencil, Check, ChevronLeft, ChevronRight, Search, Filter, Copy, BarChart3 } from 'lucide-react';
 import { OfferService } from '../../services/offerService';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
 import { supabase } from '../../lib/supabase';
 import { formatCurrency } from '../../utils/formatters';
+import { OfferCard } from './OfferCard';
 
 const ManageOffersModal = ({ sponsor, onClose }) => {
     const [offers, setOffers] = useState([]);
@@ -118,6 +119,17 @@ const ManageOffersModal = ({ sponsor, onClose }) => {
         e.preventDefault();
         setUploading(true);
         try {
+            // Validate dates
+            if (formData.expires_at) {
+                const start = new Date(formData.starts_at);
+                const end = new Date(formData.expires_at);
+                if (end <= start) {
+                    alert('Horário inválido: A data/hora de término deve ser pelo menos 1 minuto após o início.');
+                    setUploading(false);
+                    return;
+                }
+            }
+
             if (editingId) {
                 await OfferService.update(editingId, {
                     ...formData,
@@ -187,6 +199,23 @@ const ManageOffersModal = ({ sponsor, onClose }) => {
                 alert('Erro ao excluir');
             }
         }
+    };
+
+    const handleDuplicate = (offer) => {
+        setEditingId(null); // It's a new offer now
+        setFormData({
+            title: `${offer.title} (Cópia)`,
+            description: offer.description || '',
+            price: offer.price || '',
+            original_price: offer.original_price || '',
+            image_url: offer.image_url || '',
+            whatsapp_link: offer.whatsapp_link || '',
+            active: true, // Typically new copies start as active
+            starts_at: getLocalISOString(),
+            expires_at: offer.expires_at ? getLocalISOString(new Date(offer.expires_at)) : ''
+        });
+        setIsCreating(true);
+        // Better UX: scroll to top naturally or show a small toast if available
     };
 
     // Toggle Active Status directly
@@ -267,6 +296,16 @@ const ManageOffersModal = ({ sponsor, onClose }) => {
                                 {offers.reduce((acc, curr) => acc + (curr.views_count || 0), 0)}
                             </p>
                         </div>
+                        <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
+                            <p className="text-xs text-slate-400 font-bold uppercase flex items-center gap-1 text-purple-600"><BarChart3 size={12} /> CTR Médio</p>
+                            <p className="text-2xl font-bold text-purple-600">
+                                {(() => {
+                                    const totalViews = offers.reduce((acc, curr) => acc + (curr.views_count || 0), 0);
+                                    const totalClicks = offers.reduce((acc, curr) => acc + (curr.clicks_count || 0), 0);
+                                    return totalViews > 0 ? ((totalClicks / totalViews) * 100).toFixed(1) : '0.0';
+                                })()}%
+                            </p>
+                        </div>
                     </div>
 
                     {isCreating ? (
@@ -336,6 +375,42 @@ const ManageOffersModal = ({ sponsor, onClose }) => {
                                     </Button>
                                 </div>
                             </form>
+
+                            {/* Live Preview Section */}
+                            <div className="mt-8 pt-8 border-t border-slate-100">
+                                <h5 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                                    <Eye size={16} /> Pré-visualização em Tempo Real (Desktop/Mobile)
+                                </h5>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+                                    <div className="flex flex-col items-center gap-2">
+                                        <p className="text-[10px] font-bold text-slate-400 uppercase">Visual no App (Carrossel)</p>
+                                        <div className="w-full max-w-[280px] pointer-events-none transform scale-90 border-2 border-dashed border-pink-200 rounded-3xl p-2">
+                                            <OfferCard
+                                                offer={{
+                                                    ...formData,
+                                                    price: formData.price ? parseFloat(formData.price) : 0,
+                                                    original_price: formData.original_price ? parseFloat(formData.original_price) : null,
+                                                    sponsor: sponsor
+                                                }}
+                                                variant="carousel"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="hidden md:flex flex-col items-center gap-2">
+                                        <p className="text-[10px] font-bold text-slate-400 uppercase">Lista Padrão</p>
+                                        <div className="w-full max-w-[240px] pointer-events-none transform scale-90 border-2 border-dashed border-slate-200 rounded-xl p-2">
+                                            <OfferCard
+                                                offer={{
+                                                    ...formData,
+                                                    price: formData.price ? parseFloat(formData.price) : 0,
+                                                    original_price: formData.original_price ? parseFloat(formData.original_price) : null,
+                                                    sponsor: sponsor
+                                                }}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     ) : (
                         <button
@@ -408,20 +483,36 @@ const ManageOffersModal = ({ sponsor, onClose }) => {
                                         const end = offer.expires_at ? new Date(offer.expires_at) : null;
                                         const isActive = offer.active;
 
-                                        let statusBadge = <span className="bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-bold">ATIVA</span>;
+                                        const statusBadge = (
+                                            <button
+                                                onClick={() => handleToggleActive(offer)}
+                                                className={`flex items-center gap-2 px-3 py-1.5 rounded-full transition-all active:scale-95 shadow-sm
+                                                    ${isActive
+                                                        ? 'bg-green-100 text-green-700 border border-green-200 hover:bg-green-200'
+                                                        : 'bg-slate-100 text-slate-500 border border-slate-200 hover:bg-slate-200'}
+                                                `}
+                                                title={isActive ? "Clique para desativar" : "Clique para ativar"}
+                                                aria-label={isActive ? "Desativar oferta" : "Ativar oferta"}
+                                            >
+                                                <div className={`w-2 h-2 rounded-full ${isActive ? 'bg-green-500 animate-pulse' : 'bg-slate-400'}`} />
+                                                <span className="text-[10px] font-black uppercase tracking-wider">
+                                                    {isActive ? 'Ativa' : 'Inativa'}
+                                                </span>
+                                            </button>
+                                        );
 
-                                        if (!isActive) {
-                                            statusBadge = <span className="bg-slate-100 text-slate-500 px-2 py-1 rounded text-xs font-bold">INATIVA</span>;
-                                        } else if (end && end < now) {
-                                            statusBadge = <span className="bg-red-100 text-red-700 px-2 py-1 rounded text-xs font-bold">EXPIRADA</span>;
-                                        } else if (start && start > now) {
-                                            statusBadge = <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-bold text-nowrap">AGENDADA</span>;
+                                        let overlayStatus = null;
+                                        if (isActive && end && end <= now) {
+                                            overlayStatus = <span className="bg-red-600 text-white px-2 py-0.5 rounded-full text-[9px] font-black absolute -top-2 left-1/2 -translate-x-1/2 shadow-lg z-30 border-2 border-white whitespace-nowrap">EXPIRADA</span>;
+                                        } else if (isActive && start && start > now) {
+                                            overlayStatus = <span className="bg-blue-600 text-white px-2 py-0.5 rounded-full text-[9px] font-black absolute -top-2 left-1/2 -translate-x-1/2 shadow-lg z-30 border-2 border-white whitespace-nowrap">AGENDADA</span>;
                                         }
 
                                         return (
                                             <div key={offer.id} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row items-center gap-4 group hover:border-pink-200 transition-all relative">
-                                                <div className="w-16 h-16 bg-slate-100 rounded-lg flex items-center justify-center shrink-0 overflow-hidden relative">
-                                                    {offer.image_url ? <img src={offer.image_url} className="w-full h-full object-cover" /> : <ImageIcon className="text-slate-300" />}
+                                                <div className="w-16 h-16 bg-slate-100 rounded-lg flex items-center justify-center shrink-0 relative">
+                                                    {offer.image_url ? <img src={offer.image_url} className="w-full h-full object-cover rounded-lg" /> : <ImageIcon className="text-slate-300" />}
+                                                    {overlayStatus}
 
                                                     {/* Discount Badge on Card */}
                                                     {offer.original_price && offer.original_price > offer.price && (
@@ -431,7 +522,7 @@ const ManageOffersModal = ({ sponsor, onClose }) => {
                                                     )}
                                                 </div>
                                                 <div className="flex-1 w-full text-center md:text-left">
-                                                    <h4 className="font-bold text-slate-800 line-clamp-1">{offer.title}</h4>
+                                                    <h4 className="font-bold text-slate-800 line-clamp-2 leading-tight">{offer.title}</h4>
                                                     <p className="text-xs text-slate-500 line-clamp-1 mt-1">{offer.description}</p>
                                                     <div className="flex items-center justify-center md:justify-start gap-2 mt-2">
                                                         {offer.original_price > offer.price && (
@@ -453,21 +544,37 @@ const ManageOffersModal = ({ sponsor, onClose }) => {
 
                                                 <div className="flex items-center gap-4 border-l pl-4 shrink-0">
                                                     <div className="text-center">
-                                                        <span className="block text-xs font-bold text-blue-600 uppercase">Cliques</span>
-                                                        <span className="text-sm font-bold text-slate-700">{offer.clicks_count || 0}</span>
-                                                    </div>
-                                                    <div className="text-center">
-                                                        <span className="block text-xs font-bold text-purple-600 uppercase">Visualizações</span>
-                                                        <span className="text-sm font-bold text-slate-700">{offer.views_count || 0}</span>
+                                                        <span className="block text-[10px] font-bold text-purple-600 uppercase">CTR</span>
+                                                        <span className="text-sm font-black text-slate-700">
+                                                            {offer.views_count > 0 ? ((offer.clicks_count / offer.views_count) * 100).toFixed(1) : '0.0'}%
+                                                        </span>
                                                     </div>
                                                 </div>
 
                                                 <div className="flex gap-2 ml-2">
-                                                    <button onClick={() => handleEdit(offer)} className="p-2 text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-full transition-colors">
-                                                        <Pencil size={18} />
+                                                    <button
+                                                        onClick={() => handleDuplicate(offer)}
+                                                        className="p-2.5 text-slate-400 hover:text-purple-600 hover:bg-purple-50 rounded-full transition-all active:scale-90"
+                                                        title="Duplicar Oferta"
+                                                        aria-label={`Duplicar oferta ${offer.title}`}
+                                                    >
+                                                        <Copy size={20} />
                                                     </button>
-                                                    <button onClick={() => handleDelete(offer)} className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors">
-                                                        <Trash2 size={18} />
+                                                    <button
+                                                        onClick={() => handleEdit(offer)}
+                                                        className="p-2.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-all active:scale-90"
+                                                        title="Editar"
+                                                        aria-label={`Editar oferta ${offer.title}`}
+                                                    >
+                                                        <Pencil size={20} />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDelete(offer)}
+                                                        className="p-2.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-all active:scale-90"
+                                                        title="Excluir"
+                                                        aria-label={`Excluir oferta ${offer.title}`}
+                                                    >
+                                                        <Trash2 size={20} />
                                                     </button>
                                                 </div>
                                             </div>
@@ -502,7 +609,7 @@ const ManageOffersModal = ({ sponsor, onClose }) => {
 
                 </div>
             </div>
-        </div >
+        </div>
     );
 };
 
