@@ -301,7 +301,10 @@ const Landing = () => {
 
                     <div className="grid md:grid-cols-3 gap-6">
                         {/* Service Card 1 */}
-                        <div className="bg-slate-800/50 backdrop-blur-lg p-8 rounded-3xl border border-slate-700 hover:border-blue-500/50 hover:bg-slate-800 transition-all duration-300 group">
+                        <div className="bg-slate-800/50 backdrop-blur-lg p-8 rounded-3xl border border-slate-700 hover:border-blue-500/50 hover:bg-slate-800 transition-all duration-300 group relative overflow-hidden">
+                            <div className="absolute top-0 right-0 p-3">
+                                <span className="bg-blue-500/20 text-blue-300 text-xs font-bold px-3 py-1 rounded-full border border-blue-500/30">MAIS SOLICITADO</span>
+                            </div>
                             <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center mb-6 transform group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-lg shadow-blue-500/20">
                                 <Globe className="w-7 h-7 text-white" />
                             </div>
@@ -316,10 +319,7 @@ const Landing = () => {
                         </div>
 
                         {/* Service Card 2 */}
-                        <div className="bg-slate-800/50 backdrop-blur-lg p-8 rounded-3xl border border-slate-700 hover:border-purple-500/50 hover:bg-slate-800 transition-all duration-300 group relative overflow-hidden">
-                            <div className="absolute top-0 right-0 p-3">
-                                <span className="bg-purple-500/20 text-purple-300 text-xs font-bold px-3 py-1 rounded-full border border-purple-500/30">MAIS POPULAR</span>
-                            </div>
+                        <div className="bg-slate-800/50 backdrop-blur-lg p-8 rounded-3xl border border-slate-700 hover:border-purple-500/50 hover:bg-slate-800 transition-all duration-300 group">
                             <div className="w-14 h-14 bg-gradient-to-br from-purple-500 to-pink-600 rounded-2xl flex items-center justify-center mb-6 transform group-hover:scale-110 group-hover:-rotate-3 transition-all duration-300 shadow-lg shadow-purple-500/20">
                                 <Smartphone className="w-7 h-7 text-white" />
                             </div>
