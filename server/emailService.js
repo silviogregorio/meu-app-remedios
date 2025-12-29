@@ -22,6 +22,17 @@ const createTransporter = () => {
 
 
 
+// Função para sanitizar HTML (escaping)
+const escapeHtml = (unsafe) => {
+  if (unsafe === null || unsafe === undefined) return '';
+  return String(unsafe)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+};
+
 // Função para enviar email
 export const sendEmail = async ({ to, subject, text, observations, type = 'invite', senderName, senderEmail, sosData, reportData, healthLogsData, healthLogsByPatient, attachments, phone }) => {
   try {
@@ -85,16 +96,25 @@ export const sendEmail = async ({ to, subject, text, observations, type = 'invit
 
       if (type === 'sos') {
         const { sosData } = data;
+        const patientName = escapeHtml(sosData.patientName);
+        const patientPhone = escapeHtml(sosData.patientPhone);
+        const patientEmail = escapeHtml(sosData.patientEmail);
+        const bloodType = escapeHtml(sosData.bloodType);
+        const allergies = escapeHtml(sosData.allergies);
+        const conditions = escapeHtml(sosData.conditions);
+        const address = escapeHtml(sosData.address);
+        const medications = sosData.medications ? String(sosData.medications).replace(/\n/g, '<br>') : 'Nenhum medicamento registrado.'; // medications with <br> already sanitized or hardcoded labels
+
         return baseHtml(`
           <div class="header" style="background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);">
              <div style="background: rgba(255,255,255,0.2); width: 64px; height: 64px; border-radius: 50%; display: block; text-align: center; line-height: 64px; margin: 0 auto 15px auto; font-size: 32px; color: transparent; text-shadow: 0 0 0 #ffffff;">🚨</div>
              <h1>SOS | Ficha de Emergência</h1>
-             <p style="color: rgba(255,255,255,0.9); margin: 5px 0 0; font-weight: 500;">${sosData.patientName}</p>
-             ${(sosData.patientEmail || sosData.patientPhone) ? `
+             <p style="color: rgba(255,255,255,0.9); margin: 5px 0 0; font-weight: 500;">${patientName}</p>
+             ${(patientEmail || patientPhone) ? `
                 <div style="margin-top: 10px; font-size: 14px; color: rgba(255,255,255,0.9);">
-                    ${sosData.patientPhone ? `<a href="tel:${sosData.patientPhone}" style="color: #ffffff; text-decoration: none; font-weight: 600;">📞 ${sosData.patientPhone}</a>` : ''}
-                    ${sosData.patientPhone && sosData.patientEmail ? ' <span style="opacity: 0.5">|</span> ' : ''}
-                    ${sosData.patientEmail ? `<a href="mailto:${sosData.patientEmail}" style="color: #ffffff; text-decoration: none; font-weight: 600;">✉️ ${sosData.patientEmail}</a>` : ''}
+                    ${patientPhone ? `<a href="tel:${patientPhone}" style="color: #ffffff; text-decoration: none; font-weight: 600;">📞 ${patientPhone}</a>` : ''}
+                    ${patientPhone && patientEmail ? ' <span style="opacity: 0.5">|</span> ' : ''}
+                    ${patientEmail ? `<a href="mailto:${patientEmail}" style="color: #ffffff; text-decoration: none; font-weight: 600;">✉️ ${patientEmail}</a>` : ''}
                 </div>
              ` : ''}
           </div>
@@ -103,32 +123,32 @@ export const sendEmail = async ({ to, subject, text, observations, type = 'invit
             <p>Este documento contém informações vitais de saúde compartilhadas via aplicativo SiG Remédios.</p>
             
             <div class="alert-row">
-                ${sosData.bloodType ? `
+                ${bloodType ? `
                 <div class="alert-item">
                     <div class="alert-title">Tipo Sanguíneo</div>
-                    <div class="alert-val">${sosData.bloodType}</div>
+                    <div class="alert-val">${bloodType}</div>
                 </div>` : ''}
-                ${sosData.allergies ? `
+                ${allergies ? `
                 <div class="alert-item" style="background: #fef3c7; border-color: #fde68a;">
                     <div class="alert-title" style="color: #b45309;">Alergias</div>
-                    <div class="alert-val" style="color: #92400e; font-size: 14px;">${sosData.allergies}</div>
+                    <div class="alert-val" style="color: #92400e; font-size: 14px;">${allergies}</div>
                 </div>` : ''}
             </div>
 
-            ${sosData.conditions ? `
+            ${conditions ? `
             <div class="message-box" style="border-left-color: #3b82f6; background-color: #eff6ff;">
                <span class="label" style="color: #1e40af;">Condição Principal</span>
-               <div class="value" style="color: #1e3a8a;">${sosData.conditions}</div>
+               <div class="value" style="color: #1e3a8a;">${conditions}</div>
             </div>` : ''}
 
             ${sosData.locationUrl ? `
             <div style="margin-top: 20px; text-align: center; background: #fff1f2; border: 2px solid #fecaca; padding: 20px; border-radius: 12px;">
                 <div class="label" style="color: #b91c1c; margin-bottom: 10px;">📍 Localização do Paciente</div>
                 <a href="${sosData.locationUrl}" target="_blank" style="display: inline-block; background-color: #ef4444; color: #ffffff !important; padding: 12px 24px; border-radius: 10px; text-decoration: none; font-weight: 700; box-shadow: 0 4px 6px rgba(239, 68, 68, 0.2);">Ver no Google Maps</a>
-                ${sosData.address ? `
+                ${address ? `
                 <div style="margin-top: 15px; font-size: 14px; color: #1e293b; background: white; padding: 10px; border-radius: 8px; border: 1px solid #fee2e2;">
                     <strong>Endereço Estimado:</strong><br/>
-                    ${sosData.address}
+                    ${address}
                 </div>` : ''}
                 ${sosData.locationAccuracy > 300 ? `
                 <div style="margin-top: 10px; font-size: 11px; color: #991b1b; font-style: italic;">
@@ -142,19 +162,20 @@ export const sendEmail = async ({ to, subject, text, observations, type = 'invit
             <div style="margin-top: 30px;">
                 <h3 style="font-size: 16px; color: #0f172a; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 20px;">💊 Medicamentos em Uso</h3>
                 <div style="background: #f8fafc; border-radius: 12px; padding: 20px; border: 1px solid #e2e8f0; color: #334155; line-height: 1.8;">
-                    ${sosData.medications || 'Nenhum medicamento registrado.'}
+                    ${medications}
                 </div>
             </div>
 
             <div style="margin-top: 30px;">
                 <h3 style="font-size: 16px; color: #0f172a; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 20px;">📞 Contatos de Emergência</h3>
                 ${sosData.contacts && sosData.contacts.length > 0 ? sosData.contacts.map(contact => {
+          const contactName = escapeHtml(contact.name);
           const cleanPhone = String(contact.phone || '').replace(/\D/g, '');
           const formattedPhone = cleanPhone.length === 11
             ? `(${cleanPhone.slice(0, 2)}) ${cleanPhone.slice(2, 7)}-${cleanPhone.slice(7)}`
             : cleanPhone.length === 10
               ? `(${cleanPhone.slice(0, 2)}) ${cleanPhone.slice(2, 6)}-${cleanPhone.slice(6)}`
-              : contact.phone;
+              : escapeHtml(contact.phone);
 
           const whatsappUrl = cleanPhone.length >= 10
             ? `https://wa.me/55${cleanPhone}?text=${encodeURIComponent(`🚨 *ALERTA SOS - SiG Remédios*\n\nEste é um contato de emergência referente a *${sosData.patientName}*.\n\nLocalização: ${sosData.locationUrl || 'Não informada'}`)}`
@@ -162,7 +183,7 @@ export const sendEmail = async ({ to, subject, text, observations, type = 'invit
 
           return `
                     <div style="background: #1e293b; color: white; padding: 20px; border-radius: 12px; margin-bottom: 10px;">
-                        <span class="label" style="color: #94a3b8;">${contact.name}</span>
+                        <span class="label" style="color: #94a3b8;">${contactName}</span>
                         <div style="font-size: 18px; font-weight: 700; margin-top: 5px;">
                              <a href="tel:${cleanPhone}" style="color: #ffffff; text-decoration: none;">📞 ${formattedPhone}</a>
                         </div>
@@ -190,6 +211,10 @@ export const sendEmail = async ({ to, subject, text, observations, type = 'invit
 
       if (type === 'report') {
         const { reportData } = data;
+        const patientName = escapeHtml(reportData.patientName);
+        const startDate = escapeHtml(reportData.startDate);
+        const endDate = escapeHtml(reportData.endDate);
+        const observations = escapeHtml(data.observations);
         // Fallback for stats if missing
         const stats = reportData.summary || { total: 0, taken: 0, pending: 0, adherenceRate: 0 };
 
@@ -197,9 +222,9 @@ export const sendEmail = async ({ to, subject, text, observations, type = 'invit
           <div class="header" style="background: linear-gradient(135deg, #0f766e 0%, #0d9488 100%);">
              <div style="background: rgba(255,255,255,0.2); width: 64px; height: 64px; border-radius: 50%; display: block; text-align: center; line-height: 64px; margin: 0 auto 15px auto; font-size: 32px; color: transparent; text-shadow: 0 0 0 #ffffff;">📊</div>
              <h1>Relatório de Saúde</h1>
-             <p style="color: rgba(255,255,255,0.9); margin: 5px 0 0; font-weight: 500;">Período: ${reportData.startDate} a ${reportData.endDate}</p>
+             <p style="color: rgba(255,255,255,0.9); margin: 5px 0 0; font-weight: 500;">Período: ${startDate} a ${endDate}</p>
              <div style="margin-top: 10px; font-size: 14px; color: rgba(255,255,255,0.9); background: rgba(0,0,0,0.1); display: inline-block; padding: 4px 12px; border-radius: 20px;">
-                ${reportData.patientName}
+                ${patientName}
              </div>
           </div>
           <div class="content">
@@ -208,7 +233,7 @@ export const sendEmail = async ({ to, subject, text, observations, type = 'invit
             
             <div style="display: flex; gap: 8px; margin: 25px 0; flex-wrap: wrap;">
                 <!-- Card Total -->
-                <div style="flex: 1; min-width: 80px; background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 12px; padding: 15px; text-align: center; box-shadow: 0 2px 4px rgba(59, 130, 246, 0.05);">
+                <div style="flex: 1; min-width: 80px; background: #f0fdf4; border: 1px solid #bae6fd; border-radius: 12px; padding: 15px; text-align: center; box-shadow: 0 2px 4px rgba(59, 130, 246, 0.05);">
                     <div style="color: #0284c7; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">TOTAL</div>
                     <div style="color: #0369a1; font-size: 24px; font-weight: 800; margin-top: 5px;">${stats.total}</div>
                 </div>
@@ -235,10 +260,10 @@ export const sendEmail = async ({ to, subject, text, observations, type = 'invit
                 </div>
             </div>
 
-            ${data.observations ? `
+            ${observations ? `
             <div class="message-box" style="border-left-color: #0d9488; background: #f0fdfa;">
                 <span class="label" style="color: #0f766e;">Observações</span>
-                <div class="value" style="color: #134e4a;">${data.observations}</div>
+                <div class="value" style="color: #134e4a;">${observations}</div>
             </div>` : ''}
 
             <div class="cta-container">
@@ -253,9 +278,12 @@ export const sendEmail = async ({ to, subject, text, observations, type = 'invit
       }
 
       if (type === 'contact') {
-        const { senderName, senderEmail, message: rawMessage } = data;
-        // Sanitizar mensagem: remove emojis e caracteres especiais complexos
-        const message = String(rawMessage || '').replace(/([\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF])/g, '');
+        const { senderName: rawSenderName, senderEmail: rawSenderEmail, message: rawMessage } = data;
+        const senderName = escapeHtml(rawSenderName);
+        const senderEmail = escapeHtml(rawSenderEmail);
+        const phone = escapeHtml(data.phone);
+        // Sanitizar mensagem: remove emojis e caracteres especiais complexos, então faz o escaping
+        const message = escapeHtml(String(rawMessage || '').replace(/([\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF])/g, ''));
 
         return baseHtml(`
           <div class="header" style="background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);">
@@ -269,10 +297,10 @@ export const sendEmail = async ({ to, subject, text, observations, type = 'invit
               <span class="label">Remetente</span>
               <div class="value" style="margin-bottom: 12px;">
                 <strong>${senderName}</strong> <span style="font-size: 14px; color: #64748b;">(${senderEmail})</span>
-                ${data.phone ? `
+                ${phone ? `
                 <div style="margin-top: 8px;">
-                    <a href="https://wa.me/55${data.phone.replace(/\D/g, '')}?text=${encodeURIComponent(`Olá! Recebemos seu contato pelo *SiG Remédios*.\n\nVocê escreveu:\n_"${message}"_\n\n*Ficamos felizes com seu contato!* Estou por aqui para ajudar. Podemos conversar?\n\n*Acesse:* https://sigremedios.vercel.app`)}" target="_blank" style="display: inline-flex; align-items: center; gap: 5px; color: #166534; background: #dcfce7; padding: 5px 10px; border-radius: 20px; text-decoration: none; font-weight: 600; font-size: 14px; border: 1px solid #bbf7d0;">
-                        WhatsApp: ${data.phone}
+                    <a href="https://wa.me/55${phone.replace(/\D/g, '')}?text=${encodeURIComponent(`Olá! Recebemos seu contato pelo *SiG Remédios*.\n\nVocê escreveu:\n_"${message}"_\n\n*Ficamos felizes com seu contato!* Estou por aqui para ajudar. Podemos conversar?\n\n*Acesse:* https://sigremedios.vercel.app`)}" target="_blank" style="display: inline-flex; align-items: center; gap: 5px; color: #166534; background: #dcfce7; padding: 5px 10px; border-radius: 20px; text-decoration: none; font-weight: 600; font-size: 14px; border: 1px solid #bbf7d0;">
+                        WhatsApp: ${phone}
                     </a>
                 </div>
                 ` : ''}
@@ -290,6 +318,7 @@ export const sendEmail = async ({ to, subject, text, observations, type = 'invit
       }
 
       if (type === 'health-diary') {
+        const observations = escapeHtml(data.observations);
         return baseHtml(`
           <div class="header" style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);">
             <div style="background: rgba(255,255,255,0.2); width: 64px; height: 64px; border-radius: 50%; display: block; text-align: center; line-height: 64px; margin: 0 auto 15px auto; font-size: 32px; color: transparent; text-shadow: 0 0 0 #ffffff;">📋</div>
@@ -300,20 +329,22 @@ export const sendEmail = async ({ to, subject, text, observations, type = 'invit
             <div class="welcome-text" style="color: #7c3aed;">Olá!</div>
             <p>Segue em anexo o <strong>Diário de Saúde</strong> completo em formato PDF com todos os registros de sinais vitais.</p>
             
-            ${data.observations ? `
+            ${observations ? `
             <div class="message-box" style="border-left-color: #8b5cf6; background: #faf5ff;">
               <span class="label" style="color: #7c3aed;">📝 Observações</span>
-              <div class="value" style="color: #6b21a8;">${data.observations}</div>
+              <div class="value" style="color: #6b21a8;">${observations}</div>
             </div>` : ''}
 
               
-              ${data.healthLogsByPatient && data.healthLogsByPatient.length > 0 ? data.healthLogsByPatient.map((patientGroup, groupIndex) => `
+              ${data.healthLogsByPatient && data.healthLogsByPatient.length > 0 ? data.healthLogsByPatient.map((patientGroup, groupIndex) => {
+          const patientName = escapeHtml(patientGroup.patientName);
+          return `
                 ${groupIndex > 0 ? '<div style="margin-top: 30px;"></div>' : ''}
                 
                 <!-- Cabeçalho do Paciente -->
                 <div style="background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border-radius: 12px; padding: 16px; margin-bottom: 15px; border-left: 4px solid #8b5cf6;">
                   <div style="font-size: 18px; font-weight: 700; color: #1e293b; margin-bottom: 4px;">
-                    👤 ${patientGroup.patientName}
+                    👤 ${patientName}
                   </div>
                   <div style="font-size: 13px; color: #64748b;">
                     ${patientGroup.count} registro(s)
@@ -332,18 +363,25 @@ export const sendEmail = async ({ to, subject, text, observations, type = 'invit
                       </tr>
                     </thead>
                     <tbody>
-                      ${patientGroup.logs.map((log, index) => `
+                      ${patientGroup.logs.map((log, index) => {
+            const logDate = escapeHtml(log.date);
+            const logCategory = escapeHtml(log.category);
+            const logValue = escapeHtml(log.value);
+            const logNotes = escapeHtml(log.notes);
+            return `
                       <tr style="background: ${index % 2 === 0 ? '#ffffff' : '#f8fafc'}; border-bottom: 1px solid #f1f5f9;">
-                        <td style="padding: 12px 16px; color: #475569; white-space: nowrap;">${log.date}</td>
-                        <td style="padding: 12px 16px; color: #1e293b; font-weight: 600;">${log.category}</td>
-                        <td style="padding: 12px 16px; text-align: center; color: #7c3aed; font-weight: 700;">${log.value}</td>
-                        <td style="padding: 12px 16px; color: #64748b; font-size: 13px;">${log.notes}</td>
+                        <td style="padding: 12px 16px; color: #475569; white-space: nowrap;">${logDate}</td>
+                        <td style="padding: 12px 16px; color: #1e293b; font-weight: 600;">${logCategory}</td>
+                        <td style="padding: 12px 16px; text-align: center; color: #7c3aed; font-weight: 700;">${logValue}</td>
+                        <td style="padding: 12px 16px; color: #64748b; font-size: 13px;">${logNotes}</td>
                       </tr>
-                      `).join('')}
+                      `;
+          }).join('')}
                     </tbody>
                   </table>
                 </div>
-              `).join('') : `
+              `;
+        }).join('') : `
                 <div style="overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: 12px; border: 1px solid #e2e8f0; background: #ffffff;">
                   <table style="width: 100%; min-width: 600px; border-collapse: collapse; font-size: 14px;">
                     <tbody>
@@ -383,30 +421,35 @@ export const sendEmail = async ({ to, subject, text, observations, type = 'invit
 
       if (type === 'low_stock') {
         const { lowStockData } = data;
+        const medicationName = escapeHtml(lowStockData?.medicationName);
+        const recipientName = escapeHtml(lowStockData?.recipientName || 'Usuário');
+        const patientName = escapeHtml(lowStockData?.patientName);
+        const unit = escapeHtml(lowStockData?.unit || 'unid.');
+        const dosage = escapeHtml(lowStockData?.dosage);
         const threshold = lowStockData?.threshold || 4;
 
         return baseHtml(`
           <div class="header" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);">
              <div style="background: rgba(255,255,255,0.2); width: 64px; height: 64px; border-radius: 50%; display: block; text-align: center; line-height: 64px; margin: 0 auto 15px auto; font-size: 32px; color: transparent; text-shadow: 0 0 0 #ffffff;">⚠️</div>
              <h1>Alerta de Estoque Baixo</h1>
-             <p style="color: rgba(255,255,255,0.9); margin: 5px 0 0; font-weight: 500;">${lowStockData?.medicationName}</p>
+             <p style="color: rgba(255,255,255,0.9); margin: 5px 0 0; font-weight: 500;">${medicationName}</p>
           </div>
           <div class="content">
-            <div class="welcome-text" style="color: #d97706;">Olá, ${lowStockData?.recipientName || 'Usuário'}!</div>
-            <p>O estoque do medicamento <strong>${lowStockData?.medicationName}</strong> está baixo e precisa ser reposto em breve.</p>
+            <div class="welcome-text" style="color: #d97706;">Olá, ${recipientName}!</div>
+            <p>O estoque do medicamento <strong>${medicationName}</strong> está baixo e precisa ser reposto em breve.</p>
             
             <!-- Cards de Informação -->
             <div style="display: flex; gap: 10px; margin: 25px 0; flex-wrap: wrap;">
                 <!-- Paciente -->
                 <div style="flex: 1; min-width: 120px; background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 12px; padding: 15px; text-align: center;">
                     <div style="color: #0284c7; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">PACIENTE</div>
-                    <div style="color: #0369a1; font-size: 16px; font-weight: 700; margin-top: 5px;">${lowStockData?.patientName}</div>
+                    <div style="color: #0369a1; font-size: 16px; font-weight: 700; margin-top: 5px;">${patientName}</div>
                 </div>
                 
                 <!-- Estoque Atual -->
                 <div style="flex: 1; min-width: 120px; background: #fef3c7; border: 1px solid #fde68a; border-radius: 12px; padding: 15px; text-align: center;">
                     <div style="color: #d97706; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">ESTOQUE ATUAL</div>
-                    <div style="color: #92400e; font-size: 20px; font-weight: 800; margin-top: 5px;">${lowStockData?.currentStock} ${lowStockData?.unit || 'unid.'}</div>
+                    <div style="color: #92400e; font-size: 20px; font-weight: 800; margin-top: 5px;">${lowStockData?.currentStock} ${unit}</div>
                 </div>
                 
                 <!-- Duração -->
@@ -420,10 +463,10 @@ export const sendEmail = async ({ to, subject, text, observations, type = 'invit
             <div class="message-box" style="border-left-color: #f59e0b; background: #fffbeb;">
                <span class="label" style="color: #d97706;">💊 INFORMAÇÕES DO MEDICAMENTO</span>
                <div style="margin-top: 10px; color: #78350f;">
-                  <div style="margin-bottom: 8px;"><strong>Nome:</strong> ${lowStockData?.medicationName}</div>
-                  ${lowStockData?.dosage ? `<div style="margin-bottom: 8px;"><strong>Dosagem:</strong> ${lowStockData.dosage}</div>` : ''}
-                  <div style="margin-bottom: 8px;"><strong>Uso diário:</strong> ${lowStockData?.dailyUsage || 'N/A'} ${lowStockData?.unit || 'unidades'}/dia</div>
-                  <div><strong>Quantidade sugerida:</strong> ${lowStockData?.suggestedQuantity || 'N/A'} ${lowStockData?.unit || 'unidades'} (30 dias)</div>
+                  <div style="margin-bottom: 8px;"><strong>Nome:</strong> ${medicationName}</div>
+                  ${dosage ? `<div style="margin-bottom: 8px;"><strong>Dosagem:</strong> ${dosage}</div>` : ''}
+                  <div style="margin-bottom: 8px;"><strong>Uso diário:</strong> ${lowStockData?.dailyUsage || 'N/A'} ${unit}/dia</div>
+                  <div><strong>Quantidade sugerida:</strong> ${lowStockData?.suggestedQuantity || 'N/A'} ${unit} (30 dias)</div>
                </div>
             </div>
 
@@ -433,7 +476,7 @@ export const sendEmail = async ({ to, subject, text, observations, type = 'invit
                     ⏰ ATENÇÃO: Estoque acaba em ${lowStockData?.daysRemaining} dia${lowStockData?.daysRemaining !== 1 ? 's' : ''}!
                 </div>
                 <div style="color: #9a3412; font-size: 13px; line-height: 1.6;">
-                    Baseado no uso diário de <strong>${lowStockData?.dailyUsage || '1.0'}</strong> ${lowStockData?.unit || 'unidades'}, recomendamos fazer a reposição o quanto antes.
+                    Baseado no uso diário de <strong>${lowStockData?.dailyUsage || '1.0'}</strong> ${unit}, recomendamos fazer a reposição o quanto antes.
                 </div>
             </div>
 
@@ -466,27 +509,31 @@ export const sendEmail = async ({ to, subject, text, observations, type = 'invit
 
       if (type === 'weekly_summary') {
         const { weeklyData } = data;
+        const caregiverName = escapeHtml(weeklyData.caregiverName);
+        const period = escapeHtml(weeklyData.period);
 
         return baseHtml(`
           <div class="header" style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);">
              <div style="background: rgba(255,255,255,0.2); width: 64px; height: 64px; border-radius: 50%; display: block; text-align: center; line-height: 64px; margin: 0 auto 15px auto; font-size: 32px; color: transparent; text-shadow: 0 0 0 #ffffff;">📊</div>
              <h1>Resumo Semanal</h1>
-             <p style="color: rgba(255,255,255,0.9); margin: 5px 0 0; font-weight: 500;">${weeklyData.period}</p>
+             <p style="color: rgba(255,255,255,0.9); margin: 5px 0 0; font-weight: 500;">${period}</p>
           </div>
           <div class="content">
-            <div class="welcome-text" style="color: #8b5cf6;">Olá, ${weeklyData.caregiverName}!</div>
+            <div class="welcome-text" style="color: #8b5cf6;">Olá, ${caregiverName}!</div>
             <p>Segue o resumo de adesão aos medicamentos da semana passada para os pacientes que você acompanha.</p>
             
-            ${weeklyData.patients.map((patient, index) => `
+            ${weeklyData.patients.map((patient, index) => {
+          const patientName = escapeHtml(patient.patientName);
+          return `
               <!-- Card do Paciente -->
               <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 24px; margin: ${index > 0 ? '24' : '16'}px 0; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
                 <!-- Header do Paciente -->
                 <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 2px solid #f1f5f9;">
                   <div style="width: 48px; height: 48px; border-radius: 50%; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 700; color: white;">
-                    ${patient.patientName.charAt(0).toUpperCase()}
+                    ${patientName.charAt(0).toUpperCase()}
                   </div>
                   <div>
-                    <div style="font-size: 18px; font-weight: 700; color: #1e293b;">${patient.patientName}</div>
+                    <div style="font-size: 18px; font-weight: 700; color: #1e293b;">${patientName}</div>
                     <div style="font-size: 13px; color: #64748b;">Paciente</div>
                   </div>
                 </div>
@@ -528,7 +575,8 @@ export const sendEmail = async ({ to, subject, text, observations, type = 'invit
                   </div>
                 </div>
               </div>
-            `).join('')}
+            `;
+        }).join('')}
             
             <!-- Resumo Geral -->
             ${weeklyData.patients.length > 1 ? `
@@ -555,6 +603,7 @@ export const sendEmail = async ({ to, subject, text, observations, type = 'invit
       }
 
       // Default: Sharing/Invite
+      const observations = escapeHtml(data.observations);
       return baseHtml(`
         <div class="header">
           <h1>SiG Remédios 💊</h1>
@@ -563,10 +612,10 @@ export const sendEmail = async ({ to, subject, text, observations, type = 'invit
           <div class="welcome-text">Olá!</div>
           <p>${data.text ? String(data.text).replace(/\n/g, '<br>') : ''}</p>
           
-          ${data.observations ? `
+          ${observations ? `
           <div class="message-box">
             <strong>📝 Informação Adicional:</strong><br/>
-            ${data.observations}
+            ${observations}
           </div>
           ` : ''}
 
@@ -596,7 +645,7 @@ export const sendEmail = async ({ to, subject, text, observations, type = 'invit
       to: to,
       subject: subject,
       html: htmlTemplate,
-      text: `${text}\n\n${observations || ''}\n\nAcesse: ${frontendUrl}`,
+      text: `${text} \n\n${observations || ''} \n\nAcesse: ${frontendUrl}`,
       attachments: attachments
     };
 

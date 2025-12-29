@@ -24,18 +24,20 @@ const Login = () => {
 
     const handleBiometricLogin = async () => {
         setLoading(true);
+        // Simulação de acesso rápido baseada no último email utilizado
         setTimeout(() => {
-            if (window.confirm('Verificar Biometria?')) {
+            if (window.confirm('Usar Acesso Rápido? (Modo de conveniência)')) {
                 const savedEmail = localStorage.getItem('sig_last_email');
                 if (savedEmail) {
                     setEmail(savedEmail);
-                    showToast('Biometria verificada!', 'success');
+                    showToast('Credenciais preenchidas!', 'success');
+                    showToast('Por favor, confirme sua senha para entrar.', 'info');
                 } else {
-                    setError('Por favor, entre com senha a primeira vez para vincular sua biometria.');
+                    setError('Por favor, entre com email e senha a primeira vez.');
                 }
             }
             setLoading(false);
-        }, 1000);
+        }, 800);
     };
 
     const handleGoogleLogin = async () => {
@@ -144,20 +146,25 @@ const Login = () => {
                     {hasBiometrics && (
                         <div className="relative my-4">
                             <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-slate-200 dark:border-slate-800"></span></div>
-                            <div className="relative flex justify-center text-xs uppercase"><span className="bg-white dark:bg-slate-900 px-2 text-slate-500 italic">Ou use o modo mais fácil</span></div>
+                            <div className="relative flex justify-center text-xs uppercase"><span className="bg-white dark:bg-slate-900 px-2 text-slate-400 italic">Conveniência</span></div>
                         </div>
                     )}
 
                     {hasBiometrics && (
-                        <button
-                            type="button"
-                            onClick={handleBiometricLogin}
-                            disabled={loading}
-                            className="w-full py-4 bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-500 rounded-2xl flex flex-col items-center justify-center gap-2 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-all group"
-                        >
-                            <Fingerprint size={48} className="text-blue-600 group-hover:scale-110 transition-transform" />
-                            <span className="text-blue-700 dark:text-blue-400 font-black text-xl">Entrar com Digital / Rosto</span>
-                        </button>
+                        <div className="space-y-2">
+                            <button
+                                type="button"
+                                onClick={handleBiometricLogin}
+                                disabled={loading}
+                                className="w-full py-3 bg-slate-50 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-xl flex items-center justify-center gap-2 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all group"
+                            >
+                                <Fingerprint size={24} className="text-slate-400 group-hover:text-[#10b981] transition-colors" />
+                                <span className="text-slate-600 dark:text-slate-300 font-semibold">Usar Acesso Rápido</span>
+                            </button>
+                            <p className="text-[10px] text-center text-slate-400">
+                                Nota: Esta é uma facilidade de preenchimento baseada no seu último acesso neste dispositivo.
+                            </p>
+                        </div>
                     )}
                 </form>
 
