@@ -492,7 +492,13 @@ const Header = forwardRef(({ onMenuClick, isPinned }, ref) => {
                                         <LogOut size={16} />
                                         Sair
                                     </button>
+
+                                    {/* Versão do app - discreto */}
+                                    <div className="px-4 py-2 text-[10px] text-gray-400 dark:text-slate-600 text-center border-t border-gray-100 dark:border-slate-800">
+                                        v{typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '?'}
+                                    </div>
                                 </div>
+
                             </>
                         )}
                     </div>
