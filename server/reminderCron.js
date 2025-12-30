@@ -147,6 +147,66 @@ export const checkAndSendReminders = async () => {
                     console.error(`❌ [REMINDER] Failed to send to user ${userId}:`, pushErr.message);
                 }
             }
+
+            // 6. Caregiver Escalation (New)
+            // If the delay is significant (e.g., 40 minutes), notify caregivers too
+            const escalationDelayThreshold = 40;
+            const currentDelay = (now.getTime() - targetDateObj.getTime()) / (60 * 1000) + delay;
+
+            // Note: targetTime is already shifted by 'delay'. 
+            // We need to check if we are 40 minutes past the ORIGINAL scheduled time.
+            // Actually, we can just run a SECOND scan in the same cron for the -40min mark.
+        }
+
+        // --- SECOND SCAN: Caregiver Escalation (40 min delay) ---
+        const escalationDelay = 40;
+        const escTargetMs = now.getTime() - (escalationDelay * 60 * 1000);
+        const escTargetDateObj = new Date(escTargetMs);
+        const escParts = timeFormatter.formatToParts(escTargetDateObj);
+        const escTargetTime = `${escParts.find(p => p.type === 'hour').value}:${escParts.find(p => p.type === 'minute').value}`;
+        const escTargetDate = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(escTargetDateObj);
+
+        console.log(`📢 [ESCALATION] Scanning for doses late by ${escalationDelay}m (Scheduled at ${escTargetTime})...`);
+
+        const { data: lateDoses } = await supabase.rpc('get_missed_doses', {
+            p_target_time: escTargetTime,
+            p_target_date: escTargetDate
+        });
+
+        if (lateDoses && lateDoses.length > 0) {
+            for (const dose of lateDoses) {
+                // Get caregivers for this patient
+                const { data: shares } = await supabase
+                    .from('patient_shares')
+                    .select('shared_with_email')
+                    .eq('patient_id', dose.patient_id)
+                    .eq('status', 'accepted');
+
+                if (shares && shares.length > 0) {
+                    const caregiverEmails = shares.map(s => s.shared_with_email);
+
+                    // Get tokens for these caregivers via profiles
+                    const { data: caregiverTokens } = await supabase
+                        .from('fcm_tokens')
+                        .select('token')
+                        .in('user_id', (
+                            await supabase.from('profiles').select('id').in('email', caregiverEmails)
+                        ).data?.map(p => p.id) || []);
+
+                    if (caregiverTokens && caregiverTokens.length > 0) {
+                        const tokenList = caregiverTokens.map(t => t.token);
+                        const title = `⚠️ Alerta de Atraso: ${dose.patient_name}`;
+                        const body = `O paciente ${dose.patient_name} ainda não tomou o remédio ${dose.medicine_name} agendado para as ${escTargetTime}. Verifique o que houve.`;
+
+                        await sendPushNotification(tokenList, title, body, {
+                            type: 'caregiver_alert',
+                            patientId: dose.patient_id,
+                            medicationName: dose.medicine_name
+                        });
+                        console.log(`📡 [ESCALATION] Alert sent to ${caregiverTokens.length} caregivers for ${dose.patient_name}`);
+                    }
+                }
+            }
         }
 
     } catch (err) {

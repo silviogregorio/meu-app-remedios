@@ -1,6 +1,7 @@
-import { useRef, useState, forwardRef, useMemo } from 'react';
+import { useRef, useState, forwardRef, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Menu, Bell, Sun, Moon, LogOut, User as UserIcon, Heart, Search, Siren } from 'lucide-react';
+import { Menu, Bell, Sun, Moon, LogOut, User as UserIcon, Heart, Search, Siren, UserCheck, X } from 'lucide-react';
+import { supabase } from '../../lib/supabase';
 import { useApp } from '../../context/AppContext';
 import NotificationsModal from '../ui/NotificationsModal';
 import SOSCard from '../features/SOSCard';
@@ -29,6 +30,43 @@ const Header = forwardRef(({ onMenuClick, isPinned }, ref) => {
     const [showPanicConfirm, setShowPanicConfirm] = useState(false);
 
     const targetPatient = patients && patients.length > 0 ? patients[0] : null;
+    const [sosFeedback, setSosFeedback] = useState(null);
+
+    // Listen for SOS Acknowledgments (Patient Side)
+    useEffect(() => {
+        if (!user) return;
+
+        const channel = supabase.channel('sos-feedback')
+            .on('postgres_changes', {
+                event: 'UPDATE',
+                schema: 'public',
+                table: 'sos_alerts',
+                filter: `triggered_by=eq.${user.id}`
+            }, async (payload) => {
+                const alert = payload.new;
+                if (alert.status === 'acknowledged' && alert.acknowledged_by) {
+                    // Fetch caregiver name
+                    const { data: profile } = await supabase
+                        .from('profiles')
+                        .select('full_name')
+                        .eq('id', alert.acknowledged_by)
+                        .single();
+
+                    if (profile) {
+                        setSosFeedback(`${profile.full_name} já viu seu alerta e está a caminho!`);
+                        // Auto-hide after 10 seconds or when alert is resolved
+                        setTimeout(() => setSosFeedback(null), 10000);
+                    }
+                } else if (alert.status === 'resolved') {
+                    setSosFeedback(null);
+                }
+            })
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [user]);
 
     // ... (keep handlePanicClick and confirmedPanicAlert) ...
 
@@ -272,6 +310,15 @@ const Header = forwardRef(({ onMenuClick, isPinned }, ref) => {
             className={`fixed top-0 left-0 right-0 bg-white dark:bg-slate-900 border-b border-[#e2e8f0] dark:border-slate-800 z-50 px-4 flex items-center justify-between shadow-sm transition-all duration-300 ${isPinned ? 'md:left-64' : ''}`}
             style={{ minHeight: '64px' }}
         >
+            {/* SOS Feedback Banner (Patient Side) */}
+            {sosFeedback && (
+                <div className="absolute top-[64px] left-0 right-0 bg-emerald-600 text-white py-3 px-4 flex items-center justify-center gap-3 animate-slide-down z-40 shadow-lg">
+                    <UserCheck className="animate-bounce" />
+                    <span className="font-bold text-sm sm:text-base">{sosFeedback}</span>
+                    <button onClick={() => setSosFeedback(null)} className="ml-auto bg-white/20 p-1 rounded-full"><X size={16} /></button>
+                </div>
+            )}
+
             {/* 1. Menu Toggle (Sempre Visível) */}
             <button
                 id="header-menu-toggle"

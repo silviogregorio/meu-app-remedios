@@ -3,7 +3,9 @@ import { useNavigate, useLocation, Outlet } from 'react-router-dom'; // updated 
 import Header from './Header';
 import Sidebar from '../ui/Sidebar';
 import Shimmer from '../ui/Shimmer';
-import { ChevronLeft } from 'lucide-react'; // Added icon
+import { ChevronLeft, AlertCircle } from 'lucide-react';
+import SOSMonitor from '../features/SOSMonitor';
+import SOSPatientFeedback from '../features/SOSPatientFeedback';
 
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
@@ -69,47 +71,27 @@ const Layout = () => {
 
         // PLAY ALERT SOUND for SOS notifications
         if (data.type === 'sos') {
-            try {
-                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-
-                // Check if context is suspended (browser policy) and try to resume
-                if (audioContext.state === 'suspended') {
-                    audioContext.resume();
-                }
-
-                const oscillator = audioContext.createOscillator();
-                const gainNode = audioContext.createGain();
-
-                oscillator.connect(gainNode);
-                gainNode.connect(audioContext.destination);
-
-                oscillator.frequency.value = 800; // Hz - Alert tone
-                oscillator.type = 'sine';
-                gainNode.gain.value = 1.0; // Max volume
-
-                oscillator.start();
-
-                // Play SOS pattern
-                setTimeout(() => { oscillator.frequency.value = 0; }, 200);
-                setTimeout(() => { oscillator.frequency.value = 800; }, 300);
-                setTimeout(() => { oscillator.frequency.value = 0; }, 500);
-                setTimeout(() => { oscillator.frequency.value = 800; }, 600);
-                setTimeout(() => { oscillator.frequency.value = 0; }, 800);
-                setTimeout(() => { oscillator.stop(); audioContext.close(); }, 1200);
-
-                console.log('🔊 SOS Alert sound played');
-            } catch (e) {
-                console.warn('Audio creation failed:', e);
-            }
+            console.log('📢 Visual SOS feedback only (audio handled by SOSMonitor)');
         }
 
         // Show in-app toast
         if (data.type === 'sos') {
-            const pName = data.patientName || 'Alguém';
+            const pName = data.patientName || 'Paciente';
             const pPhone = data.formattedPhone || '(sem telefone)';
 
             showToastRef.current(
-                `O paciente ${pName}, telefone ${pPhone} está precisando de ajuda URGENTE! Veja detalhes na notificação do celular ou pelo aplicativo.`,
+                <div className="flex flex-col gap-1">
+                    <div className="flex items-center gap-2 text-red-600 font-bold uppercase text-xs tracking-wider">
+                        <AlertCircle size={14} /> Emergência SOS
+                    </div>
+                    <div>
+                        <span className="font-black text-slate-900">{pName}</span>
+                        <span className="text-slate-600"> ({pPhone})</span>
+                    </div>
+                    <div className="text-xs text-slate-500 font-semibold">
+                        Está precisando de ajuda URGENTE!
+                    </div>
+                </div>,
                 'error',
                 0 // Persistent - user must close manually
             );
@@ -196,7 +178,7 @@ const Layout = () => {
                             ) : (
                                 <button
                                     onClick={() => navigate(-1)}
-                                    className="flex items-center gap-2 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 transition-colors py-2 px-1 group"
+                                    className="flex items-center gap-2 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 transition-colors py-2 px-1 group shimmer-premium"
                                 >
                                     <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center group-hover:bg-slate-200 dark:group-hover:bg-slate-700 transition-colors ring-1 ring-slate-200 dark:ring-slate-700">
                                         <ChevronLeft size={20} />
@@ -219,6 +201,8 @@ const Layout = () => {
                     onTogglePin={togglePin}
                 />
             )}
+            <SOSMonitor />
+            <SOSPatientFeedback />
         </div>
     );
 };

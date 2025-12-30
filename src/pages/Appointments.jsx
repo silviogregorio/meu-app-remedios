@@ -63,6 +63,8 @@ const Appointments = () => {
         doctorName: '',
         specialtyId: '',
         specialtyText: '',
+        datePart: '', // Added for dd/mm/yyyy localization
+        timePart: '', // Added for hh:mm localization
         appointmentDate: '',
         locationName: '',
         address: '',
@@ -109,6 +111,8 @@ const Appointments = () => {
                 doctorName: appointment.doctorName || '',
                 specialtyId: appointment.specialtyId || '',
                 specialtyText: appointment.specialtyText || '',
+                datePart: dateStr ? dateStr.split('T')[0] : '',
+                timePart: dateStr ? dateStr.split('T')[1] : '',
                 appointmentDate: dateStr,
                 locationName: appointment.locationName || '',
                 address: appointment.address || '',
@@ -125,6 +129,8 @@ const Appointments = () => {
                 doctorName: '',
                 specialtyId: '',
                 specialtyText: '',
+                datePart: selectedDay ? format(selectedDay, 'yyyy-MM-dd') : '',
+                timePart: '09:00',
                 appointmentDate: '',
                 locationName: '',
                 address: '',
@@ -145,10 +151,16 @@ const Appointments = () => {
         e.preventDefault();
         setIsLoading(true);
         try {
+            // Recombine date and time
+            const finalData = { ...formData };
+            if (formData.datePart && formData.timePart) {
+                finalData.appointmentDate = `${formData.datePart}T${formData.timePart}`;
+            }
+
             if (editingAppointment) {
-                await updateAppointment(editingAppointment.id, formData);
+                await updateAppointment(editingAppointment.id, finalData);
             } else {
-                await addAppointment(formData);
+                await addAppointment(finalData);
             }
             setIsModalOpen(false);
         } catch (error) {
@@ -427,7 +439,7 @@ const Appointments = () => {
                             ))}
                         </div>
 
-                        <div className="grid grid-cols-7 gap-1">
+                        <div className="grid grid-cols-7 gap-2">
                             {calendarDays.map((day, idx) => {
                                 const dayApps = getAppointmentsForDay(day);
                                 const isSelected = isSameDay(day, selectedDay);
@@ -469,20 +481,20 @@ const Appointments = () => {
                                         if (isSelected) {
                                             containerStyles = {
                                                 background: `linear-gradient(#059669, #059669) padding-box, linear-gradient(135deg, ${gradientColors}) border-box`,
-                                                border: '3px solid transparent'
+                                                border: '4px solid transparent'
                                             };
                                             dynamicClasses = "text-white shadow-xl shadow-emerald-200/50 dark:shadow-emerald-900/40 scale-105 z-10";
                                         } else {
                                             containerStyles = {
                                                 background: `linear-gradient(var(--bg-day), var(--bg-day)) padding-box, linear-gradient(135deg, ${gradientColors}) border-box`,
-                                                border: '3px solid transparent'
+                                                border: '4px solid transparent'
                                             };
                                             dynamicClasses = "bg-white dark:bg-slate-900 [--bg-day:theme(colors.white)] dark:[--bg-day:theme(colors.slate.900)] text-slate-700 dark:text-slate-300 hover:scale-105";
                                         }
                                     } else {
                                         // SINGLE STATUS BORDER
                                         if (isSelected) {
-                                            dynamicClasses = "bg-emerald-600 text-white shadow-xl shadow-emerald-200/50 dark:shadow-emerald-900/40 scale-105 z-10 border-[3px]";
+                                            dynamicClasses = "bg-emerald-600 text-white shadow-xl shadow-emerald-200/50 dark:shadow-emerald-900/40 scale-105 z-10 border-[4px]";
                                             containerStyles = { borderColor: statusHexColors[primaryStatus] };
                                         } else {
                                             const ringColors = {
@@ -490,7 +502,7 @@ const Appointments = () => {
                                                 completed: "ring-emerald-500/20 border-emerald-200/50 dark:border-emerald-800/30",
                                                 cancelled: "ring-rose-500/20 border-rose-200/50 dark:border-rose-800/30"
                                             };
-                                            dynamicClasses += ` ring-[3px] ${ringColors[primaryStatus] || ringColors.scheduled} ring-offset-2 ring-offset-emerald-50/20 shadow-sm`;
+                                            dynamicClasses += ` ring-[4px] ${ringColors[primaryStatus] || ringColors.scheduled} ring-offset-1 ring-offset-emerald-50/20 shadow-sm`;
                                         }
                                     }
                                 } else {
@@ -681,7 +693,7 @@ const Appointments = () => {
                                 <div className="flex items-center gap-2.5 text-sm text-slate-600 dark:text-slate-400">
                                     <Clock size={16} className="text-[#10b981]/70" />
                                     <span className="font-semibold text-slate-900 dark:text-white">
-                                        {format(new Date(app.appointmentDate), "dd/MM 'às' HH:mm", { locale: ptBR })}
+                                        {format(new Date(app.appointmentDate), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
                                     </span>
                                 </div>
 
@@ -783,7 +795,7 @@ const Appointments = () => {
                         </div>
                         <h3 className="text-xl md:text-2xl font-bold text-slate-800 dark:text-white mb-2 text-center px-4">
                             {viewMode === 'calendar'
-                                ? `Nenhuma consulta em ${format(selectedDay, "dd 'de' MMMM", { locale: ptBR })}`
+                                ? `Nenhuma consulta em ${format(selectedDay, "dd/MM/yyyy", { locale: ptBR })}`
                                 : 'Nenhuma consulta encontrada'
                             }
                         </h3>
@@ -958,18 +970,31 @@ const Appointments = () => {
                                 </div>
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
-                                        <label htmlFor="date-input" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Data e Hora</label>
-                                        <input
-                                            id="date-input"
-                                            name="appointmentDate"
-                                            required
-                                            type="datetime-local"
-                                            autoComplete="off"
-                                            value={formData.appointmentDate}
-                                            onChange={(e) => setFormData({ ...formData, appointmentDate: e.target.value })}
-                                            className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-[#10b981] outline-none transition-all dark:text-white"
-                                        />
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label htmlFor="date-input" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Data</label>
+                                            <input
+                                                id="date-input"
+                                                name="datePart"
+                                                required
+                                                type="date"
+                                                value={formData.datePart}
+                                                onChange={(e) => setFormData({ ...formData, datePart: e.target.value })}
+                                                className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-[#10b981] outline-none transition-all dark:text-white"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label htmlFor="time-input" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Horário</label>
+                                            <input
+                                                id="time-input"
+                                                name="timePart"
+                                                required
+                                                type="time"
+                                                value={formData.timePart}
+                                                onChange={(e) => setFormData({ ...formData, timePart: e.target.value })}
+                                                className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-[#10b981] outline-none transition-all dark:text-white"
+                                            />
+                                        </div>
                                     </div>
                                     <div>
                                         <label id="status-label" htmlFor="status-select" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Status</label>

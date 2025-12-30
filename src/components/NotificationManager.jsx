@@ -8,6 +8,7 @@ const NotificationManager = () => {
     const { prescriptions, medications, consumptionLog, patients, accessibility, speak } = useApp();
     const { sendNotification, permission } = useNotifications();
     const notifiedDosesRef = useRef(new Set());
+    const escalatedDosesRef = useRef(new Set());
 
     useEffect(() => {
         if (permission !== 'granted') return;
@@ -70,6 +71,17 @@ const NotificationManager = () => {
                         }
 
                         notifiedDosesRef.current.add(notificationId);
+                    }
+                }
+
+                // Voice Escalation: If dose is late by 20-30 minutes and hasn't been escalated yet
+                if (diffMinutes <= -20 && diffMinutes > -31) {
+                    const escalationId = `${item.id}-${todayStr}-late`;
+                    if (!escalatedDosesRef.current.has(escalationId)) {
+                        if (accessibility?.voiceEnabled) {
+                            speak(`Atenção! Você ainda não registrou o remédio ${item.medicationName} das ${item.time}. Por favor, tome agora para manter seu tratamento em dia.`);
+                        }
+                        escalatedDosesRef.current.add(escalationId);
                     }
                 }
             });

@@ -46,5 +46,24 @@ export const SOSService = {
                 }
             );
         });
+    },
+
+    acknowledgeAlert: async (alertId, userId) => {
+        const { data, error } = await supabase
+            .from('sos_alerts')
+            .update({
+                acknowledged_by: userId,
+                status: 'acknowledged'
+            })
+            .eq('id', alertId)
+            .select();
+
+        if (error) throw error;
+
+        if (!data || data.length === 0) {
+            throw new Error('Não foi possível atualizar o alerta. Verifique se ele ainda existe ou se você tem permissão.');
+        }
+
+        return data[0];
     }
 };

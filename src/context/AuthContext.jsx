@@ -34,8 +34,8 @@ export const AuthProvider = ({ children }) => {
     const checkMfaRequirement = useCallback(async (force = false) => {
         // console.log('🔐 MFA: Iniciando verificação (force:', force, ')');
 
-        // Timeout Helper for Supabase Calls - REDUCED for faster UX
-        const withTimeout = (promise, ms = 3000) => Promise.race([
+        // Timeout Helper for Supabase Calls - Slightly increased for reliability
+        const withTimeout = (promise, ms = 5000) => Promise.race([
             promise,
             new Promise((_, reject) => setTimeout(() => reject(new Error('MFA call timeout')), ms))
         ]);

@@ -667,16 +667,81 @@ const handleSOSInsert = async (payload) => {
     }
 };
 
+// Handler para UPDATE de SOS (Cuidador confirmou → Notificar paciente)
+const handleSOSUpdate = async (payload) => {
+    try {
+        const alert = payload.new;
+        const oldAlert = payload.old;
+
+        // Só processar se o status mudou para 'acknowledged'
+        if (alert.status !== 'acknowledged' || oldAlert?.status === 'acknowledged') {
+            return;
+        }
+
+        console.log('🔔 [BACKEND] ===== SOS ACKNOWLEDGED =====');
+        console.log(`📋 Alert ID: ${alert.id}, acknowledged_by: ${alert.acknowledged_by}`);
+
+        // Buscar informações do paciente que disparou o SOS
+        const triggeredById = alert.triggered_by;
+        if (!triggeredById) {
+            console.warn('⚠️ [BACKEND] triggered_by não encontrado');
+            return;
+        }
+
+        // Buscar FCM token do paciente que disparou o SOS
+        const { data: patientTokens } = await supabaseAdmin
+            .from('fcm_tokens')
+            .select('token')
+            .eq('user_id', triggeredById);
+
+        if (!patientTokens || patientTokens.length === 0) {
+            console.log('⚠️ [BACKEND] Paciente não tem token FCM registrado');
+            return;
+        }
+
+        // Buscar nome do cuidador que confirmou
+        let caregiverName = 'Seu cuidador';
+        if (alert.acknowledged_by) {
+            const { data: caregiverProfile } = await supabaseAdmin
+                .from('profiles')
+                .select('full_name')
+                .eq('id', alert.acknowledged_by)
+                .single();
+
+            if (caregiverProfile?.full_name) {
+                caregiverName = caregiverProfile.full_name.split(' ')[0]; // Primeiro nome
+            }
+        }
+
+        const tokens = patientTokens.map(t => t.token);
+        const pushTitle = '✅ AJUDA A CAMINHO!';
+        const pushBody = `${caregiverName} recebeu seu alerta e está a caminho!\n\nFique calmo, ajuda chegando.`;
+
+        const pushData = {
+            type: 'sos_acknowledged',
+            alertId: String(alert.id),
+            caregiverName: String(caregiverName)
+        };
+
+        await sendPushNotification(tokens, pushTitle, pushBody, pushData);
+        console.log(`✅ [BACKEND] Push de confirmação enviado para paciente (${tokens.length} token(s))`);
+
+    } catch (err) {
+        console.error('❌ [BACKEND] Erro ao processar SOS UPDATE:', err);
+    }
+};
+
 // Iniciar apenas se não estiver na Vercel (serverless)
 if (process.env.VERCEL !== '1') {
     startServer();
 
     // Iniciar Listener Realtime (Se Supabase Admin estiver configurado)
     if (supabaseAdmin) {
-        console.log('👂 Iniciando listener de SOS...');
+        console.log('👂 Iniciando listener de SOS (INSERT + UPDATE)...');
         supabaseAdmin
             .channel('sos-tracker')
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'sos_alerts' }, handleSOSInsert)
+            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'sos_alerts' }, handleSOSUpdate)
             .subscribe((status) => {
                 console.log('📡 Status do SOS Listener:', status);
             });

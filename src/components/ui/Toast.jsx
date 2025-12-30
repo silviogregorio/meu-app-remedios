@@ -33,7 +33,7 @@ const Toast = ({ message, type = 'success', onClose, duration = 5000 }) => {
             {!['success', 'warning', 'error'].includes(type) && (
                 <CheckCircle size={20} className="text-[#10b981]" />
             )}
-            <p className="text-sm font-medium text-gray-800">{message}</p>
+            <div className="text-sm font-medium text-gray-800 flex-1">{message}</div>
             <button onClick={onClose} className="ml-2 text-gray-400 hover:text-gray-600">
                 <X size={16} />
             </button>

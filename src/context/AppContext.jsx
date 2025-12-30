@@ -846,35 +846,64 @@ export const AppProvider = ({ children }) => {
         document.documentElement.style.setProperty('--font-scale', (accessibility.fontSize || 100) / 100);
     }, [accessibility.fontSize]);
 
-    // Síntese de Voz (TTS) com voz feminina suave
     const speak = (text) => {
         if (!('speechSynthesis' in window)) return;
 
-        // Cancelar qualquer fala em andamento para não encavalar
+        const now = Date.now();
+        if (window._lastSpeech === text && (now - (window._lastSpeechTime || 0)) < 500) {
+            return;
+        }
+        window._lastSpeech = text;
+        window._lastSpeechTime = now;
+
         window.speechSynthesis.cancel();
 
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.lang = 'pt-BR';
+        utterance.rate = 1.1;
+        utterance.pitch = 1.0;
+        utterance.volume = 1.0;
 
-        // Voz feminina suave e tranquila para idosos
-        utterance.rate = 0.85; // Mais devagar para maior clareza
-        utterance.pitch = 0.9; // Pitch mais suave e feminino
-        utterance.volume = 1.0; // Volume pleno
+        const performSpeak = () => {
+            const voices = window.speechSynthesis.getVoices();
 
-        // Tentar usar voz feminina do sistema
-        const voices = window.speechSynthesis.getVoices();
-        const femaleVoice = voices.find(v =>
-            v.lang.includes('pt-BR') && v.name.toLowerCase().includes('female')
-        ) || voices.find(v =>
-            v.lang.includes('pt-BR') && (v.name.includes('Luciana') || v.name.includes('Google'))
-        );
+            const preferredVoices = [
+                'Microsoft Maria',
+                'Google português do Brasil',
+                'Luciana',
+                'Victoria',
+                'Heloisa'
+            ];
 
-        if (femaleVoice) {
-            utterance.voice = femaleVoice;
+            let targetVoice = voices.find(v =>
+                v.lang.includes('pt-BR') &&
+                preferredVoices.some(pv => v.name.includes(pv))
+            );
+
+            if (!targetVoice) {
+                targetVoice = voices.find(v =>
+                    v.lang.includes('pt-BR') &&
+                    (v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('mulher'))
+                );
+            }
+
+            if (targetVoice) {
+                utterance.voice = targetVoice;
+            }
+
+            window.speechSynthesis.speak(utterance);
+        };
+
+        if (window.speechSynthesis.getVoices().length === 0) {
+            window.speechSynthesis.onvoiceschanged = () => {
+                performSpeak();
+                window.speechSynthesis.onvoiceschanged = null;
+            };
+        } else {
+            performSpeak();
         }
-
-        window.speechSynthesis.speak(utterance);
     };
+
 
 
     // Estado Derivado para compatibilidade de UI
