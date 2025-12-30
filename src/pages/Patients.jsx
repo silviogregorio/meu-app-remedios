@@ -88,6 +88,14 @@ const Patients = () => {
     });
     const [loadingCep, setLoadingCep] = useState(false);
 
+    // Shimmer Loading Simulation
+    const [isPageLoading, setIsPageLoading] = useState(true);
+
+    React.useEffect(() => {
+        const timer = setTimeout(() => setIsPageLoading(false), 2000);
+        return () => clearTimeout(timer);
+    }, []);
+
     // Filter Logic
     const filteredPatients = patients.filter(p =>
         p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -227,6 +235,51 @@ const Patients = () => {
             setSubmitting(false);
         }
     };
+
+    // Shimmer Components
+    if (isPageLoading) {
+        return (
+            <div className="flex flex-col gap-8 pb-24 animate-in fade-in duration-500">
+                {/* Header Shimmer */}
+                <div className="flex items-center justify-between">
+                    <div>
+                        <div className="h-8 w-48 bg-slate-200 dark:bg-slate-700 rounded-lg animate-pulse mb-2" />
+                        <div className="h-4 w-64 bg-slate-100 dark:bg-slate-800 rounded-lg animate-pulse" />
+                    </div>
+                    <div className="h-10 w-40 bg-slate-200 dark:bg-slate-700 rounded-xl animate-pulse" />
+                </div>
+
+                {/* Search Shimmer */}
+                <div className="relative">
+                    <div className="w-full h-12 bg-slate-100 dark:bg-slate-800 rounded-xl animate-pulse" />
+                </div>
+
+                {/* List Shimmer */}
+                <div className="grid gap-4">
+                    {[1, 2, 3].map((i) => (
+                        <Card key={i} className="h-32 border-slate-100">
+                            <div className="flex flex-col md:flex-row md:items-center p-6 gap-6 h-full">
+                                <div className="w-16 h-16 rounded-2xl bg-slate-200 dark:bg-slate-700 animate-pulse shrink-0" />
+                                <div className="flex-1 space-y-3">
+                                    <div className="flex justify-between">
+                                        <div className="h-6 w-1/3 bg-slate-200 dark:bg-slate-700 rounded animate-pulse" />
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <div className="h-5 w-20 bg-slate-100 dark:bg-slate-800 rounded animate-pulse" />
+                                        <div className="h-5 w-24 bg-slate-100 dark:bg-slate-800 rounded animate-pulse" />
+                                    </div>
+                                </div>
+                                <div className="hidden md:flex flex-col gap-2 w-32">
+                                    <div className="h-8 w-full bg-slate-100 dark:bg-slate-800 rounded animate-pulse" />
+                                    <div className="h-8 w-full bg-slate-100 dark:bg-slate-800 rounded animate-pulse" />
+                                </div>
+                            </div>
+                        </Card>
+                    ))}
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="flex flex-col gap-8 pb-24 animate-in fade-in duration-500">
@@ -542,7 +595,7 @@ const Patients = () => {
                     <h3 className="text-xl font-bold text-slate-900">Nenhum paciente cadastrado</h3>
                     <p className="text-slate-500 max-w-xs mx-auto mt-2 mb-6">Comece adicionando um paciente para gerenciar suas receitas e medicamentos.</p>
                     <Button variant="outline" onClick={() => setShowForm(true)}>
-                        Adicionar Primeiro Paciente
+                        <Plus size={18} className="mr-2" /> Novo Paciente
                     </Button>
                 </div>
             ) : (

@@ -205,7 +205,7 @@ const Home = () => {
             // Keep shimmer visible for at least 3000ms (3s)
             setTimeout(() => {
                 setIsInitialLoading(false);
-            }, 3000);
+            }, 2000);
         }
     }, [prescriptions, medications]);
 

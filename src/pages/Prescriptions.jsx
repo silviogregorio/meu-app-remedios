@@ -7,11 +7,11 @@ import Input from '../components/ui/Input';
 import Modal from '../components/ui/Modal';
 import ConfirmationModal from '../components/ui/ConfirmationModal';
 import Pagination from '../components/ui/Pagination';
-import { Plus, Edit2, Trash2, X, Search, ClipboardList, Clock, User, Pill, Calendar, Camera, AlertTriangle, Info } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, Search, ClipboardList, Clock, User, Pill, Calendar, Camera, AlertTriangle, Info, RotateCw } from 'lucide-react';
 import { formatDate, getISODate } from '../utils/dateFormatter';
 import { checkInteractions } from '../data/drugInteractions';
 
-const ITEMS_PER_PAGE = 6;
+const ITEMS_PER_PAGE = 5;
 
 const Prescriptions = () => {
     const {
@@ -27,9 +27,17 @@ const Prescriptions = () => {
 
     const [showForm, setShowForm] = useState(false);
     const [editingId, setEditingId] = useState(null);
-    const [deleteId, setDeleteId] = useState(null);
+    const [prescriptionToDelete, setPrescriptionToDelete] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
+    const [isPageLoading, setIsPageLoading] = useState(true);
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setIsPageLoading(false);
+        }, 2000);
+        return () => clearTimeout(timer);
+    }, []);
 
     // Helper for local date (YYYY-MM-DD)
     const getLocalToday = () => getISODate();
@@ -121,14 +129,14 @@ const Prescriptions = () => {
         setShowForm(true);
     };
 
-    const handleDeleteClick = (id) => {
-        setDeleteId(id);
+    const handleDeleteClick = (prescription) => {
+        setPrescriptionToDelete(prescription);
     };
 
     const confirmDelete = () => {
-        if (deleteId) {
-            deletePrescription(deleteId);
-            setDeleteId(null);
+        if (prescriptionToDelete) {
+            deletePrescription(prescriptionToDelete.id);
+            setPrescriptionToDelete(null);
             if (paginatedPrescriptions.length === 1 && currentPage > 1) {
                 setCurrentPage(prev => prev - 1);
             }
@@ -304,31 +312,45 @@ const Prescriptions = () => {
     return (
         <div className="flex flex-col gap-8 pb-24 animate-in fade-in duration-500">
             {/* Header Section */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                    <h2 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Prescrições</h2>
-                    <p className="text-slate-500 dark:text-slate-400 mt-1">Gerencie as receitas e horários dos medicamentos.</p>
+            {isPageLoading ? (
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 animate-pulse">
+                    <div className="space-y-2">
+                        <div className="h-8 w-48 bg-slate-200 rounded-lg" />
+                        <div className="h-4 w-64 bg-slate-200 rounded-lg" />
+                    </div>
+                    <div className="h-12 w-40 bg-slate-200 rounded-xl shadow-sm" />
                 </div>
-                {!showForm && (
-                    <Button onClick={() => setShowForm(true)} className="shadow-xl shadow-primary/20">
-                        <Plus size={20} className="mr-2" />
-                        Nova Prescrição
-                    </Button>
-                )}
-            </div>
+            ) : (
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                        <h2 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Prescrições</h2>
+                        <p className="text-slate-500 dark:text-slate-400 mt-1">Gerencie as receitas e horários dos medicamentos.</p>
+                    </div>
+                    {!showForm && (
+                        <Button onClick={() => setShowForm(true)} className="shadow-xl shadow-primary/20">
+                            <Plus size={20} className="mr-2" />
+                            Nova Prescrição
+                        </Button>
+                    )}
+                </div>
+            )}
 
             {/* Search Bar */}
-            {!showForm && prescriptions.length > 0 && (
-                <div className="relative">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
-                    <input
-                        type="text"
-                        placeholder="Buscar por paciente, medicamento ou frequência..."
-                        className="w-full pl-12 pr-4 py-3 rounded-2xl border-none bg-white shadow-soft focus:ring-2 focus:ring-primary/20 transition-all"
-                        value={searchTerm}
-                        onChange={e => setSearchTerm(e.target.value)}
-                    />
-                </div>
+            {isPageLoading ? (
+                <div className="h-12 w-full bg-slate-200 rounded-2xl animate-pulse" />
+            ) : (
+                !showForm && prescriptions.length > 0 && (
+                    <div className="relative">
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+                        <input
+                            type="text"
+                            placeholder="Buscar por paciente, medicamento ou frequência..."
+                            className="w-full pl-12 pr-4 py-3 rounded-2xl border-none bg-white shadow-soft focus:ring-2 focus:ring-primary/20 transition-all"
+                            value={searchTerm}
+                            onChange={e => setSearchTerm(e.target.value)}
+                        />
+                    </div>
+                )
             )}
 
             {/* Form Section */}
@@ -549,7 +571,47 @@ const Prescriptions = () => {
                 </Card>
             ) : (
                 <>
-                    {paginatedPrescriptions.length === 0 ? (
+                    {isPageLoading ? (
+                        <div className="space-y-4">
+                            {[...Array(3)].map((_, i) => (
+                                <Card key={i} className="animate-pulse">
+                                    <div className="p-4 flex flex-col gap-4">
+                                        <div className="flex items-start gap-4">
+                                            <div className="w-12 h-12 rounded-2xl bg-slate-200 shrink-0 mt-1" />
+                                            <div className="flex-1 flex flex-col gap-2">
+                                                <div className="h-3 w-20 bg-slate-200 rounded" />
+                                                <div className="h-6 w-48 bg-slate-200 rounded" />
+                                                <div className="h-3 w-32 bg-slate-200 rounded mt-1" />
+                                            </div>
+                                        </div>
+                                        <div className="flex flex-col gap-4 p-4 pl-0">
+                                            {/* Top Section */}
+                                            <div className="flex gap-4">
+                                                <div className="w-12 h-12 bg-slate-200 rounded-xl shrink-0" />
+                                                <div className="flex-1 space-y-2">
+                                                    <div className="h-5 w-3/4 bg-slate-200 rounded" />
+                                                    <div className="h-3 w-1/2 bg-slate-200 rounded" />
+                                                </div>
+                                            </div>
+                                            {/* Stats Strip */}
+                                            <div className="flex gap-4 pt-2">
+                                                <div className="h-8 w-20 bg-slate-200 rounded-lg" />
+                                                <div className="h-8 w-20 bg-slate-200 rounded-lg" />
+                                                <div className="h-8 w-full bg-slate-200 rounded-lg" />
+                                            </div>
+                                        </div>
+
+                                        {/* Actions Footer */}
+                                        <div className="bg-slate-50/50 p-3 flex justify-end gap-2 mt-auto border-t border-slate-100/50">
+                                            <div className="w-24 h-9 bg-slate-200/50 rounded-lg" />
+                                            <div className="w-20 h-9 bg-slate-200/50 rounded-lg" />
+                                            <div className="w-20 h-9 bg-slate-200/50 rounded-lg" />
+                                        </div>
+                                    </div>
+                                </Card>
+                            ))}
+                        </div>
+                    ) : paginatedPrescriptions.length === 0 ? (
                         <div className="text-center py-16 bg-white rounded-2xl border border-dashed border-slate-200">
                             <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center text-slate-300 mx-auto mb-4">
                                 <ClipboardList size={40} />
@@ -561,146 +623,161 @@ const Prescriptions = () => {
                             </Button>
                         </div>
                     ) : (
-                        <div className="grid gap-4">
+                        <div className="grid gap-3">
                             {paginatedPrescriptions.map(prescription => (
                                 <Card key={prescription.id} className="group hover:border-primary/30 transition-all duration-300">
-                                    <div className="p-5 flex flex-col gap-5">
-                                        {/* Top Section: Icon + Medication + Patient */}
+                                    {/* Main Content */}
+                                    <div className="p-4 flex flex-col gap-3">
                                         <div className="flex items-start gap-4">
-                                            {/* Icon Box */}
-                                            <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center shadow-sm shrink-0 mt-1">
+                                            {/* Icon */}
+                                            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 text-white flex items-center justify-center shadow-lg shadow-blue-200 shrink-0">
                                                 <Pill size={24} />
                                             </div>
 
-                                            <div className="flex-1 min-w-0 flex flex-col gap-3">
-                                                {/* Patient Name */}
-                                                <div>
-                                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-0.5">Paciente</p>
-                                                    <p className="text-base font-bold text-slate-700 dark:text-slate-300 truncate">
-                                                        {getPatientName(prescription.patientId)}
-                                                    </p>
-                                                </div>
-
-                                                {/* Medication Name */}
-                                                <div>
-                                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-0.5">Medicamento</p>
-                                                    <h3 className="font-black text-2xl text-slate-900 dark:text-white leading-tight break-words">
-                                                        {getMedicationInfo(prescription.medicationId)}
-                                                    </h3>
+                                            {/* Header Info */}
+                                            <div className="flex-1 min-w-0">
+                                                <h3 className="font-bold text-xl text-slate-800 dark:text-white leading-tight mb-1">
+                                                    {getMedicationInfo(prescription.medicationId)}
+                                                </h3>
+                                                <div className="flex items-center gap-2 text-slate-500 text-sm font-medium">
+                                                    <User size={14} className="text-slate-400" />
+                                                    <span className="truncate">{getPatientName(prescription.patientId)}</span>
                                                 </div>
                                             </div>
                                         </div>
 
-                                        {/* Specs Grid */}
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-50/50 p-4 rounded-xl border border-slate-100/50">
-                                            <div>
-                                                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">Frequência</p>
-                                                <p className="font-bold text-slate-700 text-sm">{prescription.frequency}</p>
+                                        {/* Info Badge Grid */}
+                                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                            {/* Freq */}
+                                            <div className="col-span-1 bg-slate-50 rounded-xl p-2.5 border border-slate-100 flex flex-col justify-center">
+                                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Frequência</span>
+                                                <div className="font-bold text-slate-700 text-sm flex items-center gap-1.5">
+                                                    <RotateCw size={14} className="text-blue-500" />
+                                                    {prescription.frequency}
+                                                </div>
                                             </div>
-                                            <div>
-                                                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">Horários</p>
-                                                <div className="flex flex-wrap gap-1.5">
+
+                                            {/* Times */}
+                                            <div className="col-span-1 bg-slate-50 rounded-xl p-2.5 border border-slate-100 flex flex-col justify-center">
+                                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Horários</span>
+                                                <div className="flex flex-wrap gap-1">
                                                     {prescription.times.map(t => (
-                                                        <span key={t} className="bg-white border border-slate-200 px-2 py-0.5 rounded-md text-xs font-black text-slate-600 shadow-sm">
+                                                        <span key={t} className="bg-white px-1.5 py-0.5 rounded text-xs font-bold text-slate-700 border border-slate-200 shadow-sm">
                                                             {t}
                                                         </span>
                                                     ))}
                                                 </div>
                                             </div>
-                                            <div className="sm:col-span-2 pt-2 border-t border-slate-200/50">
-                                                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">Período</p>
-                                                <div className="flex items-center gap-2 text-sm font-medium text-slate-600">
-                                                    <Calendar size={14} className="text-slate-400" />
-                                                    <span>
-                                                        {formatDate(prescription.startDate)}
-                                                        {prescription.continuousUse ? ' (Uso Contínuo)' : ` até ${formatDate(prescription.endDate)}`}
-                                                    </span>
+
+                                            {/* Date */}
+                                            <div className="col-span-2 sm:col-span-1 bg-slate-50 rounded-xl p-2.5 border border-slate-100 flex flex-col justify-center">
+                                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Duração</span>
+                                                <div className="font-bold text-slate-700 text-sm flex items-center gap-1.5 whitespace-nowrap">
+                                                    <Calendar size={14} className="text-emerald-500" />
+                                                    {formatDate(prescription.startDate)} {prescription.continuousUse ? '(Uso Contínuo)' : `até ${formatDate(prescription.endDate)}`}
                                                 </div>
                                             </div>
                                         </div>
+                                    </div>
 
-                                        {/* Actions Toolbar */}
-                                        <div className="flex items-center gap-2 pt-2">
-                                            {patients.find(p => p.id === prescription.patientId)?.userId === user?.id ? (
-                                                <>
-                                                    <Button
-                                                        variant="ghost"
-                                                        className="flex-1 bg-slate-50 hover:bg-emerald-50 text-slate-600 hover:text-emerald-700 border border-slate-100 h-10"
-                                                        onClick={() => {
-                                                            const med = medications.find(m => m.id === prescription.medicationId);
-                                                            const pat = patients.find(p => p.id === prescription.patientId);
-                                                            const urls = generateCalendarUrlsForPrescription(prescription, med, pat);
+                                    {/* Action Footer */}
+                                    <div className="bg-slate-50/50 p-3 flex flex-wrap items-center justify-end gap-2 border-t border-slate-100 rounded-b-2xl">
+                                        {patients.find(p => p.id === prescription.patientId)?.userId === user?.id ? (
+                                            <>
+                                                <button
+                                                    className="h-9 px-4 flex items-center justify-center rounded-lg bg-white hover:bg-slate-50 text-slate-700 hover:text-blue-700 border border-slate-200 hover:border-blue-200 shadow-sm text-xs font-bold tracking-wide transition-all gap-2"
+                                                    onClick={() => {
+                                                        const med = medications.find(m => m.id === prescription.medicationId);
+                                                        const pat = patients.find(p => p.id === prescription.patientId);
+                                                        const urls = generateCalendarUrlsForPrescription(prescription, med, pat);
 
-                                                            if (urls.length === 1) {
-                                                                window.open(urls[0].url, '_blank');
+                                                        if (urls.length === 1) {
+                                                            window.open(urls[0].url, '_blank');
+                                                        } else {
+                                                            const choice = confirm(
+                                                                `Este medicamento tem ${urls.length} horários.\n\n` +
+                                                                `Clique OK para abrir os links do Google Calendar\n` +
+                                                                `ou Cancelar para baixar os arquivos .ics`
+                                                            );
+                                                            if (choice) {
+                                                                urls.forEach(({ url }) => window.open(url, '_blank'));
                                                             } else {
-                                                                const choice = confirm(
-                                                                    `Este medicamento tem ${urls.length} horários.\n\n` +
-                                                                    `Clique OK para abrir os links do Google Calendar\n` +
-                                                                    `ou Cancelar para baixar os arquivos .ics`
-                                                                );
-                                                                if (choice) {
-                                                                    urls.forEach(({ url }) => window.open(url, '_blank'));
-                                                                } else {
-                                                                    urls.forEach(({ time }) => {
-                                                                        downloadICalFile(prescription, med, pat, time);
-                                                                    });
-                                                                }
+                                                                urls.forEach(({ time }) => {
+                                                                    downloadICalFile(prescription, med, pat, time);
+                                                                });
                                                             }
-                                                            showToast('Processando calendário...', 'success');
-                                                        }}
-                                                    >
-                                                        <Calendar size={18} className="mr-2" />
-                                                        <span className="text-sm font-bold">Calendário</span>
-                                                    </Button>
+                                                        }
+                                                        showToast('Processando calendário...', 'success');
+                                                    }}
+                                                >
+                                                    <Calendar size={15} className="text-blue-500" />
+                                                    Agendar
+                                                </button>
 
-                                                    <div className="flex gap-2">
-                                                        <Button
-                                                            variant="ghost"
-                                                            className="w-10 h-10 p-0 rounded-xl border border-slate-100 bg-white text-slate-400 hover:text-blue-600 hover:border-blue-200"
-                                                            onClick={() => handleEdit(prescription)}
-                                                            title="Editar"
-                                                        >
-                                                            <Edit2 size={18} />
-                                                        </Button>
-                                                        <Button
-                                                            variant="ghost"
-                                                            className="w-10 h-10 p-0 rounded-xl border border-slate-100 bg-white text-slate-400 hover:text-rose-600 hover:border-rose-200"
-                                                            onClick={() => handleDeleteClick(prescription.id)}
-                                                            title="Excluir"
-                                                        >
-                                                            <Trash2 size={18} />
-                                                        </Button>
-                                                    </div>
-                                                </>
-                                            ) : (
-                                                <div className="w-full py-2 bg-slate-50 rounded-xl text-center text-slate-400 text-sm font-medium border border-slate-100">
-                                                    Modo Leitura (Compartilhado)
-                                                </div>
-                                            )}
-                                        </div>
+                                                <button
+                                                    onClick={() => handleEdit(prescription)}
+                                                    className="h-9 px-3 flex items-center justify-center rounded-lg bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 hover:text-blue-600 hover:border-blue-100 transition-all shadow-sm text-xs font-bold gap-2"
+                                                    title="Editar"
+                                                >
+                                                    <Edit2 size={15} />
+                                                    Editar
+                                                </button>
+
+                                                <button
+                                                    onClick={() => handleDeleteClick(prescription)}
+                                                    className="h-9 px-3 flex items-center justify-center rounded-lg bg-white text-slate-600 border border-slate-200 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-100 transition-all shadow-sm text-xs font-bold gap-2"
+                                                    title="Excluir"
+                                                >
+                                                    <Trash2 size={15} />
+                                                    Excluir
+                                                </button>
+                                            </>
+                                        ) : (
+                                            <div className="w-full py-2 bg-slate-50 rounded-xl text-center text-slate-400 text-sm font-medium border border-slate-100">
+                                                Modo Leitura (Compartilhado)
+                                            </div>
+                                        )}
                                     </div>
                                 </Card>
                             ))}
                         </div>
                     )}
-
-                    {/* Pagination */}
-                    <Pagination
-                        currentPage={currentPage}
-                        totalPages={totalPages}
-                        onPageChange={setCurrentPage}
-                    />
                 </>
+            )}
+
+            {/* Pagination */}
+            {!showForm && !isPageLoading && paginatedPrescriptions.length > 0 && (
+                <Pagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onPageChange={setCurrentPage}
+                />
             )}
 
             {/* Delete Modal */}
             <ConfirmationModal
-                isOpen={!!deleteId}
-                onClose={() => setDeleteId(null)}
+                isOpen={!!prescriptionToDelete}
+                onClose={() => setPrescriptionToDelete(null)}
                 onConfirm={confirmDelete}
                 title="Excluir Prescrição"
-                description="Tem certeza que deseja excluir esta prescrição? Essa ação não pode ser desfeita."
+                description={
+                    prescriptionToDelete ? (
+                        <span>
+                            Tem certeza que deseja excluir a prescrição de:
+                            <br /><br />
+                            <strong className="text-slate-900 block font-bold text-lg leading-tight">
+                                {getMedicationInfo(prescriptionToDelete.medicationId)}
+                            </strong>
+                            <span className="text-slate-500 text-sm block mt-1">
+                                para {getPatientName(prescriptionToDelete.patientId)}
+                            </span>
+                            <br />
+                            <span className="block text-red-600 font-medium">
+                                Essa ação não pode ser desfeita.
+                            </span>
+                        </span>
+                    ) : "Tem certeza que deseja excluir esta prescrição?"
+                }
             />
         </div>
     );

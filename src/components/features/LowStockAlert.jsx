@@ -1,96 +1,96 @@
 import React, { useState, useMemo } from 'react';
-import { AlertTriangle, ShoppingCart, ChevronRight, Package, Clock, X } from 'lucide-react';
+import { AlertTriangle, ShoppingCart, Package } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { StockService } from '../../services/stockService';
 import QuickRefillModal from './QuickRefillModal';
 
 /**
  * LowStockAlert - Card displayed on Home when medications are running low
+ * Designed for elderly users with large, clear buttons
  */
 const LowStockAlert = () => {
     const { medications, prescriptions } = useApp();
     const [refillMed, setRefillMed] = useState(null);
-    const [dismissed, setDismissed] = useState([]);
 
     // Calculate low stock medications
     const lowStockMeds = useMemo(() => {
-        return StockService.getLowStockMedications(medications, prescriptions, 7)
-            .filter(med => !dismissed.includes(med.id));
-    }, [medications, prescriptions, dismissed]);
+        return StockService.getLowStockMedications(medications, prescriptions, 7);
+    }, [medications, prescriptions]);
 
     if (lowStockMeds.length === 0) return null;
 
-    const handleDismiss = (medId) => {
-        setDismissed(prev => [...prev, medId]);
+    // Helper to format days remaining in clear text
+    const formatDaysRemaining = (days) => {
+        if (days === 0) return '⚠️ Acaba hoje!';
+        if (days === 1) return '⚠️ Acaba amanhã!';
+        return `${days} dias restantes`;
     };
 
     return (
         <>
-            <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-3xl p-4 border border-amber-200 shadow-sm animate-in fade-in slide-in-from-top-2">
-                <div className="flex items-center gap-3 mb-3">
-                    <div className="p-2 bg-amber-100 rounded-xl">
-                        <AlertTriangle size={20} className="text-amber-600" />
+            <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-3xl p-4 md:p-5 border border-amber-200 shadow-sm animate-in fade-in slide-in-from-top-2">
+                {/* Header */}
+                <div className="flex items-center gap-3 mb-4">
+                    <div className="p-3 bg-amber-100 rounded-2xl">
+                        <AlertTriangle size={24} className="text-amber-600" />
                     </div>
                     <div className="flex-1">
-                        <h3 className="font-bold text-amber-900">Estoque Baixo</h3>
-                        <p className="text-xs text-amber-700">
+                        <h3 className="font-bold text-lg text-amber-900">Estoque Baixo</h3>
+                        <p className="text-sm text-amber-700">
                             {lowStockMeds.length} {lowStockMeds.length === 1 ? 'medicamento precisa' : 'medicamentos precisam'} de reposição
                         </p>
                     </div>
                 </div>
 
-                <div className="space-y-2">
+                {/* Medication List */}
+                <div className="space-y-3">
                     {lowStockMeds.slice(0, 3).map(med => (
                         <div
                             key={med.id}
-                            className="flex items-center gap-3 p-3 bg-white rounded-2xl border border-amber-100 relative group"
+                            className="flex flex-col sm:flex-row sm:items-center gap-3 p-4 bg-white rounded-2xl border border-amber-100 shadow-sm"
                         >
-                            {/* Dismiss button */}
-                            <button
-                                onClick={() => handleDismiss(med.id)}
-                                className="absolute top-2 right-2 p-1 rounded-full opacity-0 group-hover:opacity-100 hover:bg-amber-100 transition-all"
-                                title="Dispensar"
-                            >
-                                <X size={14} className="text-amber-400" />
-                            </button>
+                            {/* Left: Icon + Info */}
+                            <div className="flex items-center gap-3 flex-1">
+                                <div className={`p-3 rounded-xl shrink-0 ${med.level === 'critical' ? 'bg-rose-100' : 'bg-amber-100'
+                                    }`}>
+                                    <Package size={22} className={
+                                        med.level === 'critical' ? 'text-rose-600' : 'text-amber-600'
+                                    } />
+                                </div>
 
-                            <div className={`p-2 rounded-xl ${med.level === 'critical' ? 'bg-rose-100' : 'bg-amber-100'
-                                }`}>
-                                <Package size={18} className={
-                                    med.level === 'critical' ? 'text-rose-600' : 'text-amber-600'
-                                } />
-                            </div>
-
-                            <div className="flex-1 min-w-0">
-                                <p className="font-bold text-slate-900 text-sm truncate">{med.name}</p>
-                                <p className="text-xs text-slate-500">
-                                    {med.quantity || 0} restantes
+                                <div className="min-w-0">
+                                    <p className="font-bold text-slate-900 text-base">{med.name}</p>
+                                    <p className="text-sm text-slate-600">
+                                        <span className="font-semibold">{med.quantity || 0}</span> unidades restantes
+                                    </p>
+                                    {/* Clear duration text */}
                                     {med.daysRemaining !== null && (
-                                        <span className={`ml-2 font-bold ${med.level === 'critical' ? 'text-rose-600' : 'text-amber-600'
+                                        <p className={`text-sm font-bold mt-1 ${med.level === 'critical' ? 'text-rose-600' : 'text-amber-600'
                                             }`}>
-                                            <Clock size={10} className="inline mr-0.5" />
-                                            {med.daysRemaining}d
-                                        </span>
+                                            {formatDaysRemaining(med.daysRemaining)}
+                                        </p>
                                     )}
-                                </p>
+                                </div>
                             </div>
 
+                            {/* Right: Big Refill Button */}
                             <button
                                 onClick={() => setRefillMed(med)}
-                                className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all ${med.level === 'critical'
-                                        ? 'bg-rose-100 text-rose-700 hover:bg-rose-200'
-                                        : 'bg-amber-100 text-amber-700 hover:bg-amber-200'
+                                className={`w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-sm font-bold transition-all ${med.level === 'critical'
+                                        ? 'bg-rose-500 text-white hover:bg-rose-600 shadow-lg shadow-rose-500/30'
+                                        : 'bg-amber-500 text-white hover:bg-amber-600 shadow-lg shadow-amber-500/30'
                                     }`}
                             >
-                                <ShoppingCart size={14} />
-                                Repor
+                                <ShoppingCart size={18} />
+                                Repor Estoque
                             </button>
                         </div>
                     ))}
 
+                    {/* More medications indicator */}
                     {lowStockMeds.length > 3 && (
-                        <p className="text-xs text-amber-600 text-center font-medium pt-1">
-                            + {lowStockMeds.length - 3} outros medicamentos
+                        <p className="text-sm text-amber-700 text-center font-medium pt-2 bg-amber-100/50 rounded-xl py-2">
+                            + {lowStockMeds.length - 3} outros medicamentos com estoque baixo
                         </p>
                     )}
                 </div>

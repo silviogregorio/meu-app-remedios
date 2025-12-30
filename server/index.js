@@ -9,6 +9,7 @@ import { createClient } from '@supabase/supabase-js';
 
 import { startWeeklyReportCron } from './weeklyReportCron.js';
 import { startReminderCron } from './reminderCron.js';
+import { startStockCron } from './stockCron.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -368,6 +369,10 @@ const startServer = async () => {
             // Iniciar Cron Job de Lembrete "Você tomou?"
             startReminderCron();
             console.log('🔔 Cron job de lembrete "Você tomou?" ativado');
+
+            // Iniciar Cron Job de Estoque Baixo
+            startStockCron();
+            console.log('📦 Cron job de estoque ativado');
         });
 
     } catch (error) {

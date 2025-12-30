@@ -5,14 +5,14 @@ import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Modal from '../components/ui/Modal';
 import Pagination from '../components/ui/Pagination';
-import { Plus, Pill, Trash2, Edit2, X, AlertTriangle, Search, User, Camera, Box, ShoppingCart, History, Clock } from 'lucide-react';
+import { Plus, Pill, Trash2, Edit2, X, AlertTriangle, Search, User, Camera, Box, ShoppingCart, History, Clock, Copy } from 'lucide-react';
 import PillIcon from '../components/ui/PillIcon';
 import { MedicationCardShimmer } from '../components/ui/Shimmer';
 import QuickRefillModal from '../components/features/QuickRefillModal';
 import StockTimelineDrawer from '../components/features/StockTimelineDrawer';
 import { StockService } from '../services/stockService';
 
-const ITEMS_PER_PAGE = 6;
+const ITEMS_PER_PAGE = 5;
 
 const COLORS = [
     { id: 'white', label: 'Branco', hex: 'bg-slate-100' },
@@ -40,6 +40,11 @@ const Medications = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const [searchTerm, setSearchTerm] = useState('');
 
+    // Scroll to top when page changes
+    useEffect(() => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }, [currentPage]);
+
     const [editingMedId, setEditingMedId] = useState(null);
     const [deleteMedId, setDeleteMedId] = useState(null);
     const [isInitialLoading, setIsInitialLoading] = useState(true);
@@ -64,7 +69,7 @@ const Medications = () => {
         if (medications.length >= 0) {
             const timer = setTimeout(() => {
                 setIsInitialLoading(false);
-            }, 3000);
+            }, 2000);
             return () => clearTimeout(timer);
         }
     }, [medications]);
@@ -80,18 +85,44 @@ const Medications = () => {
         shape: 'round'  // Default
     });
 
-    // Reset page on search
+    const [stockFilter, setStockFilter] = useState('all');
+
+    // Reset page on search or filter change
     useEffect(() => {
         setCurrentPage(1);
-    }, [searchTerm]);
+    }, [searchTerm, stockFilter]);
 
-    const filteredMedications = medicationsWithStock.filter(med =>
-        med.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        med.dosage.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        med.type?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredMedications = medicationsWithStock.filter(med => {
+        // Text Match
+        const matchesSearch = med.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            med.dosage.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            med.type?.toLowerCase().includes(searchTerm.toLowerCase());
+
+        if (!matchesSearch) return false;
+
+        // Stock Filter Logic
+        if (stockFilter === 'all') return true;
+
+        const days = med.daysRemaining;
+        if (days === null) return false; // Filter out meds without stock prediction if filtering by days
+
+        if (stockFilter === 'critical') return days <= 5;
+        if (stockFilter === '10days') return days <= 10;
+        if (stockFilter === '20days') return days <= 20;
+
+        return true;
+        return true;
+    });
 
     const totalPages = Math.ceil(filteredMedications.length / ITEMS_PER_PAGE);
+
+    // FIX: Redirect to previous page if current page becomes empty (e.g. after delete)
+    useEffect(() => {
+        if (currentPage > 1 && currentPage > totalPages) {
+            setCurrentPage(prev => Math.max(1, prev - 1));
+        }
+    }, [totalPages, currentPage]);
+
     const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
     const paginatedItems = filteredMedications.slice(startIndex, startIndex + ITEMS_PER_PAGE);
 
@@ -104,6 +135,20 @@ const Medications = () => {
         });
         setEditingMedId(med.id);
         setShowForm(true);
+    };
+
+    const handleDuplicateMed = (med) => {
+        setMedForm({
+            ...med,
+            name: `${med.name} (Cópia)`,
+            unitQuantity: med.unit_quantity || '',
+            color: med.color || 'white',
+            shape: med.shape || 'round',
+            id: undefined // Create new
+        });
+        setEditingMedId(null); // Ensure creation mode
+        setShowForm(true);
+        showToast('Medicamento duplicado! Revise e salve.', 'info');
     };
 
     const confirmDeleteMed = async () => {
@@ -143,31 +188,81 @@ const Medications = () => {
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h2 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Medicamentos</h2>
-                    <p className="text-slate-500 dark:text-slate-400 mt-1">Gerencie seu estoque e a aparência dos remédios.</p>
+                    {isInitialLoading ? (
+                        <>
+                            <div className="h-8 w-48 bg-slate-200 rounded-md animate-pulse mb-2" />
+                            <div className="h-4 w-72 bg-slate-200 rounded-md animate-pulse" />
+                        </>
+                    ) : (
+                        <>
+                            <h2 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Medicamentos</h2>
+                            <p className="text-slate-500 dark:text-slate-400 mt-1">Gerencie seu estoque e a aparência dos remédios.</p>
+                        </>
+                    )}
                 </div>
                 {!showForm && (
-                    <Button onClick={() => setShowForm(true)} className="shadow-xl shadow-primary/20">
-                        <Plus size={20} className="mr-2" />
-                        Novo Medicamento
-                    </Button>
+                    isInitialLoading ? (
+                        <div className="h-10 w-40 bg-slate-200 rounded-xl animate-pulse" />
+                    ) : (
+                        <Button onClick={() => setShowForm(true)} className="shadow-xl shadow-primary/20">
+                            <Plus size={20} className="mr-2" />
+                            Novo Medicamento
+                        </Button>
+                    )
                 )}
             </div>
 
-            {/* Search Bar */}
-            {!showForm && medications.length > 0 && (
-                <div className="relative">
-                    <label htmlFor="med-search" className="sr-only">Buscar medicamento</label>
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
-                    <input
-                        id="med-search"
-                        name="search"
-                        type="text"
-                        placeholder="Buscar medicamento..."
-                        className="w-full pl-12 pr-4 py-3 rounded-2xl border-none bg-white shadow-soft focus:ring-2 focus:ring-primary/20 transition-all"
-                        value={searchTerm}
-                        onChange={e => setSearchTerm(e.target.value)}
-                    />
+            {/* Search Bar & Filters */}
+            {!showForm && (medications.length > 0 || isInitialLoading) && (
+                <div className="space-y-4">
+                    <div className="relative">
+                        <label htmlFor="med-search" className="sr-only">Buscar medicamento</label>
+                        {isInitialLoading ? (
+                            <div className="w-full h-12 bg-slate-200 rounded-2xl animate-pulse" />
+                        ) : (
+                            <>
+                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+                                <input
+                                    id="med-search"
+                                    name="search"
+                                    type="search"
+                                    placeholder="Buscar medicamento..."
+                                    className="w-full pl-12 pr-4 py-3 rounded-2xl border-none bg-white shadow-soft focus:ring-2 focus:ring-primary/20 transition-all"
+                                    value={searchTerm}
+                                    onChange={e => setSearchTerm(e.target.value)}
+                                />
+                            </>
+                        )}
+                    </div>
+
+                    {/* Stock Filters */}
+                    {isInitialLoading ? (
+                        <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 md:mx-0 md:px-0 scrollbar-hide">
+                            {[1, 2, 3, 4].map(i => (
+                                <div key={i} className="h-9 w-24 bg-slate-200 rounded-full animate-pulse flex-shrink-0" />
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 md:mx-0 md:px-0 scrollbar-hide">
+                            {[
+                                { id: 'all', label: 'Todos' },
+                                { id: 'critical', label: 'Crítico (5 dias)', color: 'border-rose-200 text-rose-700 bg-rose-50' },
+                                { id: '10days', label: '10 dias', color: 'border-amber-200 text-amber-700 bg-amber-50' },
+                                { id: '20days', label: '20 dias', color: 'border-blue-200 text-blue-700 bg-blue-50' }
+                            ].map(filter => (
+                                <button
+                                    key={filter.id}
+                                    onClick={() => setStockFilter(filter.id)}
+                                    className={`px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap border transition-all ${stockFilter === filter.id
+                                        ? (filter.color || 'bg-slate-800 text-white border-slate-800')
+                                        : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300'
+                                        }`}
+                                >
+                                    {filter.label}
+                                </button>
+                            ))}
+                        </div>
+                    )}
                 </div>
             )}
 
@@ -368,20 +463,23 @@ const Medications = () => {
 
                                                 <div className="md:border-l md:border-slate-100 md:pl-6">
                                                     <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">Estoque</p>
-                                                    <div className="flex items-center gap-2">
+                                                    <div className="flex items-center gap-2 flex-wrap">
                                                         <span className={`font-black text-base md:text-base ${!item.quantity ? 'text-slate-400' :
                                                             Number(item.quantity) < 5 ? 'text-rose-500' : 'text-emerald-600'
                                                             }`}>
                                                             {item.quantity || '0'}
                                                         </span>
-                                                        {/* Depletion Badge */}
+                                                        {/* Depletion Badge - Clear text for elderly */}
                                                         {item.daysRemaining !== null && (
-                                                            <div className={`text-[8px] font-bold px-1.5 py-0.5 rounded-md uppercase tracking-wider flex items-center gap-1 ${item.stockLevel === 'critical' ? 'bg-rose-100 text-rose-600' :
-                                                                    item.stockLevel === 'warning' ? 'bg-amber-100 text-amber-600' :
-                                                                        'bg-emerald-100 text-emerald-600'
+                                                            <div className={`text-xs font-bold px-3 py-1.5 rounded-lg flex items-center justify-center whitespace-nowrap ${item.stockLevel === 'critical' ? 'bg-rose-100 text-rose-700' :
+                                                                item.stockLevel === 'warning' ? 'bg-amber-100 text-amber-700' :
+                                                                    'bg-emerald-100 text-emerald-700'
                                                                 }`}>
-                                                                <Clock size={10} />
-                                                                {item.daysRemaining}d
+                                                                {item.daysRemaining === 0
+                                                                    ? '⚠️ Acaba hoje!'
+                                                                    : item.daysRemaining === 1
+                                                                        ? '⚠️ 1 dia'
+                                                                        : `${item.daysRemaining} dias`}
                                                             </div>
                                                         )}
                                                     </div>
@@ -396,46 +494,78 @@ const Medications = () => {
                                                 </div>
                                             </div>
 
-                                            {/* Right Section: Actions (with Stock buttons) */}
-                                            <div className="flex items-center gap-2 md:w-auto justify-end">
-                                                {/* Quick Stock Actions */}
-                                                <div className="flex gap-1">
+                                            {/* Action Buttons - Reorganized for accessibility */}
+                                            <div className="flex flex-col gap-3 w-full md:w-auto">
+                                                {/* Stock Actions - Large buttons for elderly (Mobile) */}
+                                                <div className="flex gap-2 md:hidden">
                                                     <button
                                                         onClick={() => setRefillMed(item)}
-                                                        className="p-2 rounded-lg bg-green-50 text-green-600 hover:bg-green-100 transition-colors"
-                                                        title="Adicionar estoque"
+                                                        className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-green-100 text-green-700 hover:bg-green-200 rounded-xl font-bold text-sm border border-green-200 transition-colors"
                                                     >
-                                                        <ShoppingCart size={16} />
+                                                        <ShoppingCart size={18} />
+                                                        Repor Estoque
                                                     </button>
                                                     <button
                                                         onClick={() => setTimelineMed(item)}
-                                                        className="p-2 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors"
-                                                        title="Histórico de estoque"
+                                                        className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-blue-100 text-blue-700 hover:bg-blue-200 rounded-xl font-bold text-sm border border-blue-200 transition-colors"
                                                     >
-                                                        <History size={16} />
+                                                        <History size={18} />
+                                                        Histórico
                                                     </button>
                                                 </div>
-                                                {item.user_id === user?.id ? (
-                                                    <div className="flex gap-2 w-full md:w-auto">
-                                                        {/* Mobile: Full Buttons */}
-                                                        <Button
-                                                            variant="ghost"
-                                                            className="flex-1 md:hidden bg-white hover:bg-blue-50 text-slate-600 hover:text-blue-700 border border-slate-200 h-10 shadow-sm"
-                                                            onClick={() => handleMedEdit(item)}
-                                                        >
-                                                            <Edit2 size={18} className="mr-2" />
-                                                            <span className="font-bold text-sm">Editar</span>
-                                                        </Button>
-                                                        <Button
-                                                            variant="ghost"
-                                                            className="flex-1 md:hidden bg-white hover:bg-rose-50 text-slate-600 hover:text-rose-700 border border-slate-200 h-10 shadow-sm"
-                                                            onClick={() => setDeleteMedId(item.id)}
-                                                        >
-                                                            <Trash2 size={18} className="mr-2" />
-                                                            <span className="font-bold text-sm">Excluir</span>
-                                                        </Button>
 
-                                                        {/* Desktop: Text Buttons (Better than just icons) */}
+                                                {/* Stock Actions - Desktop (inline with edit/delete) */}
+                                                <div className="hidden md:flex gap-2">
+                                                    <button
+                                                        onClick={() => setRefillMed(item)}
+                                                        className="flex items-center gap-2 px-3 py-2 bg-green-50 text-green-700 hover:bg-green-100 rounded-xl font-bold text-sm border border-green-200 transition-colors"
+                                                        title="Repor estoque"
+                                                    >
+                                                        <ShoppingCart size={16} />
+                                                        Repor
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setTimelineMed(item)}
+                                                        className="flex items-center gap-2 px-3 py-2 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-xl font-bold text-sm border border-blue-200 transition-colors"
+                                                        title="Ver histórico de estoque"
+                                                    >
+                                                        <History size={16} />
+                                                        Histórico
+                                                    </button>
+                                                </div>
+
+                                                {/* Edit/Delete Actions */}
+                                                {item.user_id === user?.id ? (
+                                                    <div className="w-full md:w-auto">
+                                                        {/* Mobile: Grid Layout (2 rows) */}
+                                                        <div className="grid grid-cols-2 gap-2 md:hidden">
+                                                            <Button
+                                                                variant="ghost"
+                                                                className="bg-white hover:bg-blue-50 text-slate-600 hover:text-blue-700 border border-slate-200 h-10 shadow-sm"
+                                                                onClick={() => handleMedEdit(item)}
+                                                            >
+                                                                <Edit2 size={18} className="mr-2" />
+                                                                <span className="font-bold text-sm">Editar</span>
+                                                            </Button>
+                                                            <Button
+                                                                variant="ghost"
+                                                                className="bg-white hover:bg-rose-50 text-slate-600 hover:text-rose-700 border border-slate-200 h-10 shadow-sm"
+                                                                onClick={() => setDeleteMedId(item.id)}
+                                                            >
+                                                                <Trash2 size={18} className="mr-2" />
+                                                                <span className="font-bold text-sm">Excluir</span>
+                                                            </Button>
+                                                            <Button
+                                                                variant="ghost"
+                                                                className="col-span-2 bg-white hover:bg-indigo-50 text-slate-600 hover:text-indigo-700 border border-slate-200 h-10 shadow-sm"
+                                                                onClick={() => handleDuplicateMed(item)}
+                                                            >
+                                                                <Copy size={18} className="mr-2" />
+                                                                <span className="font-bold text-sm">Duplicar</span>
+                                                            </Button>
+                                                        </div>
+
+                                                        {/* Desktop: Text Buttons */}
                                                         <div className="hidden md:flex gap-2">
                                                             <Button
                                                                 variant="ghost"
@@ -445,6 +575,14 @@ const Medications = () => {
                                                             >
                                                                 <Edit2 size={18} className="mr-2" />
                                                                 <span className="font-semibold text-sm">Editar</span>
+                                                            </Button>
+                                                            <Button
+                                                                variant="ghost"
+                                                                className="px-3 h-10 rounded-xl border border-slate-100 bg-white text-slate-500 hover:text-indigo-600 hover:border-indigo-200 hover:bg-indigo-50 transition-all"
+                                                                onClick={() => handleDuplicateMed(item)}
+                                                                title="Duplicar"
+                                                            >
+                                                                <Copy size={18} />
                                                             </Button>
                                                             <Button
                                                                 variant="ghost"
@@ -491,11 +629,15 @@ const Medications = () => {
                     <div className="w-16 h-16 bg-rose-100 rounded-full flex items-center justify-center text-rose-500 mx-auto mb-4">
                         <AlertTriangle size={32} />
                     </div>
-                    <p className="text-slate-600 text-lg">
-                        Tem certeza que deseja excluir este medicamento?
+                    <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">Tem certeza?</h3>
+                    <p className="text-slate-500 dark:text-slate-400 mb-6">
+                        Você está prestes a excluir o medicamento <br />
+                        <span className="font-extrabold text-slate-900 dark:text-white text-lg">
+                            "{medications.find(m => m.id === deleteMedId)?.name}"
+                        </span>
                     </p>
-                    <p className="text-slate-400 text-sm mt-2">
-                        Isso removerá também todas as receitas associadas a ele.
+                    <p className="text-sm text-rose-600 bg-rose-50 p-3 rounded-xl border border-rose-100">
+                        Isso removerá também todas as receitas e histórico associados.
                     </p>
                 </div>
             </Modal>

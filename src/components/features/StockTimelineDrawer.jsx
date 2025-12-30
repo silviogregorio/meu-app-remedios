@@ -80,7 +80,7 @@ const StockTimelineDrawer = ({ medication, onClose }) => {
 
     const goToFullHistory = () => {
         onClose();
-        navigate('/app/reports', { state: { activeTab: 'stock', medicationId: medication.id } });
+        navigate('/reports', { state: { activeTab: 'stock', medicationId: medication.id } });
     };
 
     return (

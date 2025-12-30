@@ -8,7 +8,7 @@ const ConfirmationModal = ({
     onClose,
     onConfirm,
     title = 'Confirmar Exclusão',
-    description = 'Tem certeza que deseja realizar esta ação? Esta ação não pode ser desfeita.',
+    description,
     confirmText = 'Excluir',
     cancelText = 'Cancelar',
     variant = 'danger',
@@ -75,10 +75,10 @@ const ConfirmationModal = ({
                 <div className={`p-3 ${config.iconBg} rounded-2xl shrink-0`}>
                     {config.icon}
                 </div>
-                <div className="space-y-2">
-                    <p className="text-slate-600 leading-relaxed font-medium">
+                <div className="space-y-2 flex-1">
+                    <div className="text-slate-600 leading-relaxed font-medium">
                         {description}
-                    </p>
+                    </div>
                 </div>
             </div>
         </Modal>

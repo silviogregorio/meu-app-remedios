@@ -22,7 +22,14 @@ const Layout = () => {
     const navigate = useNavigate();
     const location = useLocation();
 
-    // ... (keep existing state and effects up to togglePin) ...
+    // Simulate page loading for smooth transitions matching page shimmers
+    const [isPageLoading, setIsPageLoading] = useState(false);
+
+    useEffect(() => {
+        setIsPageLoading(true);
+        const timer = setTimeout(() => setIsPageLoading(false), 2000);
+        return () => clearTimeout(timer);
+    }, [location.pathname]);
 
     const showBackButton = location.pathname !== '/' && location.pathname !== '/app';
 
@@ -180,15 +187,22 @@ const Layout = () => {
                 >
                     {showBackButton && (
                         <div className="mb-4">
-                            <button
-                                onClick={() => navigate(-1)}
-                                className="flex items-center gap-2 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 transition-colors py-2 px-1 group"
-                            >
-                                <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center group-hover:bg-slate-200 dark:group-hover:bg-slate-700 transition-colors ring-1 ring-slate-200 dark:ring-slate-700">
-                                    <ChevronLeft size={20} />
+                            {isPageLoading ? (
+                                <div className="flex items-center gap-2 animate-pulse">
+                                    <div className="w-8 h-8 rounded-full bg-slate-200" />
+                                    <div className="h-4 w-16 bg-slate-200 rounded" />
                                 </div>
-                                <span className="font-semibold text-sm">Voltar</span>
-                            </button>
+                            ) : (
+                                <button
+                                    onClick={() => navigate(-1)}
+                                    className="flex items-center gap-2 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 transition-colors py-2 px-1 group"
+                                >
+                                    <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center group-hover:bg-slate-200 dark:group-hover:bg-slate-700 transition-colors ring-1 ring-slate-200 dark:ring-slate-700">
+                                        <ChevronLeft size={20} />
+                                    </div>
+                                    <span className="font-semibold text-sm">Voltar</span>
+                                </button>
+                            )}
                         </div>
                     )}
                     <Outlet />

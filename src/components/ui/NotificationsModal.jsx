@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import Modal from './Modal';
 import Button from './Button';
-import { Check, X, UserPlus, Bell, Package, ShoppingCart, Clock, AlertTriangle } from 'lucide-react';
+import { Check, X, UserPlus, Bell, Package, ShoppingCart, AlertTriangle } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { StockService } from '../../services/stockService';
 import QuickRefillModal from '../features/QuickRefillModal';
@@ -17,6 +17,13 @@ const NotificationsModal = ({ isOpen, onClose }) => {
 
     const totalNotifications = pendingShares.length + lowStockMeds.length;
 
+    // Helper to format days remaining in clear text
+    const formatDaysRemaining = (days) => {
+        if (days === 0) return '⚠️ Acaba hoje!';
+        if (days === 1) return '⚠️ Acaba amanhã!';
+        return `${days} dias restantes`;
+    };
+
     return (
         <>
             <Modal
@@ -27,37 +34,38 @@ const NotificationsModal = ({ isOpen, onClose }) => {
                 <div className="flex flex-col gap-4 max-h-[70vh] overflow-y-auto">
                     {/* Stock Alerts Section */}
                     {lowStockMeds.length > 0 && (
-                        <div className="space-y-2">
+                        <div className="space-y-3">
                             <div className="flex items-center gap-2 text-amber-600 mb-2">
-                                <AlertTriangle size={16} />
-                                <span className="text-xs font-bold uppercase tracking-wider">Estoque Baixo</span>
+                                <AlertTriangle size={18} />
+                                <span className="text-sm font-bold">Medicamentos com Estoque Baixo</span>
                             </div>
                             {lowStockMeds.map(med => (
-                                <div key={med.id} className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-center gap-3">
-                                    <div className={`p-2 rounded-lg ${med.level === 'critical' ? 'bg-rose-100' : 'bg-amber-100'}`}>
-                                        <Package size={18} className={med.level === 'critical' ? 'text-rose-600' : 'text-amber-600'} />
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <p className="font-bold text-slate-900 text-sm truncate">{med.name}</p>
-                                        <p className="text-xs text-slate-500">
-                                            {med.quantity || 0} restantes
+                                <div key={med.id} className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+                                    <div className="flex items-center gap-3">
+                                        <div className={`p-2 rounded-lg ${med.level === 'critical' ? 'bg-rose-100' : 'bg-amber-100'}`}>
+                                            <Package size={20} className={med.level === 'critical' ? 'text-rose-600' : 'text-amber-600'} />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="font-bold text-slate-900">{med.name}</p>
+                                            <p className="text-sm text-slate-600">
+                                                <span className="font-semibold">{med.quantity || 0}</span> unidades restantes
+                                            </p>
                                             {med.daysRemaining !== null && (
-                                                <span className={`ml-2 font-bold ${med.level === 'critical' ? 'text-rose-600' : 'text-amber-600'}`}>
-                                                    <Clock size={10} className="inline mr-0.5" />
-                                                    {med.daysRemaining}d
-                                                </span>
+                                                <p className={`text-sm font-bold ${med.level === 'critical' ? 'text-rose-600' : 'text-amber-600'}`}>
+                                                    {formatDaysRemaining(med.daysRemaining)}
+                                                </p>
                                             )}
-                                        </p>
+                                        </div>
                                     </div>
                                     <button
                                         onClick={() => setRefillMed(med)}
-                                        className={`p-2 rounded-lg transition-colors ${med.level === 'critical'
-                                                ? 'bg-rose-100 text-rose-600 hover:bg-rose-200'
-                                                : 'bg-amber-100 text-amber-600 hover:bg-amber-200'
+                                        className={`w-full mt-3 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-colors ${med.level === 'critical'
+                                                ? 'bg-rose-500 text-white hover:bg-rose-600'
+                                                : 'bg-amber-500 text-white hover:bg-amber-600'
                                             }`}
-                                        title="Adicionar estoque"
                                     >
                                         <ShoppingCart size={16} />
+                                        Repor Estoque
                                     </button>
                                 </div>
                             ))}
@@ -69,7 +77,7 @@ const NotificationsModal = ({ isOpen, onClose }) => {
                         <div className="space-y-2">
                             <div className="flex items-center gap-2 text-blue-600 mb-2">
                                 <UserPlus size={16} />
-                                <span className="text-xs font-bold uppercase tracking-wider">Convites Pendentes</span>
+                                <span className="text-sm font-bold">Convites Pendentes</span>
                             </div>
                             {pendingShares.map(share => (
                                 <div key={share.id} className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">

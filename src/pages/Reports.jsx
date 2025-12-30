@@ -23,6 +23,7 @@ import {
 
 
 const ITEMS_PER_PAGE = 6;
+const ITEMS_PER_PAGE_STOCK = 8; // User Request
 
 const Reports = () => {
     const { patients, medications, prescriptions, consumptionLog, showToast } = useApp();
@@ -70,6 +71,12 @@ const Reports = () => {
 
     const [stockData, setStockData] = useState([]);
     const [loadingStock, setLoadingStock] = useState(false);
+    const [stockPage, setStockPage] = useState(1); // Added for Stock Pagination
+
+    // Reset stock page on filters change
+    React.useEffect(() => {
+        setStockPage(1);
+    }, [filters]);
 
     const [reportData, setReportData] = useState(null);
     const [showEmailModal, setShowEmailModal] = useState(false);
@@ -182,6 +189,67 @@ const Reports = () => {
             setLoadingStock(false);
         }
     };
+
+
+
+    React.useEffect(() => {
+        setCurrentPage(1);
+    }, [filters.status, activeTab, selectedDay, selectedMonth]);
+
+    // Lógica de Aniversariantes
+    React.useEffect(() => {
+        if (activeTab === 'birthdays') {
+            const birthdays = patients.filter(patient => {
+                if (!patient.birthDate) return false;
+                const [pYear, pMonth, pDay] = patient.birthDate.split('-').map(Number);
+                // Compara apenas Mês e Dia
+                return pMonth === selectedMonth && pDay === selectedDay;
+            }).map(patient => {
+                const birth = new Date(patient.birthDate);
+                const today = new Date(); // Usar a data selecionada ou hoje para calcular idade? Geralmente hoje.
+
+                // Cálculo detalhado da idade
+                let years = today.getFullYear() - birth.getFullYear();
+                let months = today.getMonth() - birth.getMonth();
+                let days = today.getDate() - birth.getDate();
+
+                if (days < 0) {
+                    months--;
+                    // Dias do mês anterior
+                    const lastMonth = new Date(today.getFullYear(), today.getMonth(), 0);
+                    days += lastMonth.getDate();
+                }
+
+                if (months < 0) {
+                    years--;
+                    months += 12;
+                }
+
+                const parts = [];
+                if (years > 0) parts.push(`${years} ano${years > 1 ? 's' : ''}`);
+                if (months > 0) parts.push(`${months} mês${months > 1 ? 'es' : ''}`);
+                if (days > 0) parts.push(`${days} dia${days > 1 ? 's' : ''}`);
+
+                const detailedAge = parts.length > 0 ? parts.join(', ') : 'Hoje!';
+
+                return {
+                    ...patient,
+                    age: years,
+                    detailedAge
+                };
+            });
+            setBirthdayData(birthdays);
+        }
+    }, [activeTab, selectedDay, selectedMonth, patients]);
+
+    // Fetch Stock History
+    React.useEffect(() => {
+        if (activeTab === 'stock') {
+            fetchStockHistory();
+        }
+    }, [activeTab, filters.startDate, filters.endDate, filters.patientId, filters.medicationId]);
+
+
 
     // Calculate Dashboard Metrics
     const getDashboardData = () => {
@@ -607,6 +675,12 @@ const Reports = () => {
         }
     };
 
+    const totalStockPages = Math.ceil(stockData.length / ITEMS_PER_PAGE_STOCK);
+    const paginatedStock = stockData.slice(
+        (stockPage - 1) * ITEMS_PER_PAGE_STOCK,
+        stockPage * ITEMS_PER_PAGE_STOCK
+    );
+
     const filteredReportItems = reportData?.items.filter(
         item => filters.status === 'all' || item.status === filters.status
     ) || [];
@@ -785,7 +859,7 @@ const Reports = () => {
                             <div className="space-y-4">
                                 {/* Mobile View: Cards */}
                                 <div className="grid grid-cols-1 gap-4 md:hidden">
-                                    {stockData.map((item) => {
+                                    {paginatedStock.map((item) => {
                                         const isPositive = item.quantity_change > 0;
                                         const reasonMap = {
                                             'consumption': 'Consumo',
@@ -860,7 +934,7 @@ const Reports = () => {
                                                     </tr>
                                                 </thead>
                                                 <tbody className="divide-y divide-slate-100">
-                                                    {stockData.map((item) => {
+                                                    {paginatedStock.map((item) => {
                                                         const isPositive = item.quantity_change > 0;
                                                         const reasonMap = {
                                                             'consumption': 'Consumo',
@@ -909,6 +983,11 @@ const Reports = () => {
                                         </div>
                                     </Card>
                                 </div>
+                                <Pagination
+                                    currentPage={stockPage}
+                                    totalPages={totalStockPages}
+                                    onPageChange={setStockPage}
+                                />
                             </div>
                         )}
                     </div>
@@ -919,6 +998,7 @@ const Reports = () => {
                         <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 text-blue-700 text-sm no-print leading-snug">
                             Acompanhe seu progresso em um só lugar. Visualize taxas de adesão e atividade semanal com gráficos dinâmicos.
                         </div>
+
                         {/* Summary Cards */}
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                             <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
