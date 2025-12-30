@@ -190,8 +190,14 @@ const Sidebar = ({ isOpen, onClose, isPinned, onTogglePin }) => {
                             <LogOut size={20} aria-hidden="true" />
                             <span>Sair</span>
                         </button>
+
+                        {/* Versão do app - discreto */}
+                        <div className="mt-2 text-[10px] text-gray-400 dark:text-slate-600 text-center">
+                            v{typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '?'}
+                        </div>
                     </div>
                 </div>
+
             </aside>
         </>
     );
