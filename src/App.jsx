@@ -30,6 +30,7 @@ import AdminSettings from './pages/AdminSettings';
 import Widget from './pages/Widget';
 
 import NotificationManager from './components/NotificationManager';
+import AppUpdateChecker from './components/AppUpdateChecker';
 import ScrollToTop from './components/ScrollToTop';
 import { ThemeProvider } from './context/ThemeContext';
 import { SpeedInsights } from "@vercel/speed-insights/react";
@@ -42,6 +43,8 @@ function App() {
           <AppProvider>
             <SpeedInsights />
             <NotificationManager />
+            <AppUpdateChecker />
+
             <BrowserRouter>
               <ScrollToTop />
               <Routes>

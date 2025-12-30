@@ -1,9 +1,27 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
+import fs from 'fs'
+import path from 'path'
 
 // https://vite.dev/config/
 import packageJson from './package.json';
+
+// Plugin para gerar version.json automaticamente no build
+const versionPlugin = () => ({
+  name: 'version-plugin',
+  buildStart() {
+    const versionInfo = {
+      version: packageJson.version,
+      buildTime: new Date().toISOString()
+    };
+    fs.writeFileSync(
+      path.resolve(__dirname, 'public/version.json'),
+      JSON.stringify(versionInfo, null, 2)
+    );
+    console.log(`✅ version.json gerado: v${packageJson.version}`);
+  }
+});
 
 export default defineConfig({
   define: {
@@ -11,6 +29,8 @@ export default defineConfig({
   },
   plugins: [
     react(),
+    versionPlugin(),
+
     // VitePWA({
     //   registerType: 'autoUpdate',
     //   workbox: {
@@ -44,7 +64,9 @@ export default defineConfig({
   ],
   server: {
     port: 3000,
+    strictPort: true,  // Sempre usa porta 3000, nunca muda
     host: true,
+
     proxy: {
       '/api': {
         target: 'http://localhost:3001',
