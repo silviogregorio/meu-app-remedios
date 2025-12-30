@@ -695,8 +695,12 @@ const HealthDiary = () => {
 
                     {activeTab === 'adherence' && (
                         <div className="animate-in fade-in slide-in-from-bottom-2">
-                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                                <div className="lg:col-span-2">
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                <div className="space-y-4">
+                                    <div className="bg-blue-50 border border-blue-100 p-3 rounded-xl flex items-center gap-2 text-blue-700 text-sm font-medium">
+                                        <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+                                        Clique no dia para ver os sinais do dia selecionado.
+                                    </div>
                                     <CalendarView
                                         prescriptions={prescriptions}
                                         consumptionLog={consumptionLog}

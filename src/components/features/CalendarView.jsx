@@ -84,36 +84,36 @@ const CalendarView = ({ prescriptions, consumptionLog, healthLogs = [], onDateSe
     return (
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
             {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b border-slate-100 bg-slate-50">
-                <h3 className="font-bold text-lg text-slate-800 capitalize">
+            <div className="flex items-center justify-between p-3 border-b border-slate-100 bg-slate-50">
+                <h3 className="font-bold text-base text-slate-800 capitalize">
                     {format(currentDate, 'MMMM yyyy', { locale: ptBR })}
                 </h3>
                 <div className="flex gap-1">
-                    <button onClick={prevMonth} className="p-2 hover:bg-white rounded-lg border border-transparent hover:border-slate-200 transition-all text-slate-600">
-                        <ChevronLeft size={20} />
+                    <button onClick={prevMonth} className="p-1.5 hover:bg-white rounded-lg border border-transparent hover:border-slate-200 transition-all text-slate-600">
+                        <ChevronLeft size={18} />
                     </button>
-                    <button onClick={handleToday} className="px-3 py-1 text-sm font-medium hover:bg-white rounded-lg border border-transparent hover:border-slate-200 transition-all text-slate-600">
+                    <button onClick={handleToday} className="px-2 py-0.5 text-xs font-medium hover:bg-white rounded-lg border border-transparent hover:border-slate-200 transition-all text-slate-600">
                         Hoje
                     </button>
-                    <button onClick={nextMonth} className="p-2 hover:bg-white rounded-lg border border-transparent hover:border-slate-200 transition-all text-slate-600">
-                        <ChevronRight size={20} />
+                    <button onClick={nextMonth} className="p-1.5 hover:bg-white rounded-lg border border-transparent hover:border-slate-200 transition-all text-slate-600">
+                        <ChevronRight size={18} />
                     </button>
                 </div>
             </div>
 
             {/* Grid */}
-            <div className="p-4">
+            <div className="p-3">
                 {/* Weekdays */}
-                <div className="grid grid-cols-7 mb-2">
+                <div className="grid grid-cols-7 mb-1">
                     {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map((day, i) => (
-                        <div key={i} className="text-center text-xs font-bold text-slate-400 py-2">
+                        <div key={i} className="text-center text-[10px] font-bold text-slate-400 py-1">
                             {day}
                         </div>
                     ))}
                 </div>
 
                 {/* Days */}
-                <div className="grid grid-cols-7 gap-1 sm:gap-2">
+                <div className="grid grid-cols-7 gap-1">
                     {/* Padding for start of month */}
                     {Array.from({ length: startOfMonth(currentDate).getDay() }).map((_, i) => (
                         <div key={`empty-${i}`} />
@@ -166,11 +166,11 @@ const CalendarView = ({ prescriptions, consumptionLog, healthLogs = [], onDateSe
                                 key={day.toString()}
                                 onClick={() => onDateSelect(dateStr)}
                                 className={`
-                                    aspect-square rounded-xl border flex flex-col items-center justify-center transition-all relative
+                                    aspect-square rounded-lg border flex flex-col items-center justify-center transition-all relative
                                     ${bgClass}
                                 `}
                             >
-                                <span className="text-sm">{format(day, 'd')}</span>
+                                <span className="text-xs">{format(day, 'd')}</span>
                                 {statusIcon}
                             </button>
                         );
@@ -179,21 +179,21 @@ const CalendarView = ({ prescriptions, consumptionLog, healthLogs = [], onDateSe
             </div>
 
             {/* Legend */}
-            <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 px-4 py-3 border-t border-slate-100 bg-slate-50/50 text-xs text-slate-500">
-                <div className="flex items-center gap-1.5">
-                    <div className="w-2 h-2 rounded-full bg-emerald-500" />
+            <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5 px-3 py-2 border-t border-slate-100 bg-slate-50/50 text-[10px] text-slate-500">
+                <div className="flex items-center gap-1">
+                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                     <span>Tomado</span>
                 </div>
-                <div className="flex items-center gap-1.5">
-                    <div className="w-2 h-2 rounded-full bg-blue-500" />
+                <div className="flex items-center gap-1">
+                    <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
                     <span>Registros</span>
                 </div>
-                <div className="flex items-center gap-1.5">
-                    <div className="w-2 h-2 rounded-full bg-amber-500" />
+                <div className="flex items-center gap-1">
+                    <div className="w-1.5 h-1.5 rounded-full bg-amber-500" />
                     <span>Parcial</span>
                 </div>
-                <div className="flex items-center gap-1.5">
-                    <div className="w-2 h-2 rounded-full bg-rose-500" />
+                <div className="flex items-center gap-1">
+                    <div className="w-1.5 h-1.5 rounded-full bg-rose-500" />
                     <span>Não Tomado</span>
                 </div>
             </div>
