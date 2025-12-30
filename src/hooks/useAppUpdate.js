@@ -15,6 +15,8 @@ export const useAppUpdate = () => {
     const [updateAvailable, setUpdateAvailable] = useState(false);
     const checkIntervalRef = useRef(null);
     const hasShownToast = useRef(false);
+    // Auto-versioning is now active via GitHub Actions
+
 
     const checkForUpdates = async () => {
         try {
