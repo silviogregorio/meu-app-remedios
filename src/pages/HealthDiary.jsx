@@ -900,15 +900,16 @@ const HealthDiary = () => {
                                                                                         </p>
 
                                                                                         {/* Row 3: Frequency & Status */}
-                                                                                        <div className="flex items-center justify-between gap-2 border-t border-slate-50 pt-2 mt-0.5">
-                                                                                            <p className="text-xs text-slate-400 font-medium whitespace-nowrap">
+                                                                                        <div className="flex items-center gap-2 border-t border-slate-50 pt-2 mt-0.5">
+                                                                                            <p className="text-xs text-slate-400 font-medium flex-1 min-w-0 truncate" title={`${prescription.times?.length}x ao dia • ${prescription.times?.join(' - ')}`}>
                                                                                                 {prescription.times?.length}x ao dia • {prescription.times?.join(' - ')}
                                                                                             </p>
 
-                                                                                            <div className={`px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider whitespace-nowrap ${statusColor}`}>
+                                                                                            <div className={`px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider whitespace-nowrap shrink-0 ${statusColor}`}>
                                                                                                 {statusText}
                                                                                             </div>
                                                                                         </div>
+
                                                                                     </div>
                                                                                 </div>
                                                                             </div>
