@@ -451,7 +451,7 @@ const HealthDiary = () => {
     // handlePrint_Legacy foi removido - código legado não utilizado
 
     return (
-        <div className="flex flex-col gap-8 pb-24 animate-in fade-in duration-500 max-w-6xl mx-auto w-full px-4 md:px-6">
+        <div className="flex flex-col gap-8 pt-8 pb-24 animate-in fade-in duration-500 max-w-6xl mx-auto w-full px-4 md:px-6">
             {activeTab !== 'symptoms' && (
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 no-print">
                     <div>
@@ -697,8 +697,8 @@ const HealthDiary = () => {
                         <div className="animate-in fade-in slide-in-from-bottom-2">
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                                 <div className="space-y-4">
-                                    <div className="bg-blue-50 border border-blue-100 p-3 rounded-xl flex items-center gap-2 text-blue-700 text-sm font-medium">
-                                        <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+                                    <div className="bg-slate-50 border border-slate-200/60 p-3 rounded-xl flex items-center gap-2 text-slate-600 text-[13px] font-medium">
+                                        <Info size={14} className="text-blue-400" />
                                         Clique no dia para ver os sinais do dia selecionado.
                                     </div>
                                     <CalendarView
@@ -1266,22 +1266,22 @@ const HealthDiary = () => {
                                                 </div>
                                             </div>
 
-                                            {/* Row 2: Large Action Button */}
-                                            <div className="pt-2">
+                                            {/* Row 2: Action Button */}
+                                            <div className="pt-1">
                                                 {isTaken ? (
                                                     <button
                                                         onClick={() => handleToggleDose(time, isTaken)}
-                                                        className="w-full flex items-center justify-center gap-2 p-3 rounded-xl border-2 border-rose-300 bg-rose-50 text-rose-700 hover:bg-rose-100 font-bold transition-all active:scale-[0.98]"
+                                                        className="w-full flex items-center justify-center gap-2 p-2.5 rounded-xl border border-rose-200 bg-rose-50/50 text-rose-600 hover:bg-rose-100/50 font-semibold text-sm transition-all active:scale-[0.98]"
                                                     >
-                                                        <RotateCcw size={20} />
+                                                        <RotateCcw size={16} />
                                                         DESFAZER (Marcar como não tomado)
                                                     </button>
                                                 ) : (
                                                     <button
                                                         onClick={() => handleToggleDose(time, isTaken)}
-                                                        className="w-full flex items-center justify-center gap-2 p-4 rounded-xl bg-emerald-600 text-white shadow-md hover:bg-emerald-700 font-bold text-lg transition-all active:scale-[0.98]"
+                                                        className="w-full flex items-center justify-center gap-2 p-3 rounded-xl bg-emerald-500 text-white shadow-sm hover:bg-emerald-600 font-bold text-base transition-all active:scale-[0.98]"
                                                     >
-                                                        <CheckCircle2 size={24} />
+                                                        <CheckCircle2 size={20} />
                                                         CONFIRMAR QUE TOMEI
                                                     </button>
                                                 )}
