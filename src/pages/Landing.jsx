@@ -153,41 +153,60 @@ const Landing = () => {
             {/* Navbar - Fixed */}
             <nav className="fixed top-0 left-0 right-0 z-50 bg-slate-50/90 backdrop-blur-md border-b border-slate-200/50 shadow-sm transition-all duration-300">
                 {/* DEBUG BANNER REmoved */}
-                <div className="flex items-center justify-between px-6 py-4 max-w-7xl mx-auto">
-                    <div className="flex items-center gap-2">
-                        <img src="/assets/logo.png" alt="SiG Remédios Logo" className="w-10 h-10 object-contain animate-heartbeat rounded-lg" />
-                        <span className="text-xl font-bold text-slate-900 hidden sm:block">SiG Remédios</span>
+                <div className="flex items-center justify-between px-4 md:px-6 py-3 md:py-4 max-w-7xl mx-auto">
+                    {/* Left Side: Logo + Entrar (mobile) */}
+                    <div className="flex items-center gap-3">
+                        <img src="/assets/logo.png" alt="SiG Remédios Logo" className="w-9 h-9 md:w-10 md:h-10 object-contain animate-heartbeat rounded-lg" />
+                        <span className="text-lg md:text-xl font-bold text-slate-900 hidden sm:block">SiG Remédios</span>
+
+                        {/* Entrar - visible on mobile, next to logo */}
+                        <button
+                            onClick={() => navigate('/login')}
+                            className="md:hidden px-3 py-1.5 text-sm text-slate-600 hover:text-blue-600 font-medium transition-colors border border-slate-200 rounded-lg"
+                        >
+                            Entrar
+                        </button>
                     </div>
 
+                    {/* Center: Desktop Nav Links */}
                     <div className="hidden md:flex items-center gap-8">
                         <a href="#features" className="text-sm font-medium text-slate-600 hover:text-blue-600 transition-colors">Funcionalidades</a>
                         <a href="#about" className="text-sm font-medium text-slate-600 hover:text-blue-600 transition-colors">Sobre</a>
                         <a href="#contact" className="text-sm font-medium text-slate-600 hover:text-blue-600 transition-colors">Contato</a>
                     </div>
-                    <div className="flex items-center gap-2 md:gap-4">
+
+                    {/* Right Side: Actions */}
+                    <div className="flex items-center gap-2 md:gap-3">
+                        {/* Install App - icon only on mobile */}
                         <button
                             onClick={handleInstallClick}
-                            className="p-2 md:px-4 md:py-2 bg-teal-600 hover:bg-teal-700 text-white font-medium rounded-lg transition-colors shadow-lg shadow-teal-600/20 flex items-center gap-2 animate-pulse"
+                            className="p-2 md:px-4 md:py-2 bg-teal-600 hover:bg-teal-700 text-white font-medium rounded-lg transition-colors shadow-md shadow-teal-600/20 flex items-center gap-2"
                             title="Instalar Aplicativo"
                         >
                             <Smartphone size={18} />
                             <span className="hidden md:inline">Instalar App</span>
                         </button>
+
+                        {/* Entrar - desktop only */}
                         <button
                             onClick={() => navigate('/login')}
-                            className="px-4 py-2 text-slate-600 hover:text-blue-600 font-medium transition-colors"
+                            className="hidden md:block px-4 py-2 text-slate-600 hover:text-blue-600 font-medium transition-colors"
                         >
                             Entrar
                         </button>
+
+                        {/* Criar Conta */}
                         <button
                             onClick={() => navigate('/register')}
-                            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors shadow-lg shadow-blue-600/20"
+                            className="px-3 md:px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm md:text-base font-medium rounded-lg transition-colors shadow-md shadow-blue-600/20"
                         >
-                            Criar Conta
+                            <span className="hidden sm:inline">Criar Conta</span>
+                            <span className="sm:hidden">Cadastrar</span>
                         </button>
                     </div>
                 </div>
             </nav>
+
 
             {/* Hero Section - Added Padding Details */}
             <header className="px-6 pt-20 pb-12 md:pt-24 md:pb-16 max-w-7xl mx-auto flex flex-col md:flex-row items-center gap-12">
