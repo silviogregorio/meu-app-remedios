@@ -7,26 +7,31 @@ import path from 'path'
 // https://vite.dev/config/
 import packageJson from './package.json';
 
+// Timestamp único do build - muda a cada deploy automaticamente
+const BUILD_TIME = new Date().toISOString();
+
 // Plugin para gerar version.json automaticamente no build
 const versionPlugin = () => ({
   name: 'version-plugin',
   buildStart() {
     const versionInfo = {
       version: packageJson.version,
-      buildTime: new Date().toISOString()
+      buildTime: BUILD_TIME
     };
     fs.writeFileSync(
       path.resolve(__dirname, 'public/version.json'),
       JSON.stringify(versionInfo, null, 2)
     );
-    console.log(`✅ version.json gerado: v${packageJson.version}`);
+    console.log(`✅ version.json gerado: v${packageJson.version} (build: ${BUILD_TIME})`);
   }
 });
 
 export default defineConfig({
   define: {
-    '__APP_VERSION__': JSON.stringify(packageJson.version)
+    '__APP_VERSION__': JSON.stringify(packageJson.version),
+    '__BUILD_TIME__': JSON.stringify(BUILD_TIME)
   },
+
   plugins: [
     react(),
     versionPlugin(),

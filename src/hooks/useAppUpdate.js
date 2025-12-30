@@ -1,14 +1,18 @@
 import { useEffect, useState, useRef } from 'react';
 import { useApp } from '../context/AppContext';
 
+// Build time é injetado pelo Vite durante o build
+const BUILD_TIME = typeof __BUILD_TIME__ !== 'undefined' ? __BUILD_TIME__ : '0';
+const APP_VERSION = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0.0.0';
+
 /**
  * Hook para verificar atualizações do app automaticamente.
- * Compara a versão local com version.json no servidor.
+ * Compara o buildTime local com version.json no servidor.
+ * 100% automático - cada deploy gera um novo buildTime.
  */
 export const useAppUpdate = () => {
     const { showToast } = useApp();
     const [updateAvailable, setUpdateAvailable] = useState(false);
-    const currentVersion = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0.0.0';
     const checkIntervalRef = useRef(null);
     const hasShownToast = useRef(false);
 
@@ -23,11 +27,12 @@ export const useAppUpdate = () => {
             if (!response.ok) return;
 
             const data = await response.json();
+            const serverBuildTime = data.buildTime;
             const serverVersion = data.version;
 
-            // Compara versões
-            if (serverVersion && serverVersion !== currentVersion) {
-                console.log(`🔄 Nova versão detectada: ${currentVersion} → ${serverVersion}`);
+            // Compara buildTime (timestamp do build) - muda automaticamente a cada deploy
+            if (serverBuildTime && serverBuildTime !== BUILD_TIME) {
+                console.log(`🔄 Nova versão detectada: ${APP_VERSION} → ${serverVersion} (build: ${serverBuildTime})`);
                 setUpdateAvailable(true);
 
                 if (!hasShownToast.current) {
@@ -88,7 +93,7 @@ export const useAppUpdate = () => {
         };
     }, []);
 
-    return { updateAvailable, checkForUpdates, forceUpdate, currentVersion };
+    return { updateAvailable, checkForUpdates, forceUpdate, currentVersion: APP_VERSION };
 };
 
 export default useAppUpdate;
