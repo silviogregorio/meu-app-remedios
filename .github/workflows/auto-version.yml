@@ -1,0 +1,54 @@
+name: Auto Version Bump
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - 'package.json'
+      - 'public/version.json'
+
+jobs:
+  bump-version:
+    runs-on: ubuntu-latest
+    # Evita loop infinito de commits
+    if: "!contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, 'auto-version')"
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Increment Version
+        run: |
+          # Lê versão atual
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          echo "Versão atual: $CURRENT_VERSION"
+          
+          # Incrementa patch version
+          npm version patch --no-git-tag-version
+          
+          # Lê nova versão
+          NEW_VERSION=$(node -p "require('./package.json').version")
+          echo "Nova versão: $NEW_VERSION"
+          echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
+
+      - name: Update version.json
+        run: |
+          echo "{\"version\": \"${{ env.NEW_VERSION }}\", \"buildTime\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" > public/version.json
+          cat public/version.json
+
+      - name: Commit and Push
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add package.json public/version.json
+          git commit -m "auto-version: bump to v${{ env.NEW_VERSION }} [skip ci]"
+          git push
