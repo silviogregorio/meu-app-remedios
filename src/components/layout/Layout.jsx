@@ -5,10 +5,12 @@ import Sidebar from '../ui/Sidebar';
 import { ChevronLeft } from 'lucide-react'; // Added icon
 
 import { useApp } from '../../context/AppContext';
+import { useAuth } from '../../context/AuthContext';
 import { setupOnMessageListener } from '../../utils/firebase';
 
 const Layout = () => {
     const { accessibility, showToast } = useApp();
+    const { mfaRequired, loading } = useAuth();
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [isPinned, setIsPinned] = useState(() => {
         const saved = localStorage.getItem('sidebarPinned');
@@ -163,11 +165,14 @@ const Layout = () => {
 
             {/* Content Wrapper with Sidebar Offset */}
             <div className={`transition-all duration-300 ease-in-out ${isPinned ? 'md:ml-64' : ''}`}>
-                <Header
-                    onMenuClick={() => setIsSidebarOpen(true)}
-                    isPinned={isPinned}
-                    ref={headerRef}
-                />
+                {/* Hide Header when loading or MFA verification is pending (mfaRequired is true or null) */}
+                {!loading && mfaRequired === false && (
+                    <Header
+                        onMenuClick={() => setIsSidebarOpen(true)}
+                        isPinned={isPinned}
+                        ref={headerRef}
+                    />
+                )}
 
                 <main
                     className="px-4 pb-5 max-w-5xl mx-auto relative z-10"
@@ -190,12 +195,15 @@ const Layout = () => {
                 </main>
             </div>
 
-            <Sidebar
-                isOpen={isSidebarOpen}
-                onClose={() => setIsSidebarOpen(false)}
-                isPinned={isPinned}
-                onTogglePin={togglePin}
-            />
+            {/* Hide Sidebar when loading or MFA verification is pending */}
+            {!loading && mfaRequired === false && (
+                <Sidebar
+                    isOpen={isSidebarOpen}
+                    onClose={() => setIsSidebarOpen(false)}
+                    isPinned={isPinned}
+                    onTogglePin={togglePin}
+                />
+            )}
         </div>
     );
 };

@@ -94,6 +94,7 @@ const Sidebar = ({ isOpen, onClose, isPinned, onTogglePin }) => {
                 role="navigation"
                 aria-label="Menu principal"
                 aria-hidden={!isOpen && !isPinned}
+                inert={(!isOpen && !isPinned) ? true : undefined}
             >
                 {/* Header - Static */}
                 <div className="flex items-center justify-between p-4 bg-white dark:bg-slate-900 border-b border-gray-100 dark:border-slate-800 shrink-0">
@@ -169,9 +170,19 @@ const Sidebar = ({ isOpen, onClose, isPinned, onTogglePin }) => {
                     <div className="p-4">
                         <button
                             onClick={async () => {
-                                await logout();
-                                onClose();
-                                window.location.href = '/';
+                                console.log('🚪 Sidebar: Iniciando logout...');
+                                try {
+                                    await Promise.race([
+                                        logout(),
+                                        new Promise((_, reject) => setTimeout(() => reject(new Error('Logout timeout')), 2000))
+                                    ]);
+                                    console.log('🚪 Sidebar: Logout concluído.');
+                                } catch (err) {
+                                    console.warn('🚪 Sidebar: Erro ou timeout no logout, forçando redirecionamento:', err);
+                                } finally {
+                                    onClose();
+                                    window.location.href = '/';
+                                }
                             }}
                             className="flex items-center gap-3 px-4 py-3 w-full text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-colors min-h-[48px] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-red-500/50"
                             aria-label="Sair da conta"

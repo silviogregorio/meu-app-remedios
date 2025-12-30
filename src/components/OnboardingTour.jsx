@@ -11,7 +11,7 @@ const OnboardingTour = ({ onTourEnd }) => {
     }, [onTourEnd]);
 
     useEffect(() => {
-        console.log('[OnboardingTour] Mounted. Initializing detailed content driver...');
+        // console.log('[OnboardingTour] Mounted. Initializing detailed content driver...');
 
         const ensureSidebarOpen = async () => {
             const sidebar = document.querySelector('aside');

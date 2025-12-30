@@ -33,15 +33,22 @@ export function generateReportText(reportData, filters, patients) {
         item => filters.status === 'all' || item.status === filters.status
     );
 
-    let text = '*RELATÓRIO DE MEDICAÇÕES*\n\n';
-    text += '*Período:* ' + formatDate(reportData.filters.startDate) + ' até ' + formatDate(reportData.filters.endDate) + '\n';
+    const emojiCapsule = String.fromCodePoint(0x1F48A); // 💊
+    const emojiChart = String.fromCodePoint(0x1F4CA);   // 📊
+    const emojiUser = String.fromCodePoint(0x1F464);    // 👤
+    const emojiCheck = String.fromCodePoint(0x2705);    // ✅
+    const emojiBell = String.fromCodePoint(0x2611);     // ☑️ (ou use outro para pendente)
+    const emojiCalendar = String.fromCodePoint(0x1F4C5);// 📅
+
+    let text = `${emojiCapsule} *RELATÓRIO DE MEDICAÇÕES*\n\n`;
+    text += `${emojiCalendar} *Período:* ` + formatDate(reportData.filters.startDate) + ' até ' + formatDate(reportData.filters.endDate) + '\n';
 
     if (reportData.filters.patientId !== 'all') {
         const patient = patients.find(p => p.id === reportData.filters.patientId);
-        text += '*Paciente:* ' + patient?.name + '\n';
+        text += `${emojiUser} *Paciente:* ` + patient?.name + '\n';
     }
 
-    text += '\n*RESUMO*\n';
+    text += `\n${emojiChart} *RESUMO*\n`;
     text += 'Total: ' + reportData.summary.total + '\n';
     text += 'Tomadas: ' + reportData.summary.taken + '\n';
     text += 'Pendentes: ' + reportData.summary.pending + '\n';
@@ -210,16 +217,21 @@ export function generateReportHtml(reportData, filters, patients, emailData = {}
 export function generateStockReportText(stockData, filters, patients, medications) {
     if (!stockData || stockData.length === 0) return '';
 
-    let text = '*RELATÓRIO DE ESTOQUE E MOVIMENTAÇÕES*\n\n';
-    text += '*Período:* ' + formatDate(filters.startDate) + ' até ' + formatDate(filters.endDate) + '\n';
+    const emojiBox = String.fromCodePoint(0x1F4E6);     // 📦
+    const emojiCalendar = String.fromCodePoint(0x1F4C5);// 📅
+    const emojiUser = String.fromCodePoint(0x1F464);    // 👤
+    const emojiCapsule = String.fromCodePoint(0x1F48A); // 💊
+
+    let text = `${emojiBox} *RELATÓRIO DE ESTOQUE E MOVIMENTAÇÕES*\n\n`;
+    text += `${emojiCalendar} *Período:* ` + formatDate(filters.startDate) + ' até ' + formatDate(filters.endDate) + '\n';
 
     if (filters.patientId !== 'all') {
         const patient = patients.find(p => p.id === filters.patientId);
-        text += '*Paciente:* ' + (patient?.name || 'N/A') + '\n';
+        text += `${emojiUser} *Paciente:* ` + (patient?.name || 'N/A') + '\n';
     }
     if (filters.medicationId !== 'all') {
         const med = medications.find(m => m.id === filters.medicationId);
-        text += '*Medicamento:* ' + (med ? `${med.name} ${med.dosage}` : 'N/A') + '\n';
+        text += `${emojiCapsule} *Medicamento:* ` + (med ? `${med.name} ${med.dosage}` : 'N/A') + '\n';
     }
 
     text += '\n*MOVIMENTAÇÕES RECENTES*\n';
@@ -315,11 +327,11 @@ export function generateStockReportHtml(stockData, filters) {
  * Categorias de sinais vitais para o Diário de Saúde
  */
 export const HEALTH_CATEGORIES = [
-    { id: 'pressure', label: 'Pressão Arterial', emoji: '🩺', unit: 'mmHg' },
-    { id: 'glucose', label: 'Glicemia', emoji: '🩸', unit: 'mg/dL' },
-    { id: 'weight', label: 'Peso', emoji: '⚖️', unit: 'kg' },
-    { id: 'temperature', label: 'Temperatura', emoji: '🌡️', unit: '°C' },
-    { id: 'heart_rate', label: 'Batimentos', emoji: '💓', unit: 'bpm' },
+    { id: 'pressure', label: 'Pressão Arterial', emoji: String.fromCodePoint(0x1FA7A), unit: 'mmHg' }, // 🩺 (0x1FA7A)
+    { id: 'glucose', label: 'Glicemia', emoji: String.fromCodePoint(0x1FA78), unit: 'mg/dL' },      // 🩸 (0x1FA78)
+    { id: 'weight', label: 'Peso', emoji: String.fromCodePoint(0x2696), unit: 'kg' },               // ⚖️ (0x2696)
+    { id: 'temperature', label: 'Temperatura', emoji: String.fromCodePoint(0x1F321), unit: '°C' },  // 🌡️ (0x1F321)
+    { id: 'heart_rate', label: 'Batimentos', emoji: String.fromCodePoint(0x1F493), unit: 'bpm' },   // 💓 (0x1F493)
 ];
 
 /**

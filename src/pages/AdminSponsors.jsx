@@ -276,21 +276,23 @@ const AdminSponsors = () => {
             {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
             {/* Header Section */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-200 pb-6">
-                <div>
-                    <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Parceiros & Patrocinadores</h1>
-                    <p className="text-slate-500 mt-1 flex items-center gap-2">
-                        <Globe size={16} />
-                        Gerencie a visibilidade e ofertas por região.
-                    </p>
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 border-b border-slate-200 pb-8">
+                <div className="flex-1 min-w-0">
+                    <h1 className="text-3xl font-black text-slate-900 tracking-tight leading-tight">Parceiros & Patrocinadores</h1>
+                    <div className="flex items-center gap-2 mt-2 text-slate-500 font-bold">
+                        <div className="p-1 px-2 bg-slate-100 rounded text-slate-400 shrink-0">
+                            <Globe size={14} />
+                        </div>
+                        <p className="text-sm">Gerencie a visibilidade e ofertas por região.</p>
+                    </div>
                 </div>
                 {!showForm && (
                     <button
                         onClick={() => { handleCancel(); setShowForm(true); }}
-                        className="group flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-xl font-bold shadow-lg shadow-blue-600/20 transition-all hover:scale-105 active:scale-95"
+                        className="w-full md:w-auto group flex items-center justify-center gap-3 bg-blue-600 hover:bg-blue-700 text-white px-6 py-4 rounded-2xl font-black shadow-xl shadow-blue-600/20 transition-all hover:scale-[1.02] active:scale-95"
                     >
-                        <Plus size={20} className="group-hover:rotate-90 transition-transform" />
-                        Novo Parceiro
+                        <Plus size={22} className="group-hover:rotate-90 transition-transform" />
+                        <span>Novo Parceiro</span>
                     </button>
                 )}
             </div>
@@ -552,89 +554,144 @@ const AdminSponsors = () => {
                 </div>
             )}
 
-            {/* Sponsors List - Table View (Cleaner) */}
-            <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
-                        <thead>
-                            <tr className="bg-slate-50 border-b border-slate-200">
-                                <th className="px-6 py-4 text-[11px] font-black text-slate-400 uppercase tracking-wider">Parceiro</th>
-                                <th className="px-6 py-4 text-[11px] font-black text-slate-400 uppercase tracking-wider">Localização</th>
-                                <th className="px-6 py-4 text-[11px] font-black text-slate-400 uppercase tracking-wider text-right">Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100">
-                            {currentSponsors.map(sponsor => (
-                                <tr key={sponsor.id} className="hover:bg-slate-50 transition-colors">
-                                    <td className="px-6 py-4">
-                                        <div>
-                                            <p className="font-bold text-slate-900 text-sm leading-tight">{sponsor.name}</p>
-                                            {sponsor.show_on_landing_page && (
-                                                <span className="text-[9px] font-black text-blue-600 bg-blue-50 px-1 rounded uppercase tracking-tighter">Landing Page</span>
-                                            )}
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4 text-sm text-slate-500 font-medium">
-                                        {sponsor.city ? `${sponsor.city} - ${sponsor.state}` : '-'}
-                                    </td>
-                                    <td className="px-6 py-4 text-right">
-                                        <div className="flex items-center justify-end gap-2">
-                                            <button
-                                                onClick={() => setSelectedSponsorForReport(sponsor)}
-                                                className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
-                                                title="Relatório"
-                                            >
-                                                <BarChart3 size={20} />
-                                            </button>
-                                            <button
-                                                onClick={() => openOffersModal(sponsor)}
-                                                className="p-2 text-pink-600 hover:bg-pink-50 rounded-lg transition-all"
-                                                title="Ofertas"
-                                            >
-                                                <Tag size={20} />
-                                            </button>
-                                            <button
-                                                onClick={() => handleEdit(sponsor)}
-                                                className="p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-all"
-                                                title="Editar"
-                                            >
-                                                <Pencil size={20} />
-                                            </button>
-                                            <button
-                                                onClick={() => handleDeleteClick(sponsor)}
-                                                className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
-                                                title="Excluir"
-                                            >
-                                                <Trash2 size={20} />
-                                            </button>
-                                        </div>
-                                    </td>
+            {/* Sponsors List - Responsive View */}
+            <div className="space-y-4">
+                {/* Desktop View - Table */}
+                <div className="hidden md:block bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse">
+                            <thead>
+                                <tr className="bg-slate-50 border-b border-slate-200">
+                                    <th className="px-6 py-4 text-[11px] font-black text-slate-400 uppercase tracking-wider">Parceiro</th>
+                                    <th className="px-6 py-4 text-[11px] font-black text-slate-400 uppercase tracking-wider">Localização</th>
+                                    <th className="px-6 py-4 text-[11px] font-black text-slate-400 uppercase tracking-wider text-right">Ações</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100">
+                                {currentSponsors.map(sponsor => (
+                                    <tr key={sponsor.id} className="hover:bg-slate-50 transition-colors">
+                                        <td className="px-6 py-4">
+                                            <div>
+                                                <p className="font-bold text-slate-900 text-sm leading-tight">{sponsor.name}</p>
+                                                {sponsor.show_on_landing_page && (
+                                                    <span className="text-[9px] font-black text-blue-600 bg-blue-50 px-1 rounded uppercase tracking-tighter">Landing Page</span>
+                                                )}
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4 text-sm text-slate-500 font-medium">
+                                            {sponsor.city ? `${sponsor.city} - ${sponsor.state}` : '-'}
+                                        </td>
+                                        <td className="px-6 py-4 text-right">
+                                            <div className="flex items-center justify-end gap-2">
+                                                <button
+                                                    onClick={() => setSelectedSponsorForReport(sponsor)}
+                                                    className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                                                    title="Relatório"
+                                                >
+                                                    <BarChart3 size={20} />
+                                                </button>
+                                                <button
+                                                    onClick={() => openOffersModal(sponsor)}
+                                                    className="p-2 text-pink-600 hover:bg-pink-50 rounded-lg transition-all"
+                                                    title="Ofertas"
+                                                >
+                                                    <Tag size={20} />
+                                                </button>
+                                                <button
+                                                    onClick={() => handleEdit(sponsor)}
+                                                    className="p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-all"
+                                                    title="Editar"
+                                                >
+                                                    <Pencil size={20} />
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDeleteClick(sponsor)}
+                                                    className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                                                    title="Excluir"
+                                                >
+                                                    <Trash2 size={20} />
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                {/* Mobile View - Cards */}
+                <div className="grid grid-cols-1 gap-4 md:hidden">
+                    {currentSponsors.map(sponsor => (
+                        <div key={sponsor.id} className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-4">
+                            <div className="flex justify-between items-start">
+                                <div className="min-w-0 flex-1">
+                                    <h3 className="font-bold text-slate-900 text-lg leading-tight truncate">{sponsor.name}</h3>
+                                    {sponsor.show_on_landing_page && (
+                                        <span className="inline-block mt-1 text-[10px] font-black text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded uppercase tracking-tighter">Landing Page</span>
+                                    )}
+                                </div>
+                                <div className={`shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${sponsor.active ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>
+                                    {sponsor.active ? <CheckCircle2 size={12} /> : <Ban size={12} />}
+                                    {sponsor.active ? 'Ativo' : 'Inativo'}
+                                </div>
+                            </div>
+
+                            <div className="flex items-center gap-2 text-sm text-slate-500 bg-slate-50 p-3 rounded-xl border border-slate-100">
+                                <MapPin size={16} className="text-blue-500 shrink-0" />
+                                <span className="truncate">{sponsor.city ? `${sponsor.city} - ${sponsor.state}` : 'Localização não definida'}</span>
+                            </div>
+
+                            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 pt-2">
+                                <button
+                                    onClick={() => setSelectedSponsorForReport(sponsor)}
+                                    className="flex items-center justify-center gap-2 py-3 bg-blue-50 text-blue-600 rounded-xl font-bold text-xs hover:bg-blue-100 transition-colors"
+                                >
+                                    <BarChart3 size={16} /> Relatório
+                                </button>
+                                <button
+                                    onClick={() => openOffersModal(sponsor)}
+                                    className="flex items-center justify-center gap-2 py-3 bg-pink-50 text-pink-600 rounded-xl font-bold text-xs hover:bg-pink-100 transition-colors"
+                                >
+                                    <Tag size={16} /> Ofertas
+                                </button>
+                                <button
+                                    onClick={() => handleEdit(sponsor)}
+                                    className="flex items-center justify-center gap-2 py-3 bg-slate-100 text-slate-700 rounded-xl font-bold text-xs hover:bg-slate-200 transition-colors"
+                                >
+                                    <Pencil size={16} /> Editar
+                                </button>
+                                <button
+                                    onClick={() => handleDeleteClick(sponsor)}
+                                    className="flex items-center justify-center gap-2 py-3 bg-red-50 text-red-600 rounded-xl font-bold text-xs hover:bg-red-100 transition-colors"
+                                >
+                                    <Trash2 size={16} /> Excluir
+                                </button>
+                            </div>
+                        </div>
+                    ))}
                 </div>
             </div>
 
             {/* Pagination Controls */}
             {totalPages > 1 && (
-                <div className="flex justify-center items-center gap-2 mt-8">
+                <div className="flex justify-center items-center gap-4 mt-4">
                     <Button
                         variant="ghost"
                         onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                         disabled={currentPage === 1}
-                        className="disabled:opacity-50"
+                        className="p-3 disabled:opacity-50"
                     >
                         Anterior
                     </Button>
-                    <span className="text-slate-600 font-medium px-4">
-                        Página {currentPage} de {totalPages}
+                    <span className="text-slate-600 font-bold text-sm bg-slate-100 px-4 py-2 rounded-lg">
+                        {currentPage} / {totalPages}
                     </span>
                     <Button
                         variant="ghost"
                         onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                         disabled={currentPage === totalPages}
-                        className="disabled:opacity-50"
+                        className="p-3 disabled:opacity-50"
                     >
                         Próxima
                     </Button>
@@ -643,12 +700,12 @@ const AdminSponsors = () => {
 
             {/* Empty State */}
             {!showForm && sponsors.length === 0 && (
-                <div className="text-center py-20 px-4">
-                    <div className="w-24 h-24 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                        <Globe size={48} className="text-slate-300" />
+                <div className="text-center py-16 px-6 bg-white rounded-3xl border-2 border-dashed border-slate-200">
+                    <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <Globe size={40} className="text-slate-300" />
                     </div>
                     <h3 className="text-xl font-bold text-slate-800 mb-2">Sem parceiros por aqui</h3>
-                    <p className="text-slate-500 mb-8 max-w-md mx-auto">Comece cadastrando farmácias e parceiros para exibir ofertas aos usuários da plataforma.</p>
+                    <p className="text-slate-500 mb-8 max-w-sm mx-auto leading-relaxed">Comece cadastrando farmácias e parceiros para exibir ofertas aos usuários da plataforma.</p>
                 </div>
             )}
 

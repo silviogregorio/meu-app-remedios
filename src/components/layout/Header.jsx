@@ -243,8 +243,19 @@ const Header = forwardRef(({ onMenuClick, isPinned }, ref) => {
     };
 
     const handleLogout = async () => {
-        await logout();
-        window.location.href = '/';
+        console.log('🚪 Header: Iniciando logout...');
+        try {
+            // Race between the actual logout and a 2s timeout
+            await Promise.race([
+                logout(),
+                new Promise((_, reject) => setTimeout(() => reject(new Error('Logout timeout')), 2000))
+            ]);
+            console.log('🚪 Header: Logout concluído, redirecionando...');
+        } catch (err) {
+            console.warn('🚪 Header: Erro ou timeout no logout, forçando redirecionamento:', err);
+        } finally {
+            window.location.href = '/';
+        }
     };
 
     return (
@@ -301,8 +312,8 @@ const Header = forwardRef(({ onMenuClick, isPinned }, ref) => {
                             onClick={handlePanicClick}
                             disabled={isTriggeringPanic}
                             className={`min-w-[48px] min-h-[48px] flex items-center justify-center rounded-full transition-all shadow-md border ${isTriggeringPanic
-                                    ? 'bg-red-100 text-red-400 border-red-200 cursor-not-allowed'
-                                    : 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100 hover:scale-110 active:scale-95'
+                                ? 'bg-red-100 text-red-400 border-red-200 cursor-not-allowed'
+                                : 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100 hover:scale-110 active:scale-95'
                                 }`}
                             title="BOTÃO DE PÂNICO"
                             aria-label="Acionar botão de emergência"
@@ -329,8 +340,8 @@ const Header = forwardRef(({ onMenuClick, isPinned }, ref) => {
                         onClick={handlePanicClick}
                         disabled={isTriggeringPanic}
                         className={`hidden md:flex p-3 rounded-full transition-all items-center justify-center min-h-[48px] min-w-[48px] ${isTriggeringPanic
-                                ? 'bg-red-100 text-red-400 cursor-not-allowed'
-                                : 'bg-red-50 text-red-600 hover:bg-red-100 hover:scale-110 active:scale-95 shadow-md border border-red-200'
+                            ? 'bg-red-100 text-red-400 cursor-not-allowed'
+                            : 'bg-red-50 text-red-600 hover:bg-red-100 hover:scale-110 active:scale-95 shadow-md border border-red-200'
                             }`}
                         title="BOTÃO DE PÂNICO"
                         aria-label="Acionar botão de emergência"

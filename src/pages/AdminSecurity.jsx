@@ -53,28 +53,56 @@ const AdminSecurity = () => {
     };
 
     const handleVerifyAndEnableMfa = async () => {
-        if (verificationCode.length !== 6) return;
+        if (verificationCode.length !== 6) {
+            showToast('Digite exatamente 6 dígitos', 'error');
+            return;
+        }
         setIsMfaLoading(true);
         try {
+            console.log('🔐 [MFA] Starting verification with code:', verificationCode);
+            console.log('🔐 [MFA] Factor ID:', mfaData.factorId);
+
             // First we need a challenge
             const { data: challengeData, error: challengeError } = await supabase.auth.mfa.challenge({
                 factorId: mfaData.factorId
             });
 
-            if (challengeError) throw challengeError;
+            if (challengeError) {
+                console.error('🔐 [MFA] Challenge error:', challengeError);
+                throw challengeError;
+            }
 
-            const { error: verifyError } = await verifyMFA(mfaData.factorId, challengeData.id, verificationCode);
-            if (verifyError) throw verifyError;
+            console.log('🔐 [MFA] Challenge created:', challengeData.id);
+            console.log('🔐 [MFA] Verifying with code:', verificationCode);
 
-            showToast('2FA ativado com sucesso!', 'success');
+            const { data: verifyData, error: verifyError } = await supabase.auth.mfa.verify({
+                factorId: mfaData.factorId,
+                challengeId: challengeData.id,
+                code: verificationCode
+            });
+
+            if (verifyError) {
+                console.error('🔐 [MFA] Verify error:', verifyError);
+
+                if (verifyError.message?.includes('Invalid TOTP')) {
+                    showToast('Código inválido. Verifique se o horário do celular está sincronizado e tente um código novo.', 'error');
+                } else {
+                    showToast(`Erro: ${verifyError.message}`, 'error');
+                }
+                return;
+            }
+
+            console.log('🔐 [MFA] Verification successful!', verifyData);
+
+            showToast('2FA ativado com sucesso! 🎉', 'success');
             setMfaStep('status');
             setMfaData(null);
             setVerificationCode('');
-            // Refresh factors
-            window.location.reload(); // Simple way to refresh mfaEnabled from context
+            // Refresh page to update mfaEnabled state from context
+            setTimeout(() => window.location.reload(), 1000);
         } catch (error) {
-            console.error('Error verifying MFA:', error);
-            showToast('Código inválido ou erro na verificação', 'error');
+            console.error('🔐 [MFA] General error:', error);
+            showToast('Erro na verificação. Tente novamente.', 'error');
         } finally {
             setIsMfaLoading(false);
         }
@@ -133,7 +161,7 @@ const AdminSecurity = () => {
             const { data, error } = await supabase
                 .from('audit_logs')
                 .select('*')
-                .or('is_suspicious.eq.true,risk_level.eq.high,risk_level.eq.critical')
+                .in('action', ['mfa_verification_failed', 'login_failed', 'suspicious_activity'])
                 .order('created_at', { ascending: false })
                 .limit(50);
 
@@ -328,6 +356,12 @@ const AdminSecurity = () => {
                             {mfaStep === 'verify' && (
                                 <div className="space-y-4">
                                     <p className="font-bold text-slate-800">2. Confirme o código de 6 dígitos</p>
+
+                                    {/* Time Sync Warning */}
+                                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-800">
+                                        <strong>⏰ Importante:</strong> O horário do seu celular precisa estar sincronizado automaticamente. Verifique em Configurações &gt; Data e Hora.
+                                    </div>
+
                                     <input
                                         type="text"
                                         maxLength="6"
@@ -335,7 +369,11 @@ const AdminSecurity = () => {
                                         value={verificationCode}
                                         onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, ''))}
                                         className="w-full max-w-[200px] text-center text-3xl font-mono py-3 border-2 border-blue-200 rounded-xl bg-white outline-none focus:border-blue-500"
+                                        autoFocus
                                     />
+
+                                    <p className="text-xs text-slate-500">Digite o código e clique rapidamente antes que ele expire (30 segundos).</p>
+
                                     <div className="flex gap-2">
                                         <button
                                             onClick={handleVerifyAndEnableMfa}

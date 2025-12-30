@@ -73,7 +73,7 @@ const Landing = () => {
                 fetchSponsors();
             })
             .subscribe((status) => {
-                console.log('Realtime Subscription Status:', status);
+                // console.log('Realtime Subscription Status:', status);
                 if (status === 'SUBSCRIBED') {
                     console.log('✅ Connected to Realtime updates for sponsors');
                 } else if (status === 'CHANNEL_ERROR') {
@@ -198,7 +198,7 @@ const Landing = () => {
                     </div>
                     <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight leading-tight text-slate-900">
                         Cuidar da família <br className="hidden md:block" />
-                        nunca foi tão <span className="text-blue-600">tranquilo</span>.
+                        nunca foi tão <span className="text-blue-600">tranquilo</span>
                     </h1>
                     <p className="text-lg md:text-xl text-slate-600 max-w-xl leading-relaxed">
                         Tenha o controle total sobre os medicamentos de quem você ama. Receba alertas em tempo real e saiba, de onde estiver, que a dose foi tomada com segurança.

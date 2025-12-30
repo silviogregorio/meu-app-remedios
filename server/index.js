@@ -1,22 +1,12 @@
+import './loadEnv.js';
 import express from 'express';
 import cors from 'cors';
-import dotenv from 'dotenv';
 import { body, validationResult } from 'express-validator';
 import rateLimit from 'express-rate-limit';
 import { sendEmail, verifyConnection } from './emailService.js';
 import { initFirebaseAdmin, sendPushNotification } from './firebaseAdmin.js';
 import { createClient } from '@supabase/supabase-js';
 
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-// Carregar .env ANTES de importar módulos que usam process.env
-dotenv.config({ path: join(__dirname, '../.env') });
-
-// Importar DEPOIS do dotenv para garantir que process.env está populado
 import { startWeeklyReportCron } from './weeklyReportCron.js';
 import { startReminderCron } from './reminderCron.js';
 
@@ -254,7 +244,7 @@ app.post('/api/send-email', verifyJWT, validateEmail, async (req, res) => {
             });
         }
 
-        const { to, subject, text, observations, type, senderName, senderEmail, sosData, reportData, healthLogsData, healthLogsByPatient, attachments, tokens } = req.body;
+        const { to, subject, text, observations, type, senderName, senderEmail, sosData, reportData, weeklyData, lowStockData, healthLogsData, healthLogsByPatient, attachments, tokens } = req.body;
 
         console.log('Received Body Keys:', Object.keys(req.body));
         console.log('healthLogsData:', req.body.healthLogsData ? `Array with ${req.body.healthLogsData.length} items` : 'undefined');
@@ -278,42 +268,52 @@ app.post('/api/send-email', verifyJWT, validateEmail, async (req, res) => {
         }
 
         // Enviar email
-        const result = await sendEmail({ to, subject, text, observations, type, senderName, senderEmail, sosData, reportData, healthLogsData, healthLogsByPatient, attachments });
+        try {
+            const result = await sendEmail({ to, subject, text, observations, type, senderName, senderEmail, sosData, reportData, weeklyData, lowStockData, healthLogsData, healthLogsByPatient, attachments });
 
-        // Enviar Push (Opcional ou Automático para SOS)
-        let targetTokens = tokens || [];
+            // Enviar Push (Opcional ou Automático para SOS)
+            let targetTokens = tokens || [];
 
-        if (type === 'sos' && to && targetTokens.length === 0) {
-            try {
-                const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
-                const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
-                const authHeader = req.headers.authorization;
+            if (type === 'sos' && to && targetTokens.length === 0) {
+                try {
+                    const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
+                    const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
+                    const authHeader = req.headers.authorization;
 
-                if (authHeader && supabaseUrl && supabaseAnonKey) {
-                    const supabaseServer = createClient(supabaseUrl, supabaseAnonKey, {
-                        global: { headers: { Authorization: authHeader } }
-                    });
-                    const emails = to.split(',').map(e => e.trim());
-                    const { data: rpcTokens, error } = await supabaseServer.rpc('get_tokens_by_emails', { p_emails: emails });
-                    if (!error && rpcTokens) targetTokens = rpcTokens.map(t => t.token);
+                    if (authHeader && supabaseUrl && supabaseAnonKey) {
+                        const supabaseServer = createClient(supabaseUrl, supabaseAnonKey, {
+                            global: { headers: { Authorization: authHeader } }
+                        });
+                        const emails = to.split(',').map(e => e.trim());
+                        const { data: rpcTokens, error } = await supabaseServer.rpc('get_tokens_by_emails', { p_emails: emails });
+                        if (!error && rpcTokens) targetTokens = rpcTokens.map(t => t.token);
+                    }
+                } catch (err) {
+                    console.error('Erro ao buscar tokens via RPC:', err);
                 }
-            } catch (err) {
-                console.error('Erro ao buscar tokens via RPC:', err);
             }
-        }
 
-        if (targetTokens.length > 0) {
-            try {
-                await sendPushNotification(targetTokens, subject, text, { type, ...sosData });
-            } catch (pushErr) {
-                console.error('Falha ao enviar push:', pushErr);
+            if (targetTokens.length > 0) {
+                try {
+                    await sendPushNotification(targetTokens, subject, text, { type, ...sosData });
+                } catch (pushErr) {
+                    console.error('Falha ao enviar push:', pushErr);
+                }
             }
-        }
 
-        res.json(result);
+            res.json(result);
+        } catch (sendErr) {
+            console.error('CRITICAL: Error in sendEmail call:', sendErr);
+            throw sendErr; // rethrow to be caught by the outer catch
+        }
 
     } catch (error) {
-        console.error('Erro ao processar requisição:', error);
+        console.error('❌ [API] Erro ao processar requisição de email:', {
+            message: error.message,
+            stack: error.stack,
+            type: req.body?.type,
+            to: req.body?.to
+        });
         res.status(500).json({
             success: false,
             error: error.message || 'Erro ao enviar email'

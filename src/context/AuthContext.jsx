@@ -26,77 +26,226 @@ export const AuthProvider = ({ children }) => {
         }
     }, []);
 
-    const [mfaRequired, setMfaRequired] = useState(false);
+    const [mfaRequired, setMfaRequired] = useState(null); // null = checking, true = required, false = not required
     const [mfaChallenge, setMfaChallenge] = useState(null); // { factorId, challengeId }
+    const [currentAal, setCurrentAal] = useState(null); // Track current session AAL level - null = unknown
 
     // Check if user needs MFA verification (has factors but session is aal1)
-    const checkMfaRequirement = useCallback(async () => {
+    const checkMfaRequirement = useCallback(async (force = false) => {
+        // console.log('🔐 MFA: Iniciando verificação (force:', force, ')');
+
+        // Timeout Helper for Supabase Calls - REDUCED for faster UX
+        const withTimeout = (promise, ms = 3000) => Promise.race([
+            promise,
+            new Promise((_, reject) => setTimeout(() => reject(new Error('MFA call timeout')), ms))
+        ]);
+
+        // Check for active lockout first - BYPASS NETWORK CALLS IF LOCKED OUT
+        const lockoutUntil = localStorage.getItem('mfa_lockout_until');
+        const isLockedOut = lockoutUntil && parseInt(lockoutUntil, 10) > Date.now();
+
+        if (isLockedOut) {
+            console.log('🔐 MFA: User is currently locked out. Using placeholder challenge to avoid network hangs.');
+            setMfaRequired(true);
+            setMfaChallenge({ factorId: 'lockout-pending', challengeId: 'lockout-active' });
+            return true;
+        }
+
+        // Skip if already requiring MFA and we have a challenge - UNLESS FORCED
+        if (!force && mfaRequired === true && mfaChallenge) {
+            console.log('🔐 MFA already required, skipping check');
+            return true;
+        }
+
         try {
-            const { data: aalData, error: aalError } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+            // 1. Get AAL Level (Fastest call)
+            const { data: aalData, error: aalError } = await withTimeout(supabase.auth.mfa.getAuthenticatorAssuranceLevel());
             if (aalError) {
                 console.warn('🔐 Error getting AAL:', aalError);
+                // Fail-safe: if we can't get AAL but previously thought MFA was needed, keep it
+                return mfaRequired === true;
+            }
+
+            const activeAal = aalData?.currentLevel || 'aal1';
+            setCurrentAal(activeAal);
+
+            // If already aal2, no MFA needed
+            if (activeAal === 'aal2') {
+                console.log('🔐 AAL Level: aal2 - Already verified');
+                setMfaRequired(false);
+                setMfaChallenge(null);
                 return false;
             }
 
-            const { data: factorsData, error: factorsError } = await supabase.auth.mfa.listFactors();
-            if (factorsError) {
-                console.warn('🔐 Error listing factors:', factorsError);
-                return false;
-            }
+            // 2. Get Factors (Pessimistic check)
+            console.log('🔐 MFA: Buscando fatores...');
+            const { data: factorsData, error: factorsError } = await withTimeout(supabase.auth.mfa.listFactors());
 
-            const verifiedFactor = factorsData?.totp?.find(f => f.status === 'verified');
+            // Check factors in both API response and local user metadata for redundancy
+            const totpFactors = factorsData?.totp || [];
+            const userFactors = user?.factors || [];
 
-            console.log('🔐 AAL Level:', aalData?.currentLevel, 'Has verified TOTP:', !!verifiedFactor);
+            const verifiedFactor = totpFactors.find(f => f.status === 'verified') ||
+                userFactors.find(f => f.status === 'verified');
+
+            console.log('🔐 MFA Check - AAL:', aalData?.currentLevel, 'Verified Factor:', verifiedFactor?.id ? 'Found' : 'Not Found');
 
             if (verifiedFactor && aalData?.currentLevel === 'aal1') {
-                // User has MFA but hasn't verified yet - create challenge
-                const { data: challengeData, error } = await supabase.auth.mfa.challenge({
-                    factorId: verifiedFactor.id
-                });
+                // User has MFA but hasn't verified yet - set required immediately (FAIL-CLOSED)
+                setMfaRequired(true);
 
-                if (!error && challengeData) {
-                    setMfaChallenge({ factorId: verifiedFactor.id, challengeId: challengeData.id });
-                    setMfaRequired(true);
-                    console.log('🔐 MFA Challenge created, user needs to verify');
-                    return true;
+                // 3. Try to create challenge (Most likely to be rate-limited)
+                console.log('🔐 MFA: Criando desafio...');
+                try {
+                    const { data: challengeData, error: challengeError } = await withTimeout(supabase.auth.mfa.challenge({
+                        factorId: verifiedFactor.id
+                    }), 2000); // 2s timeout for challenge - fast fail
+
+                    if (challengeError) {
+                        console.error('🔐 Error creating MFA challenge (likely rate-limited):', challengeError);
+                        setMfaChallenge(null); // Will show "Retry" screen
+                        return true;
+                    }
+
+                    if (challengeData) {
+                        setMfaChallenge({ factorId: verifiedFactor.id, challengeId: challengeData.id });
+                        // console.log('🔐 MFA Challenge created successfully');
+                    }
+                } catch (challengeTimeout) {
+                    console.warn('🔐 MFA: Timed out creating challenge. User will need to retry.');
+                    setMfaChallenge(null);
                 }
+                return true;
             }
 
-            setMfaRequired(false);
-            setMfaChallenge(null);
-            return false;
+            // Only clear it if we are CERTAIN no MFA is configured (aal1 but no factors)
+            if (aalData?.currentLevel === 'aal2' || !verifiedFactor) {
+                console.log('🔐 MFA not required (Level:', aalData?.currentLevel, 'Factors:', !!verifiedFactor, ')');
+                setMfaRequired(false);
+                setMfaChallenge(null);
+                return false;
+            }
+
+            return mfaRequired === true;
         } catch (err) {
-            console.error('🔐 MFA Check failed:', err);
-            setMfaRequired(false);
-            setMfaChallenge(null);
-            return false;
+            const isTimeout = err.message === 'MFA call timeout';
+
+            // IF BACKGROUND CHECK (not forced) AND ALREADY VERIFIED (aal2) 
+            // DON'T LOCK THE UI ON TIMEOUT
+            if (!force && mfaRequired === false && isTimeout) {
+                console.log('🔐 MFA: Background check timed out but user is already verified. Maintaining access.');
+                return false;
+            }
+
+            console.error('🔐 MFA Check failed error:', err);
+
+            // FAIL-CLOSED only if forced or if we don't have a reliable previous state
+            const hasFactors = user?.factors?.some(f => f.status === 'verified');
+            if (hasFactors && (force || mfaRequired !== false)) {
+                console.warn('🔐 MFA: Verification failed/timed out during critical check. Locking gate.');
+                setMfaRequired(true);
+                return true;
+            }
+
+            // Otherwise, maintain current state
+            return mfaRequired === true;
         }
-    }, []);
+    }, [mfaRequired, mfaChallenge, user]);
 
     useEffect(() => {
-        // Check active session
-        supabase.auth.getSession().then(async ({ data: { session } }) => {
-            setUser(session?.user ?? null);
+        const initializeAuth = async () => {
+            // Safety timeout: Ensure loading is ALWAYS turned off even if everything hangs
+            const safetyTimeout = setTimeout(() => {
+                setLoading(current => {
+                    if (current) {
+                        console.warn('🔐 Auth initialization timed out - forcing loading off');
+                        return false;
+                    }
+                    return current;
+                });
+            }, 3000); // Reduced from 5s to 3s for faster UX
 
-            // MFA check temporarily disabled to prevent blocking
-            // if (session?.user) {
-            //     await checkMfaRequirement();
-            // }
+            try {
+                // Check active session
+                const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
-            setLoading(false);
-        });
+                if (sessionError) {
+                    console.error('🔐 Error getting session:', sessionError);
+                    setUser(null);
+                    return;
+                }
+
+                setUser(session?.user ?? null);
+                if (session?.user) {
+                    const aal = session.user.app_metadata?.aal || 'aal1';
+                    setCurrentAal(aal);
+
+                    // OPTIMIZATION: If session is already aal2, skip network MFA check entirely
+                    const hasFactors = session.user.factors?.some(f => f.status === 'verified');
+                    if (aal === 'aal2') {
+                        setMfaRequired(false);
+                        setMfaChallenge(null);
+                    } else if (hasFactors) {
+                        // Only check MFA if we have factors and are at aal1
+                        try {
+                            await checkMfaRequirement();
+                        } catch (mfaError) {
+                            console.error('🔐 MFA check error:', mfaError);
+                        }
+                    } else {
+                        // No factors configured
+                        setMfaRequired(false);
+                    }
+                }
+            } catch (err) {
+                console.error('🔐 Auth initialization error:', err);
+                setUser(null);
+            } finally {
+                clearTimeout(safetyTimeout);
+                setLoading(false);
+            }
+        };
+
+        initializeAuth();
 
         // Listen for auth changes
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+            console.log('🔑 Auth State Change:', _event);
             setUser(session?.user ?? null);
 
-            // MFA check temporarily disabled
-            // if (session?.user && _event === 'SIGNED_IN') {
-            //     await checkMfaRequirement();
-            // }
+            // Clear MFA state on sign out
+            if (_event === 'SIGNED_OUT') {
+                setMfaRequired(false);
+                setMfaChallenge(null);
+                return;
+            }
+
+            // Check MFA requirement - OPTIMIZED for speed
+            if (session?.user && (_event === 'SIGNED_IN' || _event === 'INITIAL_SESSION' || _event === 'TOKEN_REFRESHED')) {
+                const aal = session?.user?.app_metadata?.aal || 'aal1';
+                const hasFactors = session.user.factors?.some(f => f.status === 'verified');
+
+                setCurrentAal(aal);
+
+                // OPTIMIZATION: Skip network call if already aal2
+                if (aal === 'aal2') {
+                    setMfaRequired(false);
+                    setMfaChallenge(null);
+                } else if (hasFactors && aal === 'aal1') {
+                    // Only do network MFA check if needed
+                    try {
+                        await checkMfaRequirement();
+                    } catch (mfaError) {
+                        console.error('🔐 MFA check error:', mfaError);
+                    }
+                } else {
+                    setMfaRequired(false);
+                }
+            }
         });
 
         return () => subscription.unsubscribe();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     // Periodic session validation (every 60 seconds)
@@ -156,15 +305,21 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
-    const signOut = async () => {
+    const signOut = useCallback(async () => {
+        console.log('🔐 Auth: Iniciando signOut...');
         try {
             const { error } = await supabase.auth.signOut();
-            if (error) throw error;
+            if (error) {
+                console.warn('🔐 Auth: Erro no signOut do Supabase:', error);
+                // Even on error, we might want to clear local state
+            }
+            console.log('🔐 Auth: signOut concluído com sucesso.');
             return { error: null };
         } catch (error) {
+            console.error('🔐 Auth: Erro fatal no signOut:', error);
             return { error };
         }
-    };
+    }, []);
 
     const signInWithGoogle = async () => {
         try {
@@ -235,7 +390,9 @@ export const AuthProvider = ({ children }) => {
         unenrollMFA,
         mfaRequired,
         mfaChallenge,
+        currentAal,
         clearMfaState,
+        refreshMfaChallenge: checkMfaRequirement,
         mfaEnabled: user?.factors?.some(f => f.status === 'verified') || false
     };
 

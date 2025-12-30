@@ -17,8 +17,11 @@ export const OfferCard = ({ offer, variant = 'standard' }) => {
         const clean = phone.replace(/\D/g, '');
         const finalPhone = clean.startsWith('55') ? clean : `55${clean}`;
         const userName = user?.user_metadata?.full_name || 'Visitante';
+        const emojiSmile = String.fromCodePoint(0x1F60A);  // 😊
+        const emojiTag = String.fromCodePoint(0x1F3F7);    // 🏷️
+        const emojiLink = String.fromCodePoint(0x1F517);    // 🔗
 
-        let message = `Olá! Sou *${userName}*.\n\nVi a oferta: *${title}* no App SiG Remédios.\n\n`;
+        let message = `Olá! ${emojiSmile} Sou *${userName}*.\n\n${emojiLink} Vi a oferta: *${title}* no App SiG Remédios.\n\n`;
 
         if (original_price && price && original_price > price) {
             message += `Preço Normal: ${formatCurrency(original_price)}\n`;
@@ -28,7 +31,7 @@ export const OfferCard = ({ offer, variant = 'standard' }) => {
         }
         message += `A promoção ainda é válida? Obrigado.`;
 
-        return `https://wa.me/${finalPhone}?text=${encodeURIComponent(message)}`;
+        return `https://api.whatsapp.com/send?phone=${finalPhone}&text=${encodeURIComponent(message)}`;
     };
 
     const handleCardClick = () => {

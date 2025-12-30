@@ -1,7 +1,4 @@
 import nodemailer from 'nodemailer';
-import dotenv from 'dotenv';
-
-dotenv.config();
 
 // Configurar transporter SMTP
 const createTransporter = () => {
@@ -34,7 +31,7 @@ const escapeHtml = (unsafe) => {
 };
 
 // Função para enviar email
-export const sendEmail = async ({ to, subject, text, observations, type = 'invite', senderName, senderEmail, sosData, reportData, healthLogsData, healthLogsByPatient, attachments, phone }) => {
+export const sendEmail = async ({ to, subject, text, observations, type = 'invite', senderName, senderEmail, sosData, reportData, weeklyData, lowStockData, healthLogsData, healthLogsByPatient, attachments, phone }) => {
   try {
     // Validar dados obrigatórios
     if (!to || !subject || !text) {
@@ -42,7 +39,12 @@ export const sendEmail = async ({ to, subject, text, observations, type = 'invit
     }
 
     // Validar configuração SMTP
-    if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+    const smtpUser = process.env.SMTP_USER;
+    const smtpPass = process.env.SMTP_PASS;
+    console.log('[EmailService] SMTP User present:', !!smtpUser, smtpUser ? `(${smtpUser.substring(0, 3)}...)` : '');
+
+    if (!smtpUser || !smtpPass) {
+      console.error('[EmailService] ERRO: Configurações SMTP ausentes em process.env');
       throw new Error('Configurações SMTP não encontradas. Configure o arquivo .env');
     }
 
@@ -602,6 +604,81 @@ export const sendEmail = async ({ to, subject, text, observations, type = 'invit
         `);
       }
 
+      if (type === 'ad_report') {
+        const { reportData = {} } = data; // Safe destructuring
+        if (!reportData || typeof reportData !== 'object') {
+          console.error('CRITICAL: reportData is invalid in getTemplate/ad_report:', reportData);
+          // Don't throw here, use fallbacks to keep context
+        }
+
+        const sponsorName = escapeHtml(reportData?.sponsorName || 'Patrocinador');
+        const periodText = escapeHtml(reportData?.periodText || 'Período Geral');
+        const observations = escapeHtml(data.observations);
+        const stats = reportData?.stats || { views: 0, clicks: 0, ctr: '0.0' };
+
+        return baseHtml(`
+          <div class="header" style="background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);">
+             <div style="background: rgba(255,255,255,0.2); width: 64px; height: 64px; border-radius: 50%; display: block; text-align: center; line-height: 64px; margin: 0 auto 15px auto; font-size: 32px; color: transparent; text-shadow: 0 0 0 #ffffff;">📈</div>
+             <h1>Relatório de Performance</h1>
+             <p style="color: rgba(255,255,255,0.9); margin: 5px 0 0; font-weight: 500;">${sponsorName}</p>
+             <div style="margin-top: 10px; font-size: 14px; color: rgba(255,255,255,0.9); background: rgba(0,0,0,0.1); display: inline-block; padding: 4px 12px; border-radius: 20px;">
+                Período: ${periodText}
+             </div>
+          </div>
+          <div class="content">
+            <div class="welcome-text" style="color: #1e40af;">Resumo das Ofertas</div>
+            <p>Olá! Segue em anexo o relatório detalhado de performance das suas ofertas no SiG Remédios para o período selecionado.</p>
+            
+            <table width="100%" cellpadding="0" cellspacing="0" style="margin: 25px 0;">
+                <tr>
+                    <!-- Views -->
+                    <td width="25%" style="padding: 4px;">
+                        <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 12px; padding: 15px; text-align: center;">
+                            <div style="color: #3b82f6; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">VISUALIZAÇÕES</div>
+                            <div style="color: #1e40af; font-size: 24px; font-weight: 800; margin-top: 5px;">${stats.views}</div>
+                        </div>
+                    </td>
+                    <!-- Clicks -->
+                    <td width="25%" style="padding: 4px;">
+                        <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 15px; text-align: center;">
+                            <div style="color: #22c55e; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">CLIQUES</div>
+                            <div style="color: #15803d; font-size: 24px; font-weight: 800; margin-top: 5px;">${stats.clicks}</div>
+                        </div>
+                    </td>
+                    <!-- CTR -->
+                    <td width="25%" style="padding: 4px;">
+                        <div style="background: #faf5ff; border: 1px solid #e9d5ff; border-radius: 12px; padding: 15px; text-align: center;">
+                            <div style="color: #a855f7; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">CTR</div>
+                            <div style="color: #7e22ce; font-size: 24px; font-weight: 800; margin-top: 5px;">${stats.ctr}%</div>
+                        </div>
+                    </td>
+                    <!-- Offers Count -->
+                    <td width="25%" style="padding: 4px;">
+                        <div style="background: #f0fdfa; border: 1px solid #99f6e4; border-radius: 12px; padding: 15px; text-align: center;">
+                            <div style="color: #14b8a6; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">OFERTAS</div>
+                            <div style="color: #0d9488; font-size: 24px; font-weight: 800; margin-top: 5px;">${stats.offersCount || 0}</div>
+                        </div>
+                    </td>
+                </tr>
+            </table>
+
+            ${observations ? `
+            <div class="message-box" style="border-left-color: #2563eb; background: #f0f7ff;">
+                <span class="label" style="color: #1e40af;">Observações</span>
+                <div class="value" style="color: #1e3a8a;">${observations}</div>
+            </div>` : ''}
+
+            <div class="cta-container">
+              <a href="${frontendUrl}/app/sponsors" class="button" style="background-color: #1e40af;">Acessar Painel do Parceiro</a>
+            </div>
+            
+            <p style="text-align: center; font-size: 12px; color: #94a3b8; margin-top: 20px;">
+                * O arquivo PDF oficial com o detalhamento por oferta encontra-se em anexo.
+            </p>
+          </div>
+        `);
+      }
+
       // Default: Sharing/Invite
       const observations = escapeHtml(data.observations);
       return baseHtml(`
@@ -633,15 +710,20 @@ export const sendEmail = async ({ to, subject, text, observations, type = 'invit
       senderEmail: senderEmail || 'Não informado',
       message: text,
       sosData,
+      reportData,
+      weeklyData,
+      lowStockData,
       healthLogsData,
       healthLogsByPatient,
-      phone // <--- Added phone here
+      phone
     });
 
     // Configurar email
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    const sender = process.env.SMTP_USER || 'contato@sigremedios.com.br';
+
     const mailOptions = {
-      from: `"SiG Remédios" <${process.env.SMTP_USER}>`,
+      from: `"SiG Remédios" <${sender}>`,
       to: to,
       subject: subject,
       html: htmlTemplate,

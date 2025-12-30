@@ -164,15 +164,24 @@ const SOSCard = ({ onClose }) => {
             return `- ${med?.name} (${med?.dosage}) - ${times}`;
         }).join('\n');
 
-        const text = `◆ *SOS MÉDICO - EMERGÊNCIA*\n\n` +
-            `*Paciente:* ${selectedPatient.name}\n` +
-            (selectedPatient.bloodType ? `*Tipo Sanguíneo:* ${selectedPatient.bloodType}\n` : '') +
-            (selectedPatient.allergies ? `*Alergias:* ${selectedPatient.allergies}\n` : '') +
-            (selectedPatient.condition ? `*Condição:* ${selectedPatient.condition}\n` : '') +
-            `\n*Medicamentos:*\n${medsText}\n\n` +
-            `*Responsável:* ${user?.user_metadata?.full_name || 'Ver Contato'}\n` +
-            `*Contato:* ${user?.phone || 'N/A'}\n\n` +
-            `_Enviado via SiG Remédios_\nhttps://sigremedios.vercel.app`;
+        const emojiSiren = String.fromCodePoint(0x1F6A8);   // 🚨
+        const emojiUser = String.fromCodePoint(0x1F464);    // 👤
+        const emojiDrop = String.fromCodePoint(0x1FA78);    // 🩸 (Tipo Sanguíneo)
+        const emojiWarning = String.fromCodePoint(0x26A0);  // ⚠️
+        const emojiActivity = String.fromCodePoint(0x1F4C8);// 📈
+        const emojiCapsule = String.fromCodePoint(0x1F48A); // 💊
+        const emojiPhone = String.fromCodePoint(0x1F4DE);   // 📞
+        const emojiLink = String.fromCodePoint(0x1F517);    // 🔗
+
+        const text = `${emojiSiren} *SOS MÉDICO - EMERGÊNCIA*\n\n` +
+            `${emojiUser} *Paciente:* ${selectedPatient.name}\n` +
+            (selectedPatient.bloodType ? `${emojiDrop} *Tipo Sanguíneo:* ${selectedPatient.bloodType}\n` : '') +
+            (selectedPatient.allergies ? `${emojiWarning} *Alergias:* ${selectedPatient.allergies}\n` : '') +
+            (selectedPatient.condition ? `${emojiActivity} *Condição:* ${selectedPatient.condition}\n` : '') +
+            `\n${emojiCapsule} *Medicamentos:*\n${medsText}\n\n` +
+            `${emojiUser} *Responsável:* ${user?.user_metadata?.full_name || 'Ver Contato'}\n` +
+            `${emojiPhone} *Contato:* ${user?.phone || 'N/A'}\n\n` +
+            `${emojiLink} _Enviado via SiG Remédios_\nhttps://sigremedios.vercel.app`;
 
         window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
     };

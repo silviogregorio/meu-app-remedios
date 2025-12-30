@@ -73,14 +73,13 @@ export const formatLowStockMessage = (medicationName, daysRemaining) => {
  * @returns {string} Texto formatado para WhatsApp
  */
 export const generateWeeklySummaryMessage = (allStats) => {
-    // Usando Unicode escapes para garantir codificação UTF-8 correta em qualquer ambiente
-    const emojiChart = '\u{1F4CA}'; // 📊
-    const emojiUser = '\u{1F464}';  // 👤
-    const emojiCheck = '\u{2705}';  // ✅
-    const emojiPill = '\u{1F48A}';  // 💊
-    const emojiHeart = '\u{1F493}'; // 💓
-    const emojiDrop = '\u{1F64F}';  // 🙏 (ou use outro para glicemia)
-    const emojiBlood = '\u{1FA78}'; // 🩸
+    // Using String.fromCodePoint for robust cross-platform emoji rendering
+    const emojiChart = String.fromCodePoint(0x1F4CA); // 📊
+    const emojiUser = String.fromCodePoint(0x1F464);  // 👤
+    const emojiCheck = String.fromCodePoint(0x2705);  // ✅
+    const emojiPill = String.fromCodePoint(0x1F48A);  // 💊
+    const emojiHeart = String.fromCodePoint(0x1F493); // 💓
+    const emojiBlood = String.fromCodePoint(0x1FA78); // 🩸
 
     let text = `*${emojiChart} RESUMO SEMANAL DE SAÚDE*\n`;
     text += '============================\n\n';

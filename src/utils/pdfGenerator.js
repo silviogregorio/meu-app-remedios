@@ -4,20 +4,23 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 /**
- * Helper to load image as base64
+ * Helper to load image as base64 (optimized for smaller PDFs)
  */
-const loadImage = (url) => {
+const loadImage = (url, maxWidth = 100) => {
     return new Promise((resolve, reject) => {
         const img = new Image();
         img.crossOrigin = 'Anonymous';
         img.src = url;
         img.onload = () => {
             const canvas = document.createElement('canvas');
-            canvas.width = img.width;
-            canvas.height = img.height;
+            // Resize to max width to reduce file size
+            const scale = Math.min(1, maxWidth / img.width);
+            canvas.width = img.width * scale;
+            canvas.height = img.height * scale;
             const ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0);
-            resolve(canvas.toDataURL('image/png'));
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            // Use JPEG with 0.7 quality for smaller size (70% reduction typical)
+            resolve(canvas.toDataURL('image/jpeg', 0.7));
         };
         img.onerror = reject;
     });
@@ -728,6 +731,136 @@ export const generatePDFStockReport = async (stockData, filters, patients) => {
         doc.setTextColor(148, 163, 184);
         doc.line(14, pageHeight - 15, pageWidth - 14, pageHeight - 15);
         doc.text('SiG Remédios - Gestão de Estoque', 14, pageHeight - 10);
+        doc.text(`Página ${i} de ${pageCount}`, pageWidth - 14, pageHeight - 10, { align: 'right' });
+    }
+
+    return doc;
+};
+/**
+ * Generates a professional PDF report for Offer Performance
+ * @param {Object} sponsor - Sponsor data
+ * @param {Array} offers - Filtered offers list
+ * @param {Object} totals - Calculated totals (views, clicks, ctr)
+ * @param {Object} filters - Period data (startDate, endDate, period)
+ * @returns {Promise<jsPDF>}
+ */
+export const generatePDFOfferReport = async (sponsor, offers, totals, filters) => {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.width;
+    const pageHeight = doc.internal.pageSize.height;
+
+    const colors = {
+        primary: [37, 99, 235], // Blue-600
+        heading: [30, 41, 59], // Slate-800
+        text: [51, 65, 85], // Slate-700
+        border: [226, 232, 240], // Slate-200
+        lightBg: [248, 250, 252] // Slate-50
+    };
+
+    let logoData = null;
+    try {
+        logoData = await loadImage('/assets/logo.png');
+    } catch (error) { }
+
+    // --- Header ---
+    doc.setFillColor(...colors.primary);
+    doc.rect(0, 0, pageWidth, 40, 'F');
+
+    if (logoData) {
+        doc.setFillColor(255, 255, 255);
+        doc.circle(25, 20, 14, 'F');
+        doc.addImage(logoData, 'PNG', 16, 11, 18, 18);
+    }
+
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(22);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Performance de Ofertas', 45, 20);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(sponsor.name, 45, 28);
+
+    doc.setFontSize(9);
+    doc.text(`Gerado em: ${format(new Date(), "dd/MM/yyyy HH:mm")}`, pageWidth - 15, 18, { align: 'right' });
+
+    const rangeText = filters.period === 'all' ? 'Todo o histórico' : `${format(new Date(filters.startDate + 'T00:00:00'), "dd/MM/yyyy")} a ${format(new Date(filters.endDate + 'T00:00:00'), "dd/MM/yyyy")}`;
+    doc.text(`Período: ${rangeText}`, pageWidth - 15, 26, { align: 'right' });
+
+    let yPos = 55;
+
+    // --- Summary Cards ---
+    const summaryData = [
+        { label: 'VISUALIZAÇÕES', value: totals.totalViews, color: [59, 130, 246] },
+        { label: 'CLIQUES', value: totals.totalClicks, color: [34, 197, 94] },
+        { label: 'CTR MÉDIO', value: `${totals.avgCtr.toFixed(1)}%`, color: [249, 115, 22] },
+        { label: 'OFERTAS', value: offers.length, color: [168, 85, 247] }
+    ];
+
+    const cardWidth = (pageWidth - 28 - (summaryData.length - 1) * 5) / summaryData.length;
+    let xCurr = 14;
+
+    summaryData.forEach(item => {
+        doc.setDrawColor(...colors.border);
+        doc.setFillColor(255, 255, 255);
+        doc.roundedRect(xCurr, yPos, cardWidth, 20, 3, 3, 'FD');
+        doc.setFillColor(...item.color);
+        doc.rect(xCurr, yPos + 4, 3, 12, 'F');
+        doc.setTextColor(...colors.heading);
+        doc.setFontSize(14);
+        doc.setFont('helvetica', 'bold');
+        doc.text(String(item.value), xCurr + 8, yPos + 10);
+        doc.setTextColor(100, 116, 139);
+        doc.setFontSize(7);
+        doc.text(item.label, xCurr + 8, yPos + 16);
+        xCurr += cardWidth + 5;
+    });
+
+    yPos += 35;
+
+    // --- Table ---
+    doc.setFontSize(12);
+    doc.setTextColor(...colors.heading);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Detalhamento das Ofertas', 14, yPos - 5);
+
+    const tableData = offers.map(o => {
+        const ctr = o.views_count > 0 ? (o.clicks_count / o.views_count) * 100 : 0;
+        return [
+            o.title,
+            o.price ? `R$ ${o.price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : '-',
+            o.views_count || 0,
+            o.clicks_count || 0,
+            `${ctr.toFixed(1)}%`,
+            o.active ? 'Ativa' : 'Inativa'
+        ];
+    });
+
+    autoTable(doc, {
+        startY: yPos,
+        head: [['Oferta', 'Preço', 'Vis.', 'Cliques', 'CTR', 'Status']],
+        body: tableData,
+        theme: 'striped',
+        styles: { fontSize: 9, cellPadding: 3 },
+        headStyles: { fillColor: [241, 245, 249], textColor: colors.heading, fontStyle: 'bold' },
+        columnStyles: {
+            0: { cellWidth: 'auto' },
+            1: { cellWidth: 25 },
+            2: { cellWidth: 20, halign: 'center' },
+            3: { cellWidth: 20, halign: 'center' },
+            4: { cellWidth: 20, halign: 'center' },
+            5: { cellWidth: 20, halign: 'center' }
+        },
+        margin: { left: 14, right: 14 }
+    });
+
+    // --- Footer ---
+    const pageCount = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.setTextColor(148, 163, 184);
+        doc.line(14, pageHeight - 15, pageWidth - 14, pageHeight - 15);
+        doc.text(`SiG Remédios - Painel do Parceiro: ${sponsor.name}`, 14, pageHeight - 10);
         doc.text(`Página ${i} de ${pageCount}`, pageWidth - 14, pageHeight - 10, { align: 'right' });
     }
 

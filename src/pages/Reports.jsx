@@ -443,7 +443,15 @@ const Reports = () => {
         // For now, let's use the current reportData or a fallback.
         const stats = reportData?.summary || { adherenceRate: 0, taken: 0, pending: 0 };
 
-        const summaryText = `*RESUMO DE SAÚDE*\n*Paciente:* ${patientName}\n*Adesão:* ${stats.adherenceRate}%\n*Tomados:* ${stats.taken}\n*Pendentes:* ${stats.pending}`;
+        const emojiHeart = String.fromCodePoint(0x1F493);   // 💓
+        const emojiUser = String.fromCodePoint(0x1F464);    // 👤
+        const emojiCheck = String.fromCodePoint(0x2705);    // ✅
+        const emojiPill = String.fromCodePoint(0x1F48A);    // 💊
+        const emojiBell = String.fromCodePoint(0x2611);     // ☑️
+        const emojiChart = String.fromCodePoint(0x1F4CA);   // 📊
+        const emojiCalendar = String.fromCodePoint(0x1F4C5);// 📅
+
+        const summaryText = `${emojiHeart} *RESUMO DE SAÚDE*\n${emojiUser} *Paciente:* ${patientName}\n${emojiCheck} *Adesão:* ${stats.adherenceRate}%\n${emojiPill} *Tomados:* ${stats.taken}\n${emojiBell} *Pendentes:* ${stats.pending}`;
 
         let finalText = '';
 
@@ -451,10 +459,10 @@ const Reports = () => {
             const stockText = generateStockReportText(stockData, filters, patients, medications).replace('\n---\n_Gerado via SiG Remédios - Sistema de Controle de Medicamentos_\nhttps://sigremedios.vercel.app', '');
             finalText = `${stockText}\n\n${summaryText}\n\n---\n_Gerado via SiG Remédios - Sistema de Controle de Medicamentos_\nhttps://sigremedios.vercel.app`;
         } else {
-            finalText = `*RELATÓRIO DE SAÚDE - SIMPLIFICADO*\n\n*Paciente:* ${patientName}\n*Período:* ${formatDate(filters.startDate)} a ${formatDate(filters.endDate)}\n\n*Adesão:* ${stats.adherenceRate}%\n*Tomadas:* ${stats.taken}\n*Pendentes:* ${stats.pending}\n\n---\n_Gerado via SiG Remédios - Sistema de Controle de Medicamentos_\nhttps://sigremedios.vercel.app`;
+            finalText = `${emojiChart} *RELATÓRIO DE SAÚDE - SIMPLIFICADO*\n\n${emojiUser} *Paciente:* ${patientName}\n${emojiCalendar} *Período:* ${formatDate(filters.startDate)} a ${formatDate(filters.endDate)}\n\n${summaryText}\n\n---\n_Gerado via SiG Remédios - Sistema de Controle de Medicamentos_\nhttps://sigremedios.vercel.app`;
         }
 
-        window.open(`https://wa.me/?text=${encodeURIComponent(finalText)}`, '_blank');
+        window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(finalText)}`, '_blank');
     };
 
     const handleEmail = (type) => { // Updated to accept type override
