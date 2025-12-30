@@ -44,6 +44,9 @@ const HealthDiary = () => {
     const [editingLogId, setEditingLogId] = useState(null);
     const [logToDelete, setLogToDelete] = useState(null);
     const [symptomToDelete, setSymptomToDelete] = useState(null);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [deleteLogId, setDeleteLogId] = useState(null);
+
 
     // Auto-scroll when switching tabs
     React.useEffect(() => {
@@ -105,6 +108,20 @@ const HealthDiary = () => {
             setSymptomToDelete(null);
         }
     };
+
+    const handleDeleteClick = (logId) => {
+        setDeleteLogId(logId);
+        setShowDeleteModal(true);
+    };
+
+    const confirmDelete = () => {
+        if (deleteLogId) {
+            deleteHealthLog(deleteLogId);
+            setDeleteLogId(null);
+            setShowDeleteModal(false);
+        }
+    };
+
 
     const handleEdit = (log) => {
         // Convert stored UTC/ISO date to Local format for input (YYYY-MM-DDTHH:mm)

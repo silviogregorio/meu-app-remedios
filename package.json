@@ -1,7 +1,7 @@
 {
   "name": "remedios",
   "private": true,
-  "version": "1.4.5",
+  "version": "1.4.6",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/sigremedios/lista-remedios-app.git"
@@ -15,7 +15,8 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "deploy": "npm version patch --no-git-tag-version && git add -A && git commit -m \"deploy: auto version bump\" && git push origin main"
   },
   "dependencies": {
     "@emailjs/browser": "^4.4.1",
