@@ -4,12 +4,13 @@ import Card, { CardContent, CardHeader, CardTitle } from '../components/ui/Card'
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Modal from '../components/ui/Modal';
+import ConfirmationModal from '../components/ui/ConfirmationModal';
 import { Share2, Plus, Trash2, ShieldCheck, Users } from 'lucide-react';
 
 const Share = () => {
     const { accountShares, shareAccount, unshareAccount, showToast } = useApp();
     const [shareEmail, setShareEmail] = useState('');
-    const [deleteShareId, setDeleteShareId] = useState(null);
+    const [shareToDelete, setShareToDelete] = useState(null);
 
     const handleShare = async (e) => {
         e.preventDefault();
@@ -22,9 +23,9 @@ const Share = () => {
     };
 
     const confirmDeleteShare = async () => {
-        if (deleteShareId) {
-            await unshareAccount(deleteShareId);
-            setDeleteShareId(null);
+        if (shareToDelete) {
+            await unshareAccount(shareToDelete.id);
+            setShareToDelete(null);
         }
     };
 
@@ -104,7 +105,7 @@ const Share = () => {
                                         </div>
                                     </div>
                                     <button
-                                        onClick={() => setDeleteShareId(share.id)}
+                                        onClick={() => setShareToDelete(share)}
                                         className="text-slate-400 hover:text-rose-500 p-2 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-full transition-colors"
                                         title="Remover acesso"
                                     >
@@ -117,29 +118,27 @@ const Share = () => {
                 </CardContent>
             </Card>
 
-            <Modal
-                isOpen={!!deleteShareId}
-                onClose={() => setDeleteShareId(null)}
+            <ConfirmationModal
+                isOpen={!!shareToDelete}
+                onClose={() => setShareToDelete(null)}
+                onConfirm={confirmDeleteShare}
                 title="Remover Acesso"
-                footer={
-                    <>
-                        <Button variant="ghost" onClick={() => setDeleteShareId(null)}>Cancelar</Button>
-                        <Button variant="danger" onClick={confirmDeleteShare}>Confirmar Remoção</Button>
-                    </>
+                description={
+                    shareToDelete ? (
+                        <span>
+                            Tem certeza que deseja remover o acesso de:
+                            <br /><br />
+                            <strong className="text-slate-900 block font-bold text-lg leading-tight">
+                                {shareToDelete.shared_with_email}
+                            </strong>
+                            <br />
+                            <span className="block text-red-600 font-medium">
+                                Este usuário deixará de visualizar e gerenciar seus dados imediatamente.
+                            </span>
+                        </span>
+                    ) : "Confirmar remoção?"
                 }
-            >
-                <div className="text-center py-4">
-                    <div className="w-16 h-16 bg-rose-100 rounded-full flex items-center justify-center text-rose-500 mx-auto mb-4">
-                        <Trash2 size={32} />
-                    </div>
-                    <p className="text-slate-600 text-lg">
-                        Tem certeza que deseja remover o acesso deste usuário?
-                    </p>
-                    <p className="text-slate-400 text-sm mt-2">
-                        Ele deixará de visualizar e gerenciar seus dados imediatamente.
-                    </p>
-                </div>
-            </Modal>
+            />
         </div>
     );
 };

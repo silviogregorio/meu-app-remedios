@@ -7,6 +7,7 @@ import Card, { CardContent } from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Modal from '../components/ui/Modal';
+import ConfirmationModal from '../components/ui/ConfirmationModal';
 import { User, Mail, Phone, MapPin, Calendar, Shield, ShieldCheck, Bell, Settings, LogOut, Heart, Fingerprint, Volume2, Share2, Activity, Download, Users, Umbrella, ArrowRight, Info, Trash2, Database, LogIn, Camera } from 'lucide-react';
 import { downloadJSON, prepareBackupData } from '../utils/dataExporter';
 
@@ -28,6 +29,7 @@ const Profile = () => {
     const [showEmailConfirmModal, setShowEmailConfirmModal] = useState(false); // Confirmation modal for email change
     const [pendingEmailChange, setPendingEmailChange] = useState(null); // Store pending email change data
     const [showShareModal, setShowShareModal] = useState(false); // Account Sharing Modal
+    const [shareToDelete, setShareToDelete] = useState(null);
     const [shareEmail, setShareEmail] = useState(''); // Email to share with
     const [editForm, setEditForm] = useState({
         name: user?.user_metadata?.full_name || '',
@@ -305,6 +307,13 @@ const Profile = () => {
             console.error(error);
         } finally {
             setIsSaving(false);
+        }
+    };
+
+    const confirmUnshare = async () => {
+        if (shareToDelete) {
+            await unshareAccount(shareToDelete.id);
+            setShareToDelete(null);
         }
     };
 
@@ -1042,11 +1051,7 @@ const Profile = () => {
                                             <span className="text-sm font-medium text-slate-700 dark:text-slate-200">{share.shared_with_email}</span>
                                         </div>
                                         <button
-                                            onClick={() => {
-                                                if (confirm('Tem certeza que deseja remover o acesso desta pessoa?')) {
-                                                    unshareAccount(share.id);
-                                                }
-                                            }}
+                                            onClick={() => setShareToDelete(share)}
                                             className="text-xs text-red-500 hover:text-red-700 hover:bg-red-50 p-2 rounded-md transition-colors"
                                         >
                                             Revogar
@@ -1062,6 +1067,28 @@ const Profile = () => {
                     </div>
                 </div>
             </Modal>
+
+            <ConfirmationModal
+                isOpen={!!shareToDelete}
+                onClose={() => setShareToDelete(null)}
+                onConfirm={confirmUnshare}
+                title="Remover Acesso"
+                description={
+                    shareToDelete ? (
+                        <span>
+                            Tem certeza que deseja remover o acesso de:
+                            <br /><br />
+                            <strong className="text-slate-900 block font-bold text-lg leading-tight">
+                                {shareToDelete.shared_with_email}
+                            </strong>
+                            <br />
+                            <span className="block text-red-600 font-medium">
+                                Este usuário deixará de visualizar e gerenciar seus dados imediatamente.
+                            </span>
+                        </span>
+                    ) : "Confirmar remoção?"
+                }
+            />
         </div>
     );
 };

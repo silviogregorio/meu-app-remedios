@@ -61,7 +61,7 @@ const Patients = () => {
     const { patients, addPatient, updatePatient, deletePatient, sharePatient, unsharePatient, showToast, user } = useApp();
     const [showForm, setShowForm] = useState(false);
     const [editingId, setEditingId] = useState(null);
-    const [deleteId, setDeleteId] = useState(null);
+    const [patientToDelete, setPatientToDelete] = useState(null);
     const [sharingPatientId, setSharingPatientId] = useState(null); // ID of patient being shared
     const [searchTerm, setSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
@@ -118,14 +118,14 @@ const Patients = () => {
         setShowForm(true);
     };
 
-    const handleDeleteClick = (id) => {
-        setDeleteId(id);
+    const handleDeleteClick = (patient) => {
+        setPatientToDelete(patient);
     };
 
     const confirmDelete = () => {
-        if (deleteId) {
-            deletePatient(deleteId);
-            setDeleteId(null);
+        if (patientToDelete) {
+            deletePatient(patientToDelete.id);
+            setPatientToDelete(null);
             if (paginatedPatients.length === 1 && currentPage > 1) {
                 setCurrentPage(prev => prev - 1);
             }
@@ -724,7 +724,7 @@ const Patients = () => {
                                                                         variant="ghost"
                                                                         size="sm"
                                                                         className="justify-start text-rose-500 hover:bg-rose-50 hover:text-rose-600"
-                                                                        onClick={() => handleDeleteClick(patient.id)}
+                                                                        onClick={() => handleDeleteClick(patient)}
                                                                     >
                                                                         <Trash2 size={18} className="mr-2" /> Excluir
                                                                     </Button>
@@ -753,11 +753,27 @@ const Patients = () => {
 
 
                     <ConfirmationModal
-                        isOpen={!!deleteId}
-                        onClose={() => setDeleteId(null)}
+                        isOpen={!!patientToDelete}
+                        onClose={() => setPatientToDelete(null)}
                         onConfirm={confirmDelete}
                         title="Excluir Paciente"
-                        description="Tem certeza que deseja excluir este paciente? Essa ação não pode ser desfeita e removerá todo o histórico."
+                        description={
+                            patientToDelete ? (
+                                <span>
+                                    Tem certeza que deseja excluir o paciente:
+                                    <br /><br />
+                                    <strong className="text-slate-900 block font-bold text-lg leading-tight">
+                                        {patientToDelete.name}
+                                    </strong>
+                                    <br />
+                                    <span className="block text-red-600 font-medium">
+                                        Isso removerá também todas as receitas, histórico e diário de saúde.
+                                        <br />
+                                        Essa ação não pode ser desfeita.
+                                    </span>
+                                </span>
+                            ) : "Tem certeza que deseja excluir este paciente?"
+                        }
                     />
 
                     {/* Share Modal */}

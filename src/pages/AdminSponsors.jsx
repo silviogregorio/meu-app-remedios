@@ -13,6 +13,7 @@ import { useAuth } from '../context/AuthContext';
 import { fetchCitiesByState, filterCities } from '../services/cityService';
 import ManageOffersModal from '../components/features/ManageOffersModal';
 import OfferReportModal from '../components/features/OfferReportModal';
+import ConfirmationModal from '../components/ui/ConfirmationModal';
 import clsx from 'clsx';
 
 const ESTADOS_BRASIL = [
@@ -710,31 +711,29 @@ const AdminSponsors = () => {
             )}
 
             {/* Confirmation Modal */}
-            {sponsorToDelete && (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
-                    <div className="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-8 animate-in zoom-in-95 duration-200 text-center">
-                        <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6 text-red-600">
-                            <Trash2 size={32} />
-                        </div>
-                        <h3 className="text-xl font-bold text-slate-900 mb-3">Excluir Parceiro?</h3>
-                        <p className="text-slate-500 mb-8 leading-relaxed">
-                            Você tem certeza que deseja remover <strong>{sponsorToDelete.name}</strong>? <br />
-                            <span className="text-red-500 text-xs font-bold mt-2 block">Isso apagará todas as ofertas vinculadas.</span>
-                        </p>
-                        <div className="grid grid-cols-2 gap-4">
-                            <Button variant="ghost" onClick={() => setSponsorToDelete(null)} className="rounded-xl h-12">
-                                Cancelar
-                            </Button>
-                            <button
-                                onClick={confirmDelete}
-                                className="bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl h-12 shadow-lg shadow-red-600/20"
-                            >
-                                Sim, Excluir
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            <ConfirmationModal
+                isOpen={!!sponsorToDelete}
+                onClose={() => setSponsorToDelete(null)}
+                onConfirm={confirmDelete}
+                title="Excluir Parceiro"
+                description={
+                    sponsorToDelete ? (
+                        <span>
+                            Tem certeza que deseja excluir o parceiro:
+                            <br /><br />
+                            <strong className="text-slate-900 block font-bold text-lg leading-tight">
+                                {sponsorToDelete.name}
+                            </strong>
+                            <br />
+                            <span className="block text-red-600 font-medium">
+                                Isso apagará todas as ofertas vinculadas.
+                                <br />
+                                Essa ação não pode ser desfeita.
+                            </span>
+                        </span>
+                    ) : "Tem certeza?"
+                }
+            />
 
             {/* Offers Modal */}
             {selectedSponsorForOffers && (

@@ -11,6 +11,7 @@ import { MedicationCardShimmer } from '../components/ui/Shimmer';
 import QuickRefillModal from '../components/features/QuickRefillModal';
 import StockTimelineDrawer from '../components/features/StockTimelineDrawer';
 import { StockService } from '../services/stockService';
+import ConfirmationModal from '../components/ui/ConfirmationModal';
 
 const ITEMS_PER_PAGE = 5;
 
@@ -46,7 +47,7 @@ const Medications = () => {
     }, [currentPage]);
 
     const [editingMedId, setEditingMedId] = useState(null);
-    const [deleteMedId, setDeleteMedId] = useState(null);
+    const [medicationToDelete, setMedicationToDelete] = useState(null);
     const [isInitialLoading, setIsInitialLoading] = useState(true);
 
     // Stock Management States
@@ -151,10 +152,10 @@ const Medications = () => {
         showToast('Medicamento duplicado! Revise e salve.', 'info');
     };
 
-    const confirmDeleteMed = async () => {
-        if (deleteMedId) {
-            await deleteMedication(deleteMedId);
-            setDeleteMedId(null);
+    const confirmDeleteMed = () => {
+        if (medicationToDelete) {
+            deleteMedication(medicationToDelete.id);
+            setMedicationToDelete(null);
         }
     };
 
@@ -550,7 +551,7 @@ const Medications = () => {
                                                             <Button
                                                                 variant="ghost"
                                                                 className="bg-white hover:bg-rose-50 text-slate-600 hover:text-rose-700 border border-slate-200 h-10 shadow-sm"
-                                                                onClick={() => setDeleteMedId(item.id)}
+                                                                onClick={() => setMedicationToDelete(item)}
                                                             >
                                                                 <Trash2 size={18} className="mr-2" />
                                                                 <span className="font-bold text-sm">Excluir</span>
@@ -587,7 +588,7 @@ const Medications = () => {
                                                             <Button
                                                                 variant="ghost"
                                                                 className="px-3 h-10 rounded-xl border border-slate-100 bg-white text-slate-500 hover:text-rose-600 hover:border-rose-200 hover:bg-rose-50 transition-all"
-                                                                onClick={() => setDeleteMedId(item.id)}
+                                                                onClick={() => setMedicationToDelete(item)}
                                                                 title="Excluir"
                                                             >
                                                                 <Trash2 size={18} />
@@ -604,7 +605,8 @@ const Medications = () => {
                                     </Card>
                                 ))}
                             </div>
-                        )}
+                        )
+                        }
                         <Pagination
                             currentPage={currentPage}
                             totalPages={totalPages}
@@ -614,50 +616,50 @@ const Medications = () => {
                 )
             }
 
-            <Modal
-                isOpen={!!deleteMedId}
-                onClose={() => setDeleteMedId(null)}
+            <ConfirmationModal
+                isOpen={!!medicationToDelete}
+                onClose={() => setMedicationToDelete(null)}
+                onConfirm={confirmDeleteMed}
                 title="Excluir Medicamento"
-                footer={
-                    <>
-                        <Button variant="ghost" onClick={() => setDeleteMedId(null)}>Cancelar</Button>
-                        <Button variant="danger" onClick={confirmDeleteMed}>Confirmar Exclusão</Button>
-                    </>
-                }
-            >
-                <div className="text-center py-4">
-                    <div className="w-16 h-16 bg-rose-100 rounded-full flex items-center justify-center text-rose-500 mx-auto mb-4">
-                        <AlertTriangle size={32} />
-                    </div>
-                    <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">Tem certeza?</h3>
-                    <p className="text-slate-500 dark:text-slate-400 mb-6">
-                        Você está prestes a excluir o medicamento <br />
-                        <span className="font-extrabold text-slate-900 dark:text-white text-lg">
-                            "{medications.find(m => m.id === deleteMedId)?.name}"
+                description={
+                    medicationToDelete ? (
+                        <span>
+                            Tem certeza que deseja excluir o medicamento:
+                            <br /><br />
+                            <strong className="text-slate-900 block font-bold text-lg leading-tight">
+                                {medicationToDelete.name} {medicationToDelete.dosage}
+                            </strong>
+                            <br />
+                            <span className="block text-red-600 font-medium">
+                                Isso removerá também todas as receitas e histórico associados.
+                                <br />
+                                Essa ação não pode ser desfeita.
+                            </span>
                         </span>
-                    </p>
-                    <p className="text-sm text-rose-600 bg-rose-50 p-3 rounded-xl border border-rose-100">
-                        Isso removerá também todas as receitas e histórico associados.
-                    </p>
-                </div>
-            </Modal>
+                    ) : "Tem certeza que deseja excluir este medicamento?"
+                }
+            />
 
             {/* Quick Refill Modal */}
-            {refillMed && (
-                <QuickRefillModal
-                    medication={refillMed}
-                    onClose={() => setRefillMed(null)}
-                    onSuccess={() => setRefillMed(null)}
-                />
-            )}
+            {
+                refillMed && (
+                    <QuickRefillModal
+                        medication={refillMed}
+                        onClose={() => setRefillMed(null)}
+                        onSuccess={() => setRefillMed(null)}
+                    />
+                )
+            }
 
             {/* Stock Timeline Drawer */}
-            {timelineMed && (
-                <StockTimelineDrawer
-                    medication={timelineMed}
-                    onClose={() => setTimelineMed(null)}
-                />
-            )}
+            {
+                timelineMed && (
+                    <StockTimelineDrawer
+                        medication={timelineMed}
+                        onClose={() => setTimelineMed(null)}
+                    />
+                )
+            }
         </div >
     );
 };

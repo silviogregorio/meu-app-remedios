@@ -42,6 +42,8 @@ const HealthDiary = () => {
 
     const [viewDate, setViewDate] = useState(format(new Date(), 'yyyy-MM-dd'));
     const [editingLogId, setEditingLogId] = useState(null);
+    const [logToDelete, setLogToDelete] = useState(null);
+    const [symptomToDelete, setSymptomToDelete] = useState(null);
 
     // Auto-scroll when switching tabs
     React.useEffect(() => {
@@ -89,6 +91,21 @@ const HealthDiary = () => {
         }
     };
 
+
+    const confirmDeleteLog = () => {
+        if (logToDelete) {
+            deleteHealthLog(logToDelete.id);
+            setLogToDelete(null);
+        }
+    };
+
+    const confirmDeleteSymptom = () => {
+        if (symptomToDelete) {
+            removeSymptom(symptomToDelete.id);
+            setSymptomToDelete(null);
+        }
+    };
+
     const handleEdit = (log) => {
         // Convert stored UTC/ISO date to Local format for input (YYYY-MM-DDTHH:mm)
         // new Date(log.measured_at) creates a date object in local time
@@ -112,22 +129,7 @@ const HealthDiary = () => {
     const [emailData, setEmailData] = useState({ to: '', observations: '' });
     const [sendingEmail, setSendingEmail] = useState(false);
 
-    // Delete Confirmation State
-    const [showDeleteModal, setShowDeleteModal] = useState(false);
-    const [logToDelete, setLogToDelete] = useState(null);
 
-    const handleDeleteClick = (id) => {
-        setLogToDelete(id);
-        setShowDeleteModal(true);
-    };
-
-    const confirmDelete = async () => {
-        if (logToDelete) {
-            await deleteHealthLog(logToDelete);
-            setShowDeleteModal(false);
-            setLogToDelete(null);
-        }
-    };
 
 
 
@@ -986,7 +988,7 @@ const HealthDiary = () => {
                                                         </span>
                                                         {(user?.id === log.user_id) && (
                                                             <button
-                                                                onClick={() => deleteHealthLog(log.id)}
+                                                                onClick={() => setLogToDelete(log)}
                                                                 className="text-rose-400 hover:text-rose-600 p-1"
                                                             >
                                                                 <Trash2 size={16} />
@@ -1104,11 +1106,7 @@ const HealthDiary = () => {
                                                         </div>
                                                     </div>
                                                     <button
-                                                        onClick={() => {
-                                                            if (window.confirm('Excluir este sintoma?')) {
-                                                                removeSymptom(log.id);
-                                                            }
-                                                        }}
+                                                        onClick={() => setSymptomToDelete(log)}
                                                         className="text-slate-400 hover:text-rose-500 p-2 transition-colors"
                                                         title="Excluir"
                                                     >
@@ -1281,6 +1279,58 @@ const HealthDiary = () => {
                     );
                 })()}
             </Modal>
+
+            <ConfirmationModal
+                isOpen={!!logToDelete}
+                onClose={() => setLogToDelete(null)}
+                onConfirm={confirmDeleteLog}
+                title="Excluir Registro"
+                description={
+                    logToDelete ? (
+                        <span>
+                            Tem certeza que deseja excluir o registro de:
+                            <br /><br />
+                            <strong className="text-slate-900 block font-bold text-lg leading-tight">
+                                {getCategoryInfo(logToDelete.category).label}
+                            </strong>
+                            <span className="text-slate-500 text-sm block mt-1">
+                                Valor: {logToDelete.value} {getCategoryInfo(logToDelete.category).unit}
+                                <br />
+                                Data: {formatDateTime(logToDelete.measured_at)}
+                            </span>
+                            <br />
+                            <span className="block text-red-600 font-medium">
+                                Essa ação não pode ser desfeita.
+                            </span>
+                        </span>
+                    ) : "Confirmar exclusão?"
+                }
+            />
+
+            <ConfirmationModal
+                isOpen={!!symptomToDelete}
+                onClose={() => setSymptomToDelete(null)}
+                onConfirm={confirmDeleteSymptom}
+                title="Excluir Sintoma"
+                description={
+                    symptomToDelete ? (
+                        <span>
+                            Tem certeza que deseja excluir o sintoma:
+                            <br /><br />
+                            <strong className="text-slate-900 block font-bold text-lg leading-tight">
+                                {symptomToDelete.symptom}
+                            </strong>
+                            <span className="text-slate-500 text-sm block mt-1">
+                                Nível {symptomToDelete.intensity} • {formatDateTime(symptomToDelete.created_at)}
+                            </span>
+                            <br />
+                            <span className="block text-red-600 font-medium">
+                                Essa ação não pode ser desfeita.
+                            </span>
+                        </span>
+                    ) : "Confirmar exclusão?"
+                }
+            />
         </div >
     );
 };
