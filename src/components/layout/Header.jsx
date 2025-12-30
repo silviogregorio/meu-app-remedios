@@ -1,17 +1,25 @@
-import { useRef, useState, forwardRef } from 'react';
+import { useRef, useState, forwardRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Menu, Bell, Sun, Moon, LogOut, User as UserIcon, Heart, Search, Siren } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import NotificationsModal from '../ui/NotificationsModal';
 import SOSCard from '../features/SOSCard';
 import MedicationSearchModal from '../features/MedicationSearchModal';
+import { StockService } from '../../services/stockService';
 
 import { useTheme } from '../../context/ThemeContext';
 
 const Header = forwardRef(({ onMenuClick, isPinned }, ref) => {
-    const { user, pendingShares, logout, patients, triggerPanicAlert, showToast } = useApp();
+    const { user, pendingShares, logout, patients, triggerPanicAlert, showToast, medications, prescriptions } = useApp();
     const { theme, setTheme } = useTheme();
     const navigate = useNavigate();
+
+    // Calculate low stock medications count
+    const lowStockCount = useMemo(() => {
+        return StockService.getLowStockMedications(medications || [], prescriptions || [], 7).length;
+    }, [medications, prescriptions]);
+
+    const totalNotifications = (pendingShares?.length || 0) + lowStockCount;
     const [themeState, setThemeState] = useState(localStorage.getItem('theme') || 'light');
     const [showNotifications, setShowNotifications] = useState(false);
     const [showSOS, setShowSOS] = useState(false);
@@ -298,12 +306,13 @@ const Header = forwardRef(({ onMenuClick, isPinned }, ref) => {
                             className="relative min-w-[48px] min-h-[48px] flex items-center justify-center text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-full transition-colors"
                             onClick={() => setShowNotifications(true)}
                             title="Notificações"
-                            aria-label={`Notificações${pendingShares.length > 0 ? ` - ${pendingShares.length} pendente(s)` : ''}`}
+                            aria-label={`Notificações${totalNotifications > 0 ? ` - ${totalNotifications} pendente(s)` : ''}`}
                         >
                             <Bell size={22} />
-                            {pendingShares.length > 0 && (
-                                <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-[10px] font-bold flex items-center justify-center rounded-full border-2 border-white">
-                                    {pendingShares.length}
+                            {totalNotifications > 0 && (
+                                <span className={`absolute top-1 right-1 min-w-[16px] h-4 px-1 text-white text-[10px] font-bold flex items-center justify-center rounded-full border-2 border-white ${lowStockCount > 0 && (pendingShares?.length || 0) === 0 ? 'bg-amber-500' : 'bg-red-500'
+                                    }`}>
+                                    {totalNotifications}
                                 </span>
                             )}
                         </button>
@@ -366,12 +375,13 @@ const Header = forwardRef(({ onMenuClick, isPinned }, ref) => {
                         className="hidden md:block relative p-3 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-full transition-colors min-h-[48px] min-w-[48px]"
                         onClick={() => setShowNotifications(true)}
                         title="Notificações"
-                        aria-label={`Notificações${pendingShares.length > 0 ? ` - ${pendingShares.length} pendente(s)` : ''}`}
+                        aria-label={`Notificações${totalNotifications > 0 ? ` - ${totalNotifications} pendente(s)` : ''}`}
                     >
                         <Bell size={24} />
-                        {pendingShares.length > 0 && (
-                            <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-[10px] font-bold flex items-center justify-center rounded-full border-2 border-white">
-                                {pendingShares.length}
+                        {totalNotifications > 0 && (
+                            <span className={`absolute top-1 right-1 min-w-[16px] h-4 px-1 text-white text-[10px] font-bold flex items-center justify-center rounded-full border-2 border-white ${lowStockCount > 0 && (pendingShares?.length || 0) === 0 ? 'bg-amber-500' : 'bg-red-500'
+                                }`}>
+                                {totalNotifications}
                             </span>
                         )}
                     </button>

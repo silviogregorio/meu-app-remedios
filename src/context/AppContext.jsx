@@ -476,6 +476,20 @@ export const AppProvider = ({ children }) => {
         }
     };
 
+    // Refresh medications from database (used after stock updates)
+    const refreshMedications = async () => {
+        try {
+            const { data, error } = await supabase
+                .from('medications')
+                .select('*')
+                .order('name');
+            if (error) throw error;
+            setMedications(data.map(m => MedicationService.transform(m)));
+        } catch (error) {
+            console.error('Erro ao recarregar medicamentos:', error);
+        }
+    };
+
     // Receitas
     // Receitas
     const addPrescription = async (prescriptionData) => {
@@ -952,7 +966,7 @@ export const AppProvider = ({ children }) => {
             addPatient, updatePatient, deletePatient,
             sharePatient, unsharePatient,
             pendingShares, acceptShare, rejectShare,
-            medications: userMedications, addMedication, updateMedication, deleteMedication,
+            medications: userMedications, addMedication, updateMedication, deleteMedication, refreshMedications,
             prescriptions: userPrescriptions, addPrescription, updatePrescription, deletePrescription,
             consumptionLog, logConsumption, removeConsumption,
             showToast,

@@ -1,13 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
 import Card, { CardHeader, CardContent } from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Modal from '../components/ui/Modal';
 import Pagination from '../components/ui/Pagination';
-import { Plus, Pill, Trash2, Edit2, X, AlertTriangle, Search, User, Camera, Box } from 'lucide-react';
-import PillIcon from '../components/ui/PillIcon'; // Import PillIcon
+import { Plus, Pill, Trash2, Edit2, X, AlertTriangle, Search, User, Camera, Box, ShoppingCart, History, Clock } from 'lucide-react';
+import PillIcon from '../components/ui/PillIcon';
 import { MedicationCardShimmer } from '../components/ui/Shimmer';
+import QuickRefillModal from '../components/features/QuickRefillModal';
+import StockTimelineDrawer from '../components/features/StockTimelineDrawer';
+import { StockService } from '../services/stockService';
 
 const ITEMS_PER_PAGE = 6;
 
@@ -32,7 +35,7 @@ const SHAPES = [
 ];
 
 const Medications = () => {
-    const { medications, addMedication, updateMedication, deleteMedication, user, showToast } = useApp();
+    const { medications, addMedication, updateMedication, deleteMedication, user, showToast, prescriptions, refreshMedications } = useApp();
     const [showForm, setShowForm] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
     const [searchTerm, setSearchTerm] = useState('');
@@ -40,6 +43,21 @@ const Medications = () => {
     const [editingMedId, setEditingMedId] = useState(null);
     const [deleteMedId, setDeleteMedId] = useState(null);
     const [isInitialLoading, setIsInitialLoading] = useState(true);
+
+    // Stock Management States
+    const [refillMed, setRefillMed] = useState(null);
+    const [timelineMed, setTimelineMed] = useState(null);
+
+    // Calculate days until depletion for each medication
+    const medicationsWithStock = useMemo(() => {
+        return medications.map(med => ({
+            ...med,
+            daysRemaining: StockService.getDaysUntilDepletion(med, prescriptions),
+            stockLevel: StockService.getStockLevel(
+                StockService.getDaysUntilDepletion(med, prescriptions)
+            )
+        }));
+    }, [medications, prescriptions]);
 
     // Simulate loading to match Home page shimmer effect
     useEffect(() => {
@@ -67,7 +85,7 @@ const Medications = () => {
         setCurrentPage(1);
     }, [searchTerm]);
 
-    const filteredMedications = medications.filter(med =>
+    const filteredMedications = medicationsWithStock.filter(med =>
         med.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         med.dosage.toLowerCase().includes(searchTerm.toLowerCase()) ||
         med.type?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -356,9 +374,14 @@ const Medications = () => {
                                                             }`}>
                                                             {item.quantity || '0'}
                                                         </span>
-                                                        {Number(item.quantity) < 5 && (
-                                                            <div className="bg-rose-100 text-rose-600 text-[8px] font-bold px-1.5 py-0.5 rounded-md uppercase tracking-wider">
-                                                                Baixo
+                                                        {/* Depletion Badge */}
+                                                        {item.daysRemaining !== null && (
+                                                            <div className={`text-[8px] font-bold px-1.5 py-0.5 rounded-md uppercase tracking-wider flex items-center gap-1 ${item.stockLevel === 'critical' ? 'bg-rose-100 text-rose-600' :
+                                                                    item.stockLevel === 'warning' ? 'bg-amber-100 text-amber-600' :
+                                                                        'bg-emerald-100 text-emerald-600'
+                                                                }`}>
+                                                                <Clock size={10} />
+                                                                {item.daysRemaining}d
                                                             </div>
                                                         )}
                                                     </div>
@@ -373,8 +396,25 @@ const Medications = () => {
                                                 </div>
                                             </div>
 
-                                            {/* Right Section: Actions */}
+                                            {/* Right Section: Actions (with Stock buttons) */}
                                             <div className="flex items-center gap-2 md:w-auto justify-end">
+                                                {/* Quick Stock Actions */}
+                                                <div className="flex gap-1">
+                                                    <button
+                                                        onClick={() => setRefillMed(item)}
+                                                        className="p-2 rounded-lg bg-green-50 text-green-600 hover:bg-green-100 transition-colors"
+                                                        title="Adicionar estoque"
+                                                    >
+                                                        <ShoppingCart size={16} />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setTimelineMed(item)}
+                                                        className="p-2 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors"
+                                                        title="Histórico de estoque"
+                                                    >
+                                                        <History size={16} />
+                                                    </button>
+                                                </div>
                                                 {item.user_id === user?.id ? (
                                                     <div className="flex gap-2 w-full md:w-auto">
                                                         {/* Mobile: Full Buttons */}
@@ -459,6 +499,23 @@ const Medications = () => {
                     </p>
                 </div>
             </Modal>
+
+            {/* Quick Refill Modal */}
+            {refillMed && (
+                <QuickRefillModal
+                    medication={refillMed}
+                    onClose={() => setRefillMed(null)}
+                    onSuccess={() => setRefillMed(null)}
+                />
+            )}
+
+            {/* Stock Timeline Drawer */}
+            {timelineMed && (
+                <StockTimelineDrawer
+                    medication={timelineMed}
+                    onClose={() => setTimelineMed(null)}
+                />
+            )}
         </div >
     );
 };
