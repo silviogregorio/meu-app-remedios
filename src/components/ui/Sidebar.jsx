@@ -184,18 +184,19 @@ const Sidebar = ({ isOpen, onClose, isPinned, onTogglePin }) => {
                                     window.location.href = '/';
                                 }
                             }}
-                            className="flex items-center gap-3 px-4 py-3 w-full text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-colors min-h-[48px] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-red-500/50"
+                            className="flex items-center justify-between px-4 py-3 w-full text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-colors min-h-[48px] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-red-500/50"
                             aria-label="Sair da conta"
                         >
-                            <LogOut size={20} aria-hidden="true" />
-                            <span>Sair</span>
+                            <div className="flex items-center gap-3">
+                                <LogOut size={20} aria-hidden="true" />
+                                <span>Sair</span>
+                            </div>
+                            <span className="text-[10px] text-gray-400 dark:text-slate-600">
+                                v{typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '?'}
+                            </span>
                         </button>
-
-                        {/* Versão do app - discreto */}
-                        <div className="mt-2 text-[10px] text-gray-400 dark:text-slate-600 text-center">
-                            v{typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '?'}
-                        </div>
                     </div>
+
                 </div>
 
             </aside>
