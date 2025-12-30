@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import {
     Calendar,
@@ -14,15 +15,20 @@ import {
     Search,
     Filter,
     ChevronRight,
-    CalendarDays
+    CalendarDays,
+    X
 } from 'lucide-react';
 import { format, parseISO, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import clsx from 'clsx';
 import { Phone, MessageSquare, MapPin as MapPinIcon, Building2, ChevronLeft, ChevronRight as ChevronRightIcon, List } from 'lucide-react';
+import Pagination from '../components/ui/Pagination';
+import Shimmer from '../components/ui/Shimmer';
+import ConfirmationModal from '../components/ui/ConfirmationModal';
 
 const Appointments = () => {
-    const { user, appointments, addAppointment, updateAppointment, deleteAppointment, patients, specialties } = useApp();
+    const { user, appointments, addAppointment, updateAppointment, deleteAppointment, patients, specialties, loadingData } = useApp();
+    const navigate = useNavigate();
     const [viewMode, setViewMode] = useState('list'); // 'list' or 'calendar'
     const [currentMonth, setCurrentMonth] = useState(new Date());
     const [selectedDay, setSelectedDay] = useState(new Date());
@@ -31,10 +37,19 @@ const Appointments = () => {
     const [editingAppointment, setEditingAppointment] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterStatus, setFilterStatus] = useState('all');
+    const [filterDate, setFilterDate] = useState(''); // YYYY-MM-DD
     const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
     const [isModalStatusOpen, setIsModalStatusOpen] = useState(false);
     const [isPatientDropdownOpen, setIsPatientDropdownOpen] = useState(false);
     const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200);
+
+    // Pagination
+    const [currentPage, setCurrentPage] = useState(1);
+    const ITEMS_PER_PAGE = 4;
+
+    // Delete Modal
+    const [appointmentToDelete, setAppointmentToDelete] = useState(null);
+
     const dropdownRef = React.useRef(null);
     const modalStatusDropdownRef = React.useRef(null);
     const patientDropdownRef = React.useRef(null);
@@ -143,10 +158,16 @@ const Appointments = () => {
         }
     };
 
-    const handleDelete = async (id) => {
-        if (window.confirm('Tem certeza que deseja desmarcar esta consulta?')) {
+    const handleDeleteClick = (appointment) => {
+        setAppointmentToDelete(appointment);
+        setIsModalOpen(false); // Close edit modal if open
+    };
+
+    const confirmDelete = async () => {
+        if (appointmentToDelete) {
             try {
-                await deleteAppointment(id);
+                await deleteAppointment(appointmentToDelete.id);
+                setAppointmentToDelete(null);
             } catch (error) {
                 console.error('Error deleting appointment:', error);
             }
@@ -162,7 +183,9 @@ const Appointments = () => {
 
         const matchesStatus = filterStatus === 'all' || app.status === filterStatus;
 
-        return matchesSearch && matchesStatus;
+        const matchesDate = !filterDate || (app.appointmentDate && app.appointmentDate.startsWith(filterDate));
+
+        return matchesSearch && matchesStatus && matchesDate;
     });
 
     const filteredSpecialties = specialties.filter(s =>
@@ -237,11 +260,81 @@ const Appointments = () => {
             return matchesSearch && matchesStatus;
         });
 
+    // Pagination Logic
+    const totalPages = Math.ceil(finalFilteredAppointments.length / ITEMS_PER_PAGE);
+    const paginatedAppointments = viewMode === 'list'
+        ? finalFilteredAppointments.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
+        : finalFilteredAppointments; // No pagination for calendar view usually, or explicit if needed. User asked for pagination "of 6", usually implies list.
+
     const statusMap = {
         scheduled: { label: 'Agendada', color: 'text-blue-600 bg-blue-50 border-blue-100', icon: Clock },
         completed: { label: 'Realizada', color: 'text-emerald-600 bg-emerald-50 border-emerald-100', icon: CheckCircle2 },
         cancelled: { label: 'Cancelada', color: 'text-rose-600 bg-rose-50 border-rose-100', icon: XCircle }
     };
+
+    const formatPhone = (val) => {
+        if (!val) return "";
+        const numbers = val.replace(/\D/g, "");
+        const len = numbers.length;
+
+        if (len <= 2) return numbers;
+        if (len <= 6) return `(${numbers.slice(0, 2)}) ${numbers.slice(2)}`;
+        if (len <= 10) return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 6)}-${numbers.slice(6)}`;
+        return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 7)}-${numbers.slice(7, 11)}`;
+    };
+
+    // Shimmer Loading State
+    if (loadingData) {
+        return (
+            <div className="space-y-6 pb-20 lg:pb-8 px-2 sm:px-0 max-w-full overflow-x-hidden">
+                {/* Header Shimmer */}
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 px-1 sm:px-0">
+                    <div>
+                        <Shimmer className="h-8 w-64 rounded-xl mb-2" />
+                        <Shimmer className="h-4 w-48 rounded-lg" />
+                    </div>
+                    <div className="flex gap-3">
+                        <Shimmer className="h-10 w-32 rounded-xl" />
+                        <Shimmer className="h-10 w-32 rounded-xl" />
+                    </div>
+                </div>
+
+                {/* Filters Shimmer */}
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-4 px-1 sm:px-0">
+                    <Shimmer className="h-14 w-full rounded-3xl md:col-span-6" />
+                    <Shimmer className="h-14 w-full rounded-2xl md:col-span-3" />
+                    <Shimmer className="h-14 w-full rounded-2xl md:col-span-3" />
+                </div>
+
+                {/* Grid Shimmer */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4 md:gap-6 px-1 sm:px-0">
+                    {[1, 2, 3, 4, 5, 6].map(i => (
+                        <div key={i} className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-6 md:p-7 border border-slate-100 dark:border-slate-800 shadow-sm">
+                            <div className="flex justify-between items-start mb-6">
+                                <div className="flex items-center gap-3">
+                                    <Shimmer className="w-12 h-12 rounded-xl" />
+                                    <div className="space-y-2">
+                                        <Shimmer className="h-5 w-40 rounded-lg" />
+                                        <Shimmer className="h-3 w-24 rounded-lg" />
+                                    </div>
+                                </div>
+                                <Shimmer className="w-20 h-6 rounded-full" />
+                            </div>
+                            <div className="space-y-3">
+                                <Shimmer className="h-4 w-full rounded-lg" />
+                                <Shimmer className="h-4 w-3/4 rounded-lg" />
+                                <Shimmer className="h-4 w-1/2 rounded-lg" />
+                            </div>
+                            <div className="mt-6 flex gap-2">
+                                <Shimmer className="h-10 flex-1 rounded-lg" />
+                                <Shimmer className="h-10 w-10 rounded-lg" />
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-6 pb-20 lg:pb-8 px-2 sm:px-0 max-w-full overflow-x-hidden">
@@ -254,7 +347,7 @@ const Appointments = () => {
                         </div>
                         Consultas Médicas
                     </h1>
-                    <p className="text-slate-500 dark:text-slate-400 text-sm md:text-base mt-1 font-medium italic">
+                    <p className="text-slate-500 dark:text-slate-400 text-sm md:text-base mt-1 font-medium italic pl-1">
                         Organize sua rotina de saúde com elegância.
                     </p>
                 </div>
@@ -307,7 +400,12 @@ const Appointments = () => {
                                     <ChevronLeft size={20} />
                                 </button>
                                 <button
-                                    onClick={() => setCurrentMonth(new Date())}
+                                    onClick={() => {
+                                        const now = new Date();
+                                        setCurrentMonth(now);
+                                        setSelectedDay(now);
+                                        setFilterDate(format(now, 'yyyy-MM-dd'));
+                                    }}
                                     className="px-3 py-1 text-xs font-bold text-[#10b981] hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg transition-colors"
                                 >
                                     Hoje
@@ -336,45 +434,125 @@ const Appointments = () => {
                                 const isCurrentMonth = isSameMonth(day, monthStart);
                                 const isToday = isSameDay(day, new Date());
 
+                                // Multi-status Visual Logic
+                                const uniqueStatuses = [...new Set(dayApps.map(a => a.status))];
+                                const hasScheduled = uniqueStatuses.includes('scheduled');
+                                const hasCompleted = uniqueStatuses.includes('completed');
+                                const hasCancelled = uniqueStatuses.includes('cancelled');
+
+                                // Determine dynamic styles
+                                let containerStyles = {};
+                                let dynamicClasses = "";
+
+                                if (isSelected && dayApps.length === 0) {
+                                    dynamicClasses = "bg-emerald-600 border-emerald-600 text-white shadow-lg shadow-emerald-200 dark:shadow-emerald-900/20";
+                                } else if (isToday && dayApps.length === 0) {
+                                    dynamicClasses = "bg-emerald-50 border-emerald-200 text-[#10b981] dark:bg-emerald-900/20 dark:border-emerald-800";
+                                } else if (dayApps.length > 0) {
+                                    const primaryStatus = hasScheduled ? 'scheduled' : (hasCompleted ? 'completed' : 'cancelled');
+                                    const statusHexColors = {
+                                        scheduled: "#3b82f6",
+                                        completed: "#10b981",
+                                        cancelled: "#f43f5e"
+                                    };
+
+                                    const statusClasses = {
+                                        scheduled: "bg-blue-50/50 dark:bg-blue-900/10 border-blue-200/50 dark:border-blue-800/30",
+                                        completed: "bg-emerald-50/50 dark:bg-emerald-900/10 border-emerald-200/50 dark:border-emerald-800/30",
+                                        cancelled: "bg-rose-50/50 dark:bg-rose-900/10 border-rose-200/50 dark:border-rose-800/30"
+                                    };
+                                    dynamicClasses = statusClasses[primaryStatus] + " text-slate-700 dark:text-slate-300";
+
+                                    // Multi-status Border Gradient
+                                    if (uniqueStatuses.length > 1) {
+                                        const gradientColors = uniqueStatuses.map(s => statusHexColors[s]).join(', ');
+                                        if (isSelected) {
+                                            containerStyles = {
+                                                background: `linear-gradient(#059669, #059669) padding-box, linear-gradient(135deg, ${gradientColors}) border-box`,
+                                                border: '3px solid transparent'
+                                            };
+                                            dynamicClasses = "text-white shadow-xl shadow-emerald-200/50 dark:shadow-emerald-900/40 scale-105 z-10";
+                                        } else {
+                                            containerStyles = {
+                                                background: `linear-gradient(var(--bg-day), var(--bg-day)) padding-box, linear-gradient(135deg, ${gradientColors}) border-box`,
+                                                border: '3px solid transparent'
+                                            };
+                                            dynamicClasses = "bg-white dark:bg-slate-900 [--bg-day:theme(colors.white)] dark:[--bg-day:theme(colors.slate.900)] text-slate-700 dark:text-slate-300 hover:scale-105";
+                                        }
+                                    } else {
+                                        // SINGLE STATUS BORDER
+                                        if (isSelected) {
+                                            dynamicClasses = "bg-emerald-600 text-white shadow-xl shadow-emerald-200/50 dark:shadow-emerald-900/40 scale-105 z-10 border-[3px]";
+                                            containerStyles = { borderColor: statusHexColors[primaryStatus] };
+                                        } else {
+                                            const ringColors = {
+                                                scheduled: "ring-blue-500/20 border-blue-200/50 dark:border-blue-800/30",
+                                                completed: "ring-emerald-500/20 border-emerald-200/50 dark:border-emerald-800/30",
+                                                cancelled: "ring-rose-500/20 border-rose-200/50 dark:border-rose-800/30"
+                                            };
+                                            dynamicClasses += ` ring-[3px] ${ringColors[primaryStatus] || ringColors.scheduled} ring-offset-2 ring-offset-emerald-50/20 shadow-sm`;
+                                        }
+                                    }
+                                } else {
+                                    dynamicClasses = "bg-white dark:bg-slate-900 border-transparent text-slate-700 dark:text-slate-300";
+                                    if (!isCurrentMonth) dynamicClasses += " opacity-20";
+                                }
+
                                 return (
                                     <button
                                         key={idx}
-                                        onClick={() => setSelectedDay(day)}
+                                        onClick={() => {
+                                            setSelectedDay(day);
+                                            setFilterDate(format(day, 'yyyy-MM-dd'));
+                                        }}
+                                        style={containerStyles}
                                         className={clsx(
-                                            "relative h-10 sm:h-12 flex flex-col items-center justify-center rounded-lg transition-all border",
-                                            !isCurrentMonth ? "opacity-20 pointer-events-none" : "hover:scale-105",
-                                            isSelected
-                                                ? "bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-200 dark:shadow-indigo-900/20"
-                                                : isToday
-                                                    ? "bg-emerald-50 border-emerald-200 text-[#10b981] dark:bg-emerald-900/20 dark:border-emerald-800"
-                                                    : "bg-white dark:bg-slate-900 border-transparent text-slate-700 dark:text-slate-300"
+                                            "relative h-11 sm:h-14 flex flex-col items-center justify-center rounded-xl transition-all duration-300",
+                                            dynamicClasses,
+                                            !isCurrentMonth && dayApps.length === 0 && "opacity-20 pointer-events-none"
                                         )}
                                     >
                                         <span className="text-sm font-bold">{format(day, 'd')}</span>
                                         {dayApps.length > 0 && (
-                                            <div className="absolute bottom-1 flex gap-0.5">
-                                                {dayApps.slice(0, 3).map((_, i) => (
-                                                    <div
-                                                        key={i}
-                                                        className={clsx(
-                                                            "w-1 h-1 rounded-full",
-                                                            isSelected ? "bg-white/60" : "bg-[#10b981]"
-                                                        )}
-                                                    />
-                                                ))}
+                                            <div className="absolute bottom-1.5 flex gap-1.5">
+                                                {hasScheduled && (
+                                                    <div className={clsx("w-1.5 h-1.5 rounded-full ring-1", isSelected ? "bg-blue-400 ring-white/50" : "bg-blue-500 ring-transparent shadow-[0_0_8px_rgba(59,130,246,0.5)]")} />
+                                                )}
+                                                {hasCompleted && (
+                                                    <div className={clsx("w-1.5 h-1.5 rounded-full ring-1", isSelected ? "bg-emerald-400 ring-white/50" : "bg-emerald-500 ring-transparent shadow-[0_0_8px_rgba(16,185,129,0.5)]")} />
+                                                )}
+                                                {hasCancelled && (
+                                                    <div className={clsx("w-1.5 h-1.5 rounded-full ring-1", isSelected ? "bg-rose-400 ring-white/50" : "bg-rose-500 ring-transparent shadow-[0_0_8px_rgba(244,63,94,0.5)]")} />
+                                                )}
                                             </div>
                                         )}
                                     </button>
                                 );
                             })}
                         </div>
+
+                        {/* Status Legend */}
+                        <div className="mt-4 pt-4 border-t border-slate-50 dark:border-slate-800/50 flex flex-wrap items-center justify-center gap-4 sm:gap-6">
+                            <div className="flex items-center gap-2">
+                                <div className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_6px_rgba(59,130,246,0.4)]" />
+                                <span className="text-[10px] sm:text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Agendada</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.4)]" />
+                                <span className="text-[10px] sm:text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Realizada</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <div className="w-2 h-2 rounded-full bg-rose-500 shadow-[0_0_6px_rgba(244,63,94,0.4)]" />
+                                <span className="text-[10px] sm:text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Cancelada</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}
 
             {/* Filters & Search - Senior UI Polish */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 px-1 sm:px-0">
-                <div className="md:col-span-2 relative group">
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-4 px-1 sm:px-0">
+                <div className="md:col-span-6 relative group">
                     <label htmlFor="main-search-input" className="sr-only">Buscar consultas</label>
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#10b981] transition-colors" size={18} />
                     <input
@@ -389,11 +567,40 @@ const Appointments = () => {
                     />
                 </div>
 
+                <div className="md:col-span-3 relative flex items-center">
+                    <div className="absolute left-4 z-10 text-slate-400">
+                        <Calendar size={18} />
+                    </div>
+                    <input
+                        type="date"
+                        value={filterDate}
+                        onChange={(e) => {
+                            setFilterDate(e.target.value);
+                            if (e.target.value) {
+                                setSelectedDay(parseISO(e.target.value));
+                                setViewMode('list');
+                            }
+                        }}
+                        className="w-full pl-11 pr-10 py-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm focus:ring-2 focus:ring-[#10b981]/10 focus:border-[#10b981] outline-none transition-all dark:text-white text-sm font-medium hover:border-slate-300 dark:hover:border-slate-700 appearance-none"
+                    />
+                    {filterDate && (
+                        <button
+                            onClick={() => {
+                                setFilterDate('');
+                                setCurrentPage(1);
+                            }}
+                            className="absolute right-3 p-1.5 text-slate-400 hover:text-rose-500 transition-colors bg-white dark:bg-slate-900"
+                        >
+                            <X size={16} />
+                        </button>
+                    )}
+                </div>
+
                 {/* Custom Emoji Dropdown - Status Filter */}
-                <div className="relative" ref={dropdownRef}>
+                <div className="md:col-span-3 relative" ref={dropdownRef}>
                     <button
                         onClick={() => setIsStatusDropdownOpen(!isStatusDropdownOpen)}
-                        className="w-full flex items-center justify-between px-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm focus:ring-2 focus:ring-[#10b981]/20 focus:border-[#10b981] outline-none transition-all dark:text-white text-sm md:text-base font-medium hover:border-slate-300 dark:hover:border-slate-700"
+                        className="w-full h-full flex items-center justify-between px-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm focus:ring-2 focus:ring-[#10b981]/20 focus:border-[#10b981] outline-none transition-all dark:text-white text-sm md:text-base font-medium hover:border-slate-300 dark:hover:border-slate-700"
                     >
                         <div className="flex items-center gap-3">
                             <span className="text-xl leading-none">{selectedStatusEmoji}</span>
@@ -432,8 +639,8 @@ const Appointments = () => {
 
             {/* Appointments Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4 md:gap-6 px-1 sm:px-0">
-                {finalFilteredAppointments.length > 0 ? (
-                    finalFilteredAppointments.map((app) => (
+                {paginatedAppointments.length > 0 ? (
+                    paginatedAppointments.map((app) => (
                         <div
                             key={app.id}
                             className="group bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 p-6 md:p-7 shadow-xl shadow-slate-200/40 dark:shadow-none hover:shadow-2xl hover:shadow-emerald-500/10 dark:hover:bg-slate-800/50 transition-all duration-500 relative overflow-hidden flex flex-col h-full"
@@ -589,6 +796,17 @@ const Appointments = () => {
                     </div>
                 )}
             </div>
+
+            {/* Pagination (Only in List View) */}
+            {viewMode === 'list' && totalPages > 1 && (
+                <div className="px-1 sm:px-0">
+                    <Pagination
+                        currentPage={currentPage}
+                        totalPages={totalPages}
+                        onPageChange={setCurrentPage}
+                    />
+                </div>
+            )}
 
             {/* Modal de Cadastro/Edição */}
             {
@@ -853,7 +1071,7 @@ const Appointments = () => {
                                             autoComplete="tel"
                                             placeholder="(00) 00000-0000"
                                             value={formData.contactPhone}
-                                            onChange={(e) => setFormData({ ...formData, contactPhone: e.target.value })}
+                                            onChange={(e) => setFormData({ ...formData, contactPhone: formatPhone(e.target.value) })}
                                             className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-[#10b981] outline-none transition-all dark:text-white"
                                         />
                                     </div>
@@ -866,7 +1084,7 @@ const Appointments = () => {
                                             autoComplete="tel"
                                             placeholder="(00) 00000-0000"
                                             value={formData.whatsappPhone}
-                                            onChange={(e) => setFormData({ ...formData, whatsappPhone: e.target.value })}
+                                            onChange={(e) => setFormData({ ...formData, whatsappPhone: formatPhone(e.target.value) })}
                                             className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-[#10b981] outline-none transition-all dark:text-white"
                                         />
                                     </div>
@@ -890,7 +1108,7 @@ const Appointments = () => {
                                     {editingAppointment && (
                                         <button
                                             type="button"
-                                            onClick={() => handleDelete(editingAppointment.id)}
+                                            onClick={() => handleDeleteClick(editingAppointment)}
                                             className="flex-1 px-4 py-3 rounded-xl border border-rose-200 text-rose-600 font-bold hover:bg-rose-50 transition-colors"
                                         >
                                             Desmarcar
@@ -916,7 +1134,32 @@ const Appointments = () => {
                     </div>
                 )
             }
-        </div >
+
+            <ConfirmationModal
+                isOpen={!!appointmentToDelete}
+                onClose={() => setAppointmentToDelete(null)}
+                onConfirm={confirmDelete}
+                title="Desmarcar Consulta"
+                description={
+                    appointmentToDelete ? (
+                        <span>
+                            Tem certeza que deseja desmarcar a consulta com:
+                            <br /><br />
+                            <strong className="text-slate-900 block font-bold text-lg leading-tight">
+                                {appointmentToDelete.doctorName}
+                            </strong>
+                            <span className="text-slate-500 text-sm block mt-1">
+                                {appointmentToDelete.specialty}
+                            </span>
+                            <br />
+                            <span className="block text-red-600 font-medium">
+                                Essa ação não pode ser desfeita.
+                            </span>
+                        </span>
+                    ) : "Confirmar exclusão?"
+                }
+            />
+        </div>
     );
 };
 

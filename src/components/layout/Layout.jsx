@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom'; // updated import
 import Header from './Header';
 import Sidebar from '../ui/Sidebar';
+import Shimmer from '../ui/Shimmer';
 import { ChevronLeft } from 'lucide-react'; // Added icon
 
 import { useApp } from '../../context/AppContext';
@@ -9,7 +10,7 @@ import { useAuth } from '../../context/AuthContext';
 import { setupOnMessageListener } from '../../utils/firebase';
 
 const Layout = () => {
-    const { accessibility, showToast } = useApp();
+    const { accessibility, showToast, loadingData } = useApp();
     const { mfaRequired, loading } = useAuth();
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [isPinned, setIsPinned] = useState(() => {
@@ -186,11 +187,11 @@ const Layout = () => {
                     style={{ paddingTop: `${headerHeight + 16}px` }}
                 >
                     {showBackButton && (
-                        <div className="mb-4">
-                            {isPageLoading ? (
-                                <div className="flex items-center gap-2 animate-pulse">
-                                    <div className="w-8 h-8 rounded-full bg-slate-200" />
-                                    <div className="h-4 w-16 bg-slate-200 rounded" />
+                        <div className="mb-4 min-h-[48px] flex items-center">
+                            {(isPageLoading || loadingData) ? (
+                                <div className="flex items-center gap-2 py-2 px-1">
+                                    <Shimmer className="w-8 h-8 rounded-full" />
+                                    <Shimmer className="h-5 w-16 rounded-md" />
                                 </div>
                             ) : (
                                 <button

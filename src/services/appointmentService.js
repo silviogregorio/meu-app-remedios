@@ -58,9 +58,9 @@ export const AppointmentService = {
             .from('medical_appointments')
             .insert([{
                 user_id: userId,
-                patient_id: appointmentData.patientId,
+                patient_id: appointmentData.patientId || null,
                 doctor_name: appointmentData.doctorName,
-                specialty_id: appointmentData.specialtyId,
+                specialty_id: appointmentData.specialtyId || null,
                 specialty_text: appointmentData.specialtyText,
                 appointment_date: appointmentData.appointmentDate,
                 location_name: appointmentData.locationName,
@@ -70,15 +70,7 @@ export const AppointmentService = {
                 notes: appointmentData.notes,
                 status: appointmentData.status || 'scheduled'
             }])
-            .select(`
-                *,
-                patients (
-                    name
-                ),
-                medical_specialties (
-                    name
-                )
-            `)
+            .select('*, patients(name), medical_specialties(name)')
             .single();
 
         if (error) throw error;
@@ -87,9 +79,9 @@ export const AppointmentService = {
 
     update: async (id, updatedData) => {
         const dbData = {};
-        if (updatedData.patientId) dbData.patient_id = updatedData.patientId;
+        if (updatedData.patientId) dbData.patient_id = updatedData.patientId || null;
         if (updatedData.doctorName) dbData.doctor_name = updatedData.doctorName;
-        if (updatedData.specialtyId !== undefined) dbData.specialty_id = updatedData.specialtyId;
+        if (updatedData.specialtyId !== undefined) dbData.specialty_id = updatedData.specialtyId || null;
         if (updatedData.specialtyText !== undefined) dbData.specialty_text = updatedData.specialtyText;
         if (updatedData.appointmentDate) dbData.appointment_date = updatedData.appointmentDate;
         if (updatedData.locationName !== undefined) dbData.location_name = updatedData.locationName;
@@ -103,15 +95,7 @@ export const AppointmentService = {
             .from('medical_appointments')
             .update(dbData)
             .eq('id', id)
-            .select(`
-                *,
-                patients (
-                    name
-                ),
-                medical_specialties (
-                    name
-                )
-            `)
+            .select('*, patients(name), medical_specialties(name)')
             .single();
 
         if (error) throw error;
