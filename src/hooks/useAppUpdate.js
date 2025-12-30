@@ -32,12 +32,17 @@ export const useAppUpdate = () => {
 
             // Compara buildTime (timestamp do build) - muda automaticamente a cada deploy
             if (serverBuildTime && serverBuildTime !== BUILD_TIME) {
-                console.log(`🔄 Nova versão detectada: ${APP_VERSION} → ${serverVersion} (build: ${serverBuildTime})`);
+                console.log(`🔄 Atualização detectada: v${APP_VERSION} → v${serverVersion} (build: ${serverBuildTime})`);
                 setUpdateAvailable(true);
 
                 if (!hasShownToast.current) {
                     hasShownToast.current = true;
-                    showToast(`🚀 Nova versão disponível (v${serverVersion})! Atualizando em 5 segundos...`, 'warning', 10000);
+                    // Se versão mudou, mostra ela. Se não, mostra mensagem genérica.
+                    const message = serverVersion !== APP_VERSION
+                        ? `🚀 Nova versão disponível (v${serverVersion})! Atualizando em 5 segundos...`
+                        : `🚀 Nova atualização disponível! Atualizando em 5 segundos...`;
+                    showToast(message, 'warning', 10000);
+
 
                     // Auto-reload após 5 segundos
                     setTimeout(() => {
