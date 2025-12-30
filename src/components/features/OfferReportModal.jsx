@@ -282,7 +282,7 @@ const OfferReportModal = ({ sponsor, onClose }) => {
     };
 
     return (
-        <div className="fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-4 animate-in fade-in backdrop-blur-sm print:bg-white print:p-0 print:static print:block">
+        <div className="fixed inset-0 bg-black/60 z-[60] flex items-start justify-center pt-20 pb-4 px-4 overflow-y-auto animate-in fade-in backdrop-blur-sm print:bg-white print:p-0 print:static print:block">
             {/* Estilos específicos para impressão */}
             <style dangerouslySetInnerHTML={{
                 __html: `
@@ -320,9 +320,10 @@ const OfferReportModal = ({ sponsor, onClose }) => {
 
             <div className="bg-white rounded-3xl shadow-2xl w-full max-w-5xl h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 print:h-auto print:static print:shadow-none print:w-full print:rounded-none print:max-w-none print:border-none print:block">
 
-                {/* Header (UI) */}
-                <div className="p-6 border-b border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-slate-50 relative print:hidden">
-                    <div className="flex items-center gap-4">
+                {/* Header (UI) - Reorganizado: Título → Filtros → Ações */}
+                <div className="p-4 md:p-6 border-b border-slate-100 bg-slate-50 relative print:hidden">
+                    {/* Linha 1: Título */}
+                    <div className="flex items-center gap-4 mb-4">
                         <div className="p-3 bg-blue-600 text-white rounded-2xl shadow-lg shadow-blue-600/20 shrink-0">
                             <BarChart3 size={28} aria-hidden="true" />
                         </div>
@@ -331,7 +332,80 @@ const OfferReportModal = ({ sponsor, onClose }) => {
                             <p className="text-base text-slate-500 font-bold">{sponsor.name} • {new Date().toLocaleDateString('pt-BR')}</p>
                         </div>
                     </div>
-                    <div className="flex flex-wrap items-center gap-2 w-full md:w-auto pr-10 md:pr-0">
+
+                    {/* Linha 2: Filtros Compactos */}
+                    <div className="flex flex-col lg:flex-row gap-3 mb-4 bg-white p-3 rounded-2xl border border-slate-200">
+                        {/* Período */}
+                        <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-xs font-black text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                                <Calendar size={14} className="text-slate-400" /> Período:
+                            </span>
+                            <div className="flex gap-1">
+                                {[
+                                    { id: '7days', label: '7D' },
+                                    { id: '30days', label: '30D' },
+                                    { id: 'all', label: 'Tudo' },
+                                    { id: 'custom', label: '📅' }
+                                ].map(p => (
+                                    <button
+                                        key={p.id}
+                                        onClick={() => handlePeriodChange(p.id)}
+                                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${period === p.id
+                                            ? 'bg-blue-600 text-white shadow-sm'
+                                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                                            }`}
+                                    >
+                                        {p.label}
+                                    </button>
+                                ))}
+                            </div>
+                            {period === 'custom' && (
+                                <div className="flex items-center gap-1 animate-in fade-in">
+                                    <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="px-2 py-1 text-xs border rounded-lg w-28" />
+                                    <span className="text-slate-400 text-xs">→</span>
+                                    <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="px-2 py-1 text-xs border rounded-lg w-28" />
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="hidden lg:block w-px bg-slate-200"></div>
+
+                        {/* Status */}
+                        <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-xs font-black text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                                <Filter size={14} className="text-slate-400" /> Status:
+                            </span>
+                            <div className="flex gap-1">
+                                {[
+                                    { id: 'all', label: 'Todas' },
+                                    { id: 'active', label: 'Ativas' },
+                                    { id: 'expired', label: 'Expiradas' },
+                                    { id: 'scheduled', label: 'Agendadas' }
+                                ].map(btn => (
+                                    <button
+                                        key={btn.id}
+                                        onClick={() => setFilterStatus(btn.id)}
+                                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${filterStatus === btn.id
+                                            ? 'bg-blue-600 text-white shadow-sm'
+                                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                                            }`}
+                                    >
+                                        {btn.label}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="hidden lg:block flex-1"></div>
+
+                        {/* Contador */}
+                        <span className="text-xs font-bold text-slate-500 self-center">
+                            {filteredOffers.length} {filteredOffers.length === 1 ? 'oferta' : 'ofertas'}
+                        </span>
+                    </div>
+
+                    {/* Linha 3: Botões de Ação */}
+                    <div className="flex flex-wrap items-center gap-2">
                         <button
                             onClick={handleWhatsAppShare}
                             className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-green-100 text-green-700 hover:bg-green-600 hover:text-white rounded-xl transition-all font-black text-sm border border-green-200"
@@ -355,7 +429,7 @@ const OfferReportModal = ({ sponsor, onClose }) => {
                         </button>
                     </div>
 
-                    {/* Botão de Fechar Absoluto para evitar desalinhamento no mobile */}
+                    {/* Botão de Fechar */}
                     <button
                         onClick={onClose}
                         className="absolute top-4 right-4 p-2 hover:bg-red-50 hover:text-red-500 rounded-full transition-colors text-slate-400 shrink-0"
@@ -400,88 +474,6 @@ const OfferReportModal = ({ sponsor, onClose }) => {
                                     <p className="text-xs font-black text-purple-600 uppercase tracking-widest mb-1">Conversão (CTR)</p>
                                     <p className="text-4xl font-black text-slate-900">{avgCtr.toFixed(1)}%</p>
                                     <p className="text-xs text-slate-500 mt-1">Eficiência média</p>
-                                </div>
-                            </div>
-
-                            {/* Filtros e Controles */}
-                            <div className="flex flex-col gap-6 bg-slate-50 p-6 rounded-3xl border border-slate-100 print:hidden">
-                                {/* Linha 1: Período */}
-                                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                                    <div className="flex items-center gap-2 overflow-x-auto w-full md:w-auto pb-2 md:pb-0">
-                                        <Calendar size={18} className="text-slate-400 shrink-0" />
-                                        <span className="text-sm font-black text-slate-500 uppercase tracking-widest mr-2">Período:</span>
-                                        {[
-                                            { id: '7days', label: '7 Dias' },
-                                            { id: '30days', label: '30 Dias' },
-                                            { id: 'all', label: 'Tudo' },
-                                            { id: 'custom', label: 'Personalizado' }
-                                        ].map(p => (
-                                            <button
-                                                key={p.id}
-                                                onClick={() => handlePeriodChange(p.id)}
-                                                className={`
-                                                    px-4 py-2 rounded-xl text-xs font-black transition-all whitespace-nowrap border-2
-                                                    ${period === p.id
-                                                        ? 'border-blue-600 bg-blue-600 text-white shadow-md'
-                                                        : 'border-white bg-white text-slate-500 hover:border-slate-200'
-                                                    }
-                                                `}
-                                            >
-                                                {p.label}
-                                            </button>
-                                        ))}
-                                    </div>
-
-                                    {period === 'custom' && (
-                                        <div className="flex items-center gap-2 w-full md:w-auto animate-in fade-in slide-in-from-right-2">
-                                            <input
-                                                type="date"
-                                                value={startDate}
-                                                onChange={(e) => setStartDate(e.target.value)}
-                                                className="flex-1 md:w-40 px-3 py-2 bg-white border-2 border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:border-blue-500 outline-none"
-                                            />
-                                            <span className="text-slate-400 font-bold">até</span>
-                                            <input
-                                                type="date"
-                                                value={endDate}
-                                                onChange={(e) => setEndDate(e.target.value)}
-                                                className="flex-1 md:w-40 px-3 py-2 bg-white border-2 border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:border-blue-500 outline-none"
-                                            />
-                                        </div>
-                                    )}
-                                </div>
-
-                                <div className="h-px bg-slate-200 w-full opacity-50"></div>
-
-                                {/* Linha 2: Status */}
-                                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                                    <div className="flex items-center gap-2 overflow-x-auto w-full md:w-auto pb-2 md:pb-0">
-                                        <Filter size={18} className="text-slate-400 shrink-0" />
-                                        <span className="text-sm font-black text-slate-500 uppercase tracking-widest mr-2">Status:</span>
-                                        {[
-                                            { id: 'all', label: 'Todas as Ofertas', color: 'bg-white' },
-                                            { id: 'active', label: 'Ativas', color: 'bg-green-100 text-green-700' },
-                                            { id: 'expired', label: 'Expiradas', color: 'bg-red-100 text-red-700' },
-                                            { id: 'scheduled', label: 'Agendadas', color: 'bg-blue-100 text-blue-700' }
-                                        ].map(btn => (
-                                            <button
-                                                key={btn.id}
-                                                onClick={() => setFilterStatus(btn.id)}
-                                                className={`
-                                                    px-4 py-2 rounded-xl text-xs font-black transition-all whitespace-nowrap border-2
-                                                    ${filterStatus === btn.id
-                                                        ? 'border-blue-600 bg-blue-600 text-white shadow-md'
-                                                        : 'border-white bg-white text-slate-500 hover:border-slate-200'
-                                                    }
-                                                `}
-                                            >
-                                                {btn.label}
-                                            </button>
-                                        ))}
-                                    </div>
-                                    <p className="text-sm font-bold text-slate-500 hidden md:block">
-                                        Exibindo {filteredOffers.length} {filteredOffers.length === 1 ? 'oferta' : 'ofertas'} no período
-                                    </p>
                                 </div>
                             </div>
 
