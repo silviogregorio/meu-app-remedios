@@ -746,7 +746,7 @@ const HealthDiary = () => {
                                                                             <div key={log.id} className="bg-white p-3 rounded-lg border border-slate-100 shadow-sm flex flex-col gap-2 relative overflow-hidden">
                                                                                 {/* Patient Name Header - Centered */}
                                                                                 <div className="flex justify-center border-b border-slate-50 pb-2 mb-1">
-                                                                                    <span className="text-[10px] font-bold text-primary bg-primary/10 px-3 py-1 rounded-full text-center truncate max-w-full">
+                                                                                    <span className="text-[13px] font-bold text-primary bg-primary/10 px-4 py-1.5 rounded-full text-center truncate max-w-full">
                                                                                         {patientName}
                                                                                     </span>
                                                                                 </div>
@@ -881,7 +881,7 @@ const HealthDiary = () => {
                                                                             >
                                                                                 {/* Patient Name Header - Centered */}
                                                                                 <div className="flex justify-center border-b border-slate-50 pb-2 mb-1">
-                                                                                    <span className="text-[10px] font-bold text-primary bg-primary/10 px-3 py-1 rounded-full text-center truncate max-w-full">
+                                                                                    <span className="text-[13px] font-bold text-primary bg-primary/10 px-4 py-1.5 rounded-full text-center truncate max-w-full">
                                                                                         {patientName}
                                                                                     </span>
                                                                                 </div>
