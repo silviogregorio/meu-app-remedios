@@ -289,7 +289,7 @@ export const generatePDFReport = async (reportData, filters, patients) => {
  * @param {Object} filters - Current filters (patientId, etc)
  * @param {Array} patients - List of patients
  */
-export const generatePDFHealthDiary = async (logs, filters, patients, medicationLogs = []) => {
+export const generatePDFHealthDiary = async (logs, filters, patients, medicationLogs = [], symptomLogs = []) => {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.width;
     const pageHeight = doc.internal.pageSize.height;
@@ -340,6 +340,20 @@ export const generatePDFHealthDiary = async (logs, filters, patients, medication
             const [y, m, d] = filters.date.split('-').map(Number);
             const dateObj = new Date(y, m - 1, d);
             doc.text(`Registro do dia ${format(dateObj, "dd/MM/yyyy")}`, 45, 28);
+        } else if (filters.startDate || filters.endDate) {
+            let periodText = 'Período: ';
+            if (filters.startDate && filters.endDate) {
+                const [y1, m1, d1] = filters.startDate.split('-').map(Number);
+                const [y2, m2, d2] = filters.endDate.split('-').map(Number);
+                periodText += `${format(new Date(y1, m1 - 1, d1), "dd/MM/yyyy")} até ${format(new Date(y2, m2 - 1, d2), "dd/MM/yyyy")}`;
+            } else if (filters.startDate) {
+                const [y, m, d] = filters.startDate.split('-').map(Number);
+                periodText += `A partir de ${format(new Date(y, m - 1, d), "dd/MM/yyyy")}`;
+            } else {
+                const [y, m, d] = filters.endDate.split('-').map(Number);
+                periodText += `Até ${format(new Date(y, m - 1, d), "dd/MM/yyyy")}`;
+            }
+            doc.text(periodText, 45, 28);
         } else {
             doc.text('Acompanhamento de Sinais Vitais', 45, 28);
         }
@@ -385,6 +399,16 @@ export const generatePDFHealthDiary = async (logs, filters, patients, medication
         }
     });
 
+    // Sintomas
+    const symptomsByPatient = {};
+    symptomLogs.forEach(sLog => {
+        const patientId = sLog.patient_id || sLog.patientId;
+        if (patientId) {
+            if (!symptomsByPatient[patientId]) symptomsByPatient[patientId] = [];
+            symptomsByPatient[patientId].push(sLog);
+        }
+    });
+
     // Ordenar
     Object.keys(logsByPatient).forEach(id => {
         logsByPatient[id].sort((a, b) => new Date(a.measured_at) - new Date(b.measured_at));
@@ -392,9 +416,12 @@ export const generatePDFHealthDiary = async (logs, filters, patients, medication
     Object.keys(medsByPatient).forEach(id => {
         medsByPatient[id].sort((a, b) => new Date(a.date + 'T' + a.scheduledTime) - new Date(b.date + 'T' + b.scheduledTime));
     });
+    Object.keys(symptomsByPatient).forEach(id => {
+        symptomsByPatient[id].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+    });
 
     // Obter lista única de pacientes ativos neste relatório
-    const allPatientIds = new Set([...Object.keys(logsByPatient), ...Object.keys(medsByPatient)]);
+    const allPatientIds = new Set([...Object.keys(logsByPatient), ...Object.keys(medsByPatient), ...Object.keys(symptomsByPatient)]);
 
     // --- Helper Functions ---
     const getCategoryLabel = (catId) => {
@@ -417,6 +444,7 @@ export const generatePDFHealthDiary = async (logs, filters, patients, medication
     Array.from(allPatientIds).forEach((patientId, index) => {
         const patientLogs = logsByPatient[patientId] || [];
         const patientMeds = medsByPatient[patientId] || [];
+        const patientSymptoms = symptomsByPatient[patientId] || [];
         const patient = patients.find(p => p.id === patientId);
         const patientName = patient?.name || 'Paciente Desconhecido';
 
@@ -450,7 +478,7 @@ export const generatePDFHealthDiary = async (logs, filters, patients, medication
         doc.setFontSize(9);
         doc.setTextColor(100, 116, 139); // Slate-500
         doc.setFont('helvetica', 'normal');
-        doc.text(`${patientLogs.length} medições • ${patientMeds.length} medicamentos`, 24, yPos + 16);
+        doc.text(`${patientLogs.length} medições • ${patientMeds.length} medicamentos • ${patientSymptoms.length} sintomas`, 24, yPos + 16);
 
         yPos += 30; // Increased from 25 to 30 to give space for the title
 
@@ -571,6 +599,40 @@ export const generatePDFHealthDiary = async (logs, filters, patients, medication
                         }
                     }
                 },
+                margin: { top: 10, left: 14, right: 14 }
+            });
+
+            yPos = doc.lastAutoTable.finalY + 10;
+        }
+
+        // --- Tabela de Sintomas (Se houver) ---
+        if (patientSymptoms.length > 0) {
+            if (yPos > pageHeight - 40) {
+                doc.addPage();
+                drawHeader();
+                yPos = 55;
+            }
+
+            doc.setFontSize(10);
+            doc.setTextColor(...colors.heading);
+            doc.setFont('helvetica', 'bold');
+            doc.text('Histórico de Sintomas', 14, yPos - 3);
+
+            const symptomTableData = patientSymptoms.map(log => [
+                format(new Date(log.created_at || log.measured_at), "dd/MM/yyyy HH:mm", { locale: ptBR }),
+                log.symptom,
+                `Nível ${log.intensity}`,
+                log.notes || '-'
+            ]);
+
+            autoTable(doc, {
+                startY: yPos,
+                head: [['Data/Hora', 'Sintoma', 'Intensidade', 'Observações']],
+                body: symptomTableData,
+                theme: 'striped',
+                styles: { font: 'helvetica', fontSize: 9, cellPadding: 3, textColor: colors.text },
+                headStyles: { fillColor: [241, 245, 249], textColor: colors.heading, fontStyle: 'bold', lineColor: colors.border, lineWidth: 0.1 },
+                columnStyles: { 0: { cellWidth: 40 }, 1: { cellWidth: 40 }, 2: { cellWidth: 30 }, 3: { cellWidth: 'auto' } },
                 margin: { top: 10, left: 14, right: 14 }
             });
 

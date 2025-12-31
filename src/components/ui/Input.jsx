@@ -47,8 +47,7 @@ const Input = ({
                     name={name}
                     type={inputType}
                     className={clsx(
-                        "w-full px-4 py-3.5 rounded-xl border bg-white dark:bg-slate-900 text-lg text-slate-900 dark:text-white placeholder:text-slate-500 dark:placeholder:text-slate-400 min-h-[52px]",
-                        "focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/30 transition-all duration-200",
+                        "w-full px-4 py-2.5 rounded-xl border bg-white dark:bg-slate-900 text-base text-slate-900 dark:text-white placeholder:text-slate-500 dark:placeholder:text-slate-400 focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/10 transition-all duration-200",
                         "disabled:bg-slate-50 dark:disabled:bg-slate-800 disabled:text-slate-500",
                         error
                             ? "border-danger focus:border-danger focus-visible:ring-danger/30"

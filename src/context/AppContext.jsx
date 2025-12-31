@@ -619,7 +619,11 @@ export const AppProvider = ({ children }) => {
     // --- Symptom Logs ---
     const logSymptom = async (symptomData) => {
         try {
-            const newLog = { ...symptomData, user_id: user.id };
+            const newLog = {
+                ...symptomData,
+                user_id: user.id,
+                created_at: new Date().toISOString()
+            };
             // Optimistic
             setSymptomLogs(prev => [newLog, ...prev]);
 

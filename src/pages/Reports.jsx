@@ -190,64 +190,9 @@ const Reports = () => {
         }
     };
 
-
-
     React.useEffect(() => {
         setCurrentPage(1);
     }, [filters.status, activeTab, selectedDay, selectedMonth]);
-
-    // Lógica de Aniversariantes
-    React.useEffect(() => {
-        if (activeTab === 'birthdays') {
-            const birthdays = patients.filter(patient => {
-                if (!patient.birthDate) return false;
-                const [pYear, pMonth, pDay] = patient.birthDate.split('-').map(Number);
-                // Compara apenas Mês e Dia
-                return pMonth === selectedMonth && pDay === selectedDay;
-            }).map(patient => {
-                const birth = new Date(patient.birthDate);
-                const today = new Date(); // Usar a data selecionada ou hoje para calcular idade? Geralmente hoje.
-
-                // Cálculo detalhado da idade
-                let years = today.getFullYear() - birth.getFullYear();
-                let months = today.getMonth() - birth.getMonth();
-                let days = today.getDate() - birth.getDate();
-
-                if (days < 0) {
-                    months--;
-                    // Dias do mês anterior
-                    const lastMonth = new Date(today.getFullYear(), today.getMonth(), 0);
-                    days += lastMonth.getDate();
-                }
-
-                if (months < 0) {
-                    years--;
-                    months += 12;
-                }
-
-                const parts = [];
-                if (years > 0) parts.push(`${years} ano${years > 1 ? 's' : ''}`);
-                if (months > 0) parts.push(`${months} mês${months > 1 ? 'es' : ''}`);
-                if (days > 0) parts.push(`${days} dia${days > 1 ? 's' : ''}`);
-
-                const detailedAge = parts.length > 0 ? parts.join(', ') : 'Hoje!';
-
-                return {
-                    ...patient,
-                    age: years,
-                    detailedAge
-                };
-            });
-            setBirthdayData(birthdays);
-        }
-    }, [activeTab, selectedDay, selectedMonth, patients]);
-
-    // Fetch Stock History
-    React.useEffect(() => {
-        if (activeTab === 'stock') {
-            fetchStockHistory();
-        }
-    }, [activeTab, filters.startDate, filters.endDate, filters.patientId, filters.medicationId]);
 
 
 
@@ -316,12 +261,12 @@ const Reports = () => {
 
     const dashboardData = getDashboardData();
 
-    // Ensure report data is calculated when in dashboard tab to populate pie chart
+    // Ensure report data is calculated when in dashboard or history tab
     React.useEffect(() => {
-        if (activeTab === 'dashboard') {
+        if (activeTab === 'dashboard' || activeTab === 'history') {
             generateReport();
         }
-    }, [activeTab, filters.startDate, filters.endDate, filters.patientId]); // Removed itemsPerPage which was undefined
+    }, [activeTab, filters.startDate, filters.endDate, filters.patientId]);
 
     const generateReport = () => {
         if (!filters.startDate || !filters.endDate) {
@@ -692,18 +637,82 @@ const Reports = () => {
 
     return (
         <>
-            <div className="flex flex-col gap-8 pb-24 animate-in fade-in duration-500 print:hidden">
+            <div className="flex flex-col gap-6 pb-24 animate-in fade-in duration-500 print:hidden max-w-6xl mx-auto w-full px-4 md:px-6">
                 <div className="no-print">
                     <h2 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Relatórios</h2>
                     <p className="text-slate-500 dark:text-slate-400 mt-1">Visualize e imprima relatórios de medicações.</p>
                 </div>
 
+                {/* Global Filters Section - PREMIUM UI */}
+                <Card className="no-print border-slate-200 dark:border-slate-800 shadow-sm overflow-visible -mt-2">
+                    <CardContent className="p-4 md:p-5">
+                        <div className="flex flex-col md:flex-row md:items-end gap-4">
+                            {/* Patient Filter */}
+                            <div className="flex-[1.5] flex flex-col gap-1.5 min-w-[200px]">
+                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Paciente</label>
+                                <select
+                                    value={filters.patientId}
+                                    onChange={(e) => setFilters(prev => ({ ...prev, patientId: e.target.value }))}
+                                    className="w-full h-11 pl-4 pr-9 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-200 appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20fill%3D%22none%22%20viewBox%3D%220%200%2024%2024%22%20stroke%3D%22%2364748b%22%3E%3Cpath%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20stroke-width%3D%222%22%20d%3D%22M19%209l-7%207-7-7%22%2F%3E%3C%2Fsvg%3E')] bg-[length:1.2em_1.2em] bg-[right_0.4rem_center] bg-no-repeat font-medium text-base"
+                                >
+                                    <option value="all">Todos os Pacientes</option>
+                                    {patients.map(p => (
+                                        <option key={p.id} value={p.id}>{p.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            {/* Date Filters Group */}
+                            <div className="flex-1 flex flex-col md:flex-row gap-3">
+                                <div className="flex-1 flex flex-col gap-1.5">
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">De</label>
+                                    <Input
+                                        type="date"
+                                        value={filters.startDate}
+                                        onChange={(e) => setFilters(prev => ({ ...prev, startDate: e.target.value }))}
+                                        className="h-11 rounded-xl"
+                                    />
+                                </div>
+                                <div className="flex-1 flex flex-col gap-1.5">
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Até</label>
+                                    <Input
+                                        type="date"
+                                        value={filters.endDate}
+                                        onChange={(e) => setFilters(prev => ({ ...prev, endDate: e.target.value }))}
+                                        className="h-11 rounded-xl"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Quick Action Buttons */}
+                            <div className="flex gap-2 pb-0.5">
+                                <Button
+                                    variant="outline"
+                                    onClick={handlePrint}
+                                    className="h-11 px-4 text-xs font-bold border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"
+                                    disabled={activeTab === 'history' && !reportData}
+                                >
+                                    <Printer size={16} className="mr-2" /> Imprimir
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    onClick={handleWhatsApp}
+                                    className="h-11 px-4 text-xs font-bold text-green-600 border-slate-200 dark:border-slate-700 hover:bg-green-50 dark:hover:bg-green-900/10"
+                                    disabled={activeTab === 'history' && !reportData}
+                                >
+                                    <MessageCircle size={16} className="mr-2" /> WhatsApp
+                                </Button>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+
                 {/* Tabs Navigation - Premium Segmented Control */}
-                <div className="bg-slate-100/80 dark:bg-slate-800/50 p-1.5 rounded-3xl no-print overflow-hidden">
-                    <div className="flex flex-wrap md:grid md:grid-cols-4 gap-1.5">
+                <div className="bg-slate-100/80 dark:bg-slate-800/50 p-1.5 rounded-3xl no-print w-fit">
+                    <div className="flex flex-wrap gap-1.5">
                         <button
                             onClick={() => setActiveTab('dashboard')}
-                            className={`flex-1 min-w-[140px] md:min-w-0 flex items-center justify-center gap-2 px-3 py-3 rounded-2xl font-bold text-xs sm:text-sm transition-all duration-300 ${activeTab === 'dashboard'
+                            className={`min-w-[120px] sm:min-w-[140px] flex items-center justify-center gap-2 px-6 py-3 rounded-2xl font-bold text-xs sm:text-sm transition-all duration-300 ${activeTab === 'dashboard'
                                 ? 'bg-white dark:bg-slate-700 text-primary dark:text-white shadow-sm ring-1 ring-slate-200/50 dark:ring-slate-600'
                                 : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
                                 }`}
@@ -713,7 +722,7 @@ const Reports = () => {
                         </button>
                         <button
                             onClick={() => setActiveTab('history')}
-                            className={`flex-1 min-w-[100px] md:min-w-0 flex items-center justify-center gap-2 px-3 py-3 rounded-2xl font-bold text-xs sm:text-sm transition-all duration-300 ${activeTab === 'history'
+                            className={`min-w-[100px] sm:min-w-[120px] flex items-center justify-center gap-2 px-6 py-3 rounded-2xl font-bold text-xs sm:text-sm transition-all duration-300 ${activeTab === 'history'
                                 ? 'bg-white dark:bg-slate-700 text-primary dark:text-white shadow-sm ring-1 ring-slate-200/50 dark:ring-slate-600'
                                 : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
                                 }`}
@@ -723,7 +732,7 @@ const Reports = () => {
                         </button>
                         <button
                             onClick={() => setActiveTab('birthdays')}
-                            className={`flex-1 min-w-[120px] md:min-w-0 flex items-center justify-center gap-2 px-3 py-3 rounded-2xl font-bold text-xs sm:text-sm transition-all duration-300 ${activeTab === 'birthdays'
+                            className={`min-w-[120px] sm:min-w-[140px] flex items-center justify-center gap-2 px-6 py-3 rounded-2xl font-bold text-xs sm:text-sm transition-all duration-300 ${activeTab === 'birthdays'
                                 ? 'bg-white dark:bg-slate-700 text-primary dark:text-white shadow-sm ring-1 ring-slate-200/50 dark:ring-slate-600'
                                 : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
                                 }`}
@@ -733,7 +742,7 @@ const Reports = () => {
                         </button>
                         <button
                             onClick={() => setActiveTab('stock')}
-                            className={`flex-1 min-w-[80px] md:min-w-0 flex items-center justify-center gap-2 px-3 py-3 rounded-2xl font-bold text-xs sm:text-sm transition-all duration-300 ${activeTab === 'stock'
+                            className={`min-w-[80px] sm:min-w-[110px] flex items-center justify-center gap-2 px-6 py-3 rounded-2xl font-bold text-xs sm:text-sm transition-all duration-300 ${activeTab === 'stock'
                                 ? 'bg-white dark:bg-slate-700 text-primary dark:text-white shadow-sm ring-1 ring-slate-200/50 dark:ring-slate-600'
                                 : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
                                 }`}
@@ -749,63 +758,6 @@ const Reports = () => {
                         <div className="bg-amber-50 border border-amber-100 rounded-xl p-4 text-amber-700 text-sm no-print leading-snug">
                             Gerencie seu estoque: acompanhe entradas, saídas e saiba o momento exato de repor.
                         </div>
-                        <Card className="no-print">
-                            <CardHeader>
-                                <h3 className="font-bold text-xl text-slate-900 dark:text-white">Filtros de Estoque</h3>
-                                <p className="text-sm text-slate-500 dark:text-slate-400">Visualize a movimentação de entrada e saída.</p>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="flex flex-col gap-6">
-                                    <div className="flex flex-col md:flex-row gap-4">
-                                        <Input
-                                            label="Data Inicial"
-                                            type="date"
-                                            value={filters.startDate}
-                                            onChange={(e) => setFilters({ ...filters, startDate: e.target.value })}
-                                            containerClassName="flex-1"
-                                        />
-                                        <Input
-                                            label="Data Final"
-                                            type="date"
-                                            value={filters.endDate}
-                                            onChange={(e) => setFilters({ ...filters, endDate: e.target.value })}
-                                            containerClassName="flex-1"
-                                        />
-                                    </div>
-                                    <div className="flex flex-col md:flex-row gap-4">
-                                        <div className="flex flex-col gap-1.5 flex-1">
-                                            <label className="text-sm font-semibold text-slate-700">Medicamento</label>
-                                            <select
-                                                value={filters.medicationId}
-                                                onChange={(e) => setFilters({ ...filters, medicationId: e.target.value })}
-                                                className="w-full h-12 pl-4 pr-9 rounded-xl border border-slate-200 bg-white text-slate-900 focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-200 appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20fill%3D%22none%22%20viewBox%3D%220%200%2024%2024%22%20stroke%3D%22%2364748b%22%3E%3Cpath%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20stroke-width%3D%222%22%20d%3D%22M19%209l-7%207-7-7%22%2F%3E%3C%2Fsvg%3E')] bg-[length:1.25em_1.25em] bg-[right_0.4rem_center] bg-no-repeat"
-                                            >
-                                                <option value="all">Todos os Medicamentos</option>
-                                                {medications.map(med => (
-                                                    <option key={med.id} value={med.id}>{med.name} {med.dosage}</option>
-                                                ))}
-                                            </select>
-                                        </div>
-                                        <div className="flex flex-col gap-1.5 flex-1">
-                                            <label className="text-sm font-semibold text-slate-700">Paciente</label>
-                                            <select
-                                                value={filters.patientId}
-                                                onChange={(e) => setFilters({ ...filters, patientId: e.target.value })}
-                                                className="w-full h-12 pl-4 pr-9 rounded-xl border border-slate-200 bg-white text-slate-900 focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-200 appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20fill%3D%22none%22%20viewBox%3D%220%200%2024%2024%22%20stroke%3D%22%2364748b%22%3E%3Cpath%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20stroke-width%3D%222%22%20d%3D%22M19%209l-7%207-7-7%22%2F%3E%3C%2Fsvg%3E')] bg-[length:1.25em_1.25em] bg-[right_0.4rem_center] bg-no-repeat"
-                                            >
-                                                <option value="all">Todos os Pacientes</option>
-                                                {patients.map(p => (
-                                                    <option key={p.id} value={p.id}>{p.name}</option>
-                                                ))}
-                                            </select>
-                                        </div>
-                                    </div>
-                                    <Button onClick={fetchStockHistory} variant="outline" className="w-full">
-                                        <Filter size={18} className="mr-2" /> Atualizar Filtros
-                                    </Button>
-                                </div>
-                            </CardContent>
-                        </Card>
 
                         {stockData.length > 0 && (
                             <div className="bg-slate-100/50 dark:bg-slate-800/40 p-4 rounded-3xl border border-slate-200/50 dark:border-slate-700/50 no-print mb-6">
@@ -993,371 +945,321 @@ const Reports = () => {
                     </div>
                 )}
 
-                {activeTab === 'dashboard' && reportData && (
-                    <div className="flex flex-col gap-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                        <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 text-blue-700 text-sm no-print leading-snug">
-                            Acompanhe seu progresso em um só lugar. Visualize taxas de adesão e atividade semanal com gráficos dinâmicos.
-                        </div>
+                {
+                    activeTab === 'dashboard' && reportData && (
+                        <div className="flex flex-col gap-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                            <div className="bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-800 rounded-xl p-4 text-blue-700 dark:text-blue-400 text-sm no-print flex justify-between items-center">
+                                <span className="leading-snug">Visualizando taxas de adesão e atividade semanal.</span>
+                                <span className="font-bold bg-blue-100 dark:bg-blue-800 px-3 py-1 rounded-full text-xs">
+                                    Paciente: {filters.patientId === 'all' ? 'Todos' : patients.find(p => p.id === filters.patientId)?.name}
+                                </span>
+                            </div>
 
-                        {/* Summary Cards */}
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-                                <CardContent className="p-3 sm:p-5">
-                                    <div className="flex flex-col gap-1.5 min-w-0">
-                                        <div className="flex items-center gap-2 min-w-0">
-                                            <div className="w-7 h-7 rounded-full bg-blue-500 flex items-center justify-center text-white shadow-md shadow-blue-200 shrink-0">
-                                                <FileText size={14} />
+                            {/* Summary Cards */}
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
+                                    <CardContent className="p-3 sm:p-5">
+                                        <div className="flex flex-col gap-1.5 min-w-0">
+                                            <div className="flex items-center gap-2 min-w-0">
+                                                <div className="w-7 h-7 rounded-full bg-blue-500 flex items-center justify-center text-white shadow-md shadow-blue-200 shrink-0">
+                                                    <FileText size={14} />
+                                                </div>
+                                                <p className="text-[11px] sm:text-sm text-blue-600 font-bold uppercase tracking-tight">Total</p>
                                             </div>
-                                            <p className="text-[11px] sm:text-sm text-blue-600 font-bold uppercase tracking-tight">Total</p>
-                                        </div>
-                                        <div className="pl-9 sm:pl-0">
-                                            <p className="text-2xl font-black text-blue-900">{reportData.summary.total}</p>
-                                        </div>
-                                    </div>
-                                </CardContent>
-                            </Card>
-
-                            <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-                                <CardContent className="p-3 sm:p-5">
-                                    <div className="flex flex-col gap-1.5 min-w-0">
-                                        <div className="flex items-center gap-2 min-w-0">
-                                            <div className="w-7 h-7 rounded-full bg-green-500 flex items-center justify-center text-white shadow-md shadow-green-200 shrink-0">
-                                                <CheckCircle size={14} />
+                                            <div className="pl-9 sm:pl-0">
+                                                <p className="text-2xl font-black text-blue-900">{reportData.summary.total}</p>
                                             </div>
-                                            <p className="text-[11px] sm:text-sm text-green-600 font-bold uppercase tracking-tight">Tomadas</p>
                                         </div>
-                                        <div className="pl-9 sm:pl-0">
-                                            <p className="text-2xl font-black text-green-900">{reportData.summary.taken}</p>
-                                        </div>
-                                    </div>
-                                </CardContent>
-                            </Card>
+                                    </CardContent>
+                                </Card>
 
-                            <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
-                                <CardContent className="p-3 sm:p-5">
-                                    <div className="flex flex-col gap-1.5 min-w-0">
-                                        <div className="flex items-center gap-2 min-w-0">
-                                            <div className="w-7 h-7 rounded-full bg-orange-500 flex items-center justify-center text-white shadow-md shadow-orange-200 shrink-0">
-                                                <Timer size={14} />
+                                <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
+                                    <CardContent className="p-3 sm:p-5">
+                                        <div className="flex flex-col gap-1.5 min-w-0">
+                                            <div className="flex items-center gap-2 min-w-0">
+                                                <div className="w-7 h-7 rounded-full bg-green-500 flex items-center justify-center text-white shadow-md shadow-green-200 shrink-0">
+                                                    <CheckCircle size={14} />
+                                                </div>
+                                                <p className="text-[11px] sm:text-sm text-green-600 font-bold uppercase tracking-tight">Tomadas</p>
                                             </div>
-                                            <p className="text-[11px] sm:text-sm text-orange-600 font-bold uppercase tracking-tight">Pendentes</p>
-                                        </div>
-                                        <div className="pl-9 sm:pl-0">
-                                            <p className="text-2xl font-black text-orange-900">{reportData.summary.pending}</p>
-                                        </div>
-                                    </div>
-                                </CardContent>
-                            </Card>
-
-                            <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
-                                <CardContent className="p-3 sm:p-5">
-                                    <div className="flex flex-col gap-1.5 min-w-0">
-                                        <div className="flex items-center gap-2 min-w-0">
-                                            <div className="w-7 h-7 rounded-full bg-purple-500 flex items-center justify-center text-white shadow-md shadow-purple-200 shrink-0">
-                                                <Calendar size={14} />
+                                            <div className="pl-9 sm:pl-0">
+                                                <p className="text-2xl font-black text-green-900">{reportData.summary.taken}</p>
                                             </div>
-                                            <p className="text-[11px] sm:text-sm text-purple-600 font-bold uppercase tracking-tight">Adesão</p>
                                         </div>
-                                        <div className="pl-9 sm:pl-0">
-                                            <p className="text-2xl font-black text-purple-900">{reportData.summary.adherenceRate}%</p>
-                                        </div>
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        </div>
+                                    </CardContent>
+                                </Card>
 
-                        {/* Charts Section - Improved Responsiveness */}
-                        {/* Charts Section - Improved Responsiveness */}
-                        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 print:break-inside-avoid">
-                            <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col">
-                                <h4 className="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-                                    <span className="w-2 h-6 bg-purple-500 rounded-full"></span>
-                                    Taxa de Adesão
-                                </h4>
-                                <div className="flex-1">
-                                    <AdherenceChart data={dashboardData.adherence} />
+                                <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
+                                    <CardContent className="p-3 sm:p-5">
+                                        <div className="flex flex-col gap-1.5 min-w-0">
+                                            <div className="flex items-center gap-2 min-w-0">
+                                                <div className="w-7 h-7 rounded-full bg-orange-500 flex items-center justify-center text-white shadow-md shadow-orange-200 shrink-0">
+                                                    <Timer size={14} />
+                                                </div>
+                                                <p className="text-[11px] sm:text-sm text-orange-600 font-bold uppercase tracking-tight">Pendentes</p>
+                                            </div>
+                                            <div className="pl-9 sm:pl-0">
+                                                <p className="text-2xl font-black text-orange-900">{reportData.summary.pending}</p>
+                                            </div>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+
+                                <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
+                                    <CardContent className="p-3 sm:p-5">
+                                        <div className="flex flex-col gap-1.5 min-w-0">
+                                            <div className="flex items-center gap-2 min-w-0">
+                                                <div className="w-7 h-7 rounded-full bg-purple-500 flex items-center justify-center text-white shadow-md shadow-purple-200 shrink-0">
+                                                    <Calendar size={14} />
+                                                </div>
+                                                <p className="text-[11px] sm:text-sm text-purple-600 font-bold uppercase tracking-tight">Adesão</p>
+                                            </div>
+                                            <div className="pl-9 sm:pl-0">
+                                                <p className="text-2xl font-black text-purple-900">{reportData.summary.adherenceRate}%</p>
+                                            </div>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            </div>
+
+                            {/* Charts Section - Improved Responsiveness */}
+                            {/* Charts Section - Improved Responsiveness */}
+                            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 print:break-inside-avoid">
+                                <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col">
+                                    <h4 className="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+                                        <span className="w-2 h-6 bg-purple-500 rounded-full"></span>
+                                        Taxa de Adesão
+                                    </h4>
+                                    <div className="flex-1">
+                                        <AdherenceChart data={dashboardData.adherence} />
+                                    </div>
+                                </div>
+                                <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col">
+                                    <h4 className="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+                                        <span className="w-2 h-6 bg-blue-500 rounded-full"></span>
+                                        Atividade Semanal
+                                    </h4>
+                                    <div className="flex-1">
+                                        <ActivityChart data={dashboardData.activity} />
+                                    </div>
                                 </div>
                             </div>
-                            <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col">
-                                <h4 className="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-                                    <span className="w-2 h-6 bg-blue-500 rounded-full"></span>
-                                    Atividade Semanal
-                                </h4>
-                                <div className="flex-1">
-                                    <ActivityChart data={dashboardData.activity} />
-                                </div>
-                            </div>
                         </div>
-                    </div>
-                )}
+                    )
+                }
 
-                {activeTab === 'history' && (
-                    <div className="flex flex-col gap-6">
-                        <div className="bg-violet-50 border border-violet-100 rounded-xl p-4 text-violet-700 text-sm no-print leading-snug">
-                            Histórico de doses: filtre registros e gere relatórios detalhados para seu médico.
-                        </div>
-                        <Card className="no-print">
-                            <CardHeader>
-                                <h3 className="font-bold text-xl text-slate-900 dark:text-white">Filtros do Relatório</h3>
-                                <p className="text-sm text-slate-500 dark:text-slate-400">Selecione o paciente, período e status desejado</p>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="flex flex-col gap-6">
-                                    <div className="flex flex-col md:flex-row gap-4">
-                                        <div className="flex flex-col gap-1.5 flex-1">
-                                            <label className="text-sm font-semibold text-slate-700">Paciente</label>
-                                            <select
-                                                value={filters.patientId}
-                                                onChange={(e) => setFilters({ ...filters, patientId: e.target.value })}
-                                                className="w-full h-12 pl-4 pr-9 rounded-xl border border-slate-200 bg-white text-slate-900 focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-200 appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20fill%3D%22none%22%20viewBox%3D%220%200%2024%2024%22%20stroke%3D%22%2364748b%22%3E%3Cpath%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20stroke-width%3D%222%22%20d%3D%22M19%209l-7%207-7-7%22%2F%3E%3C%2Fsvg%3E')] bg-[length:1.25em_1.25em] bg-[right_0.4rem_center] bg-no-repeat"
+                {
+                    activeTab === 'history' && (
+                        <div className="flex flex-col gap-6">
+                            <div className="bg-violet-50 border border-violet-100 rounded-xl p-4 text-violet-700 text-sm no-print leading-snug">
+                                Histórico de doses: registros detalhados para acompanhamento médico.
+                            </div>
+
+                            {/* History Table Results */}
+                            {reportData && (
+                                <>
+                                    {/* Quick Actions Panel - Senior UI/UX Refinement */}
+                                    <div className="bg-slate-100/50 dark:bg-slate-800/40 p-4 rounded-3xl border border-slate-200/50 dark:border-slate-700/50 no-print mb-6">
+                                        <div className="grid grid-cols-2 sm:grid-cols-3 md:flex md:flex-wrap gap-3 justify-center">
+                                            <Button
+                                                variant="outline"
+                                                onClick={handlePrint}
+                                                className="w-full md:w-auto bg-white dark:bg-slate-700 border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-50 text-xs sm:text-sm h-11 rounded-2xl shadow-sm"
                                             >
-                                                <option value="all">Todos os Pacientes</option>
-                                                {patients.map(patient => (
-                                                    <option key={patient.id} value={patient.id}>{patient.name}</option>
-                                                ))}
-                                            </select>
+                                                <Printer size={16} className="mr-2 shrink-0" /> Imprimir
+                                            </Button>
+                                            <Button
+                                                variant="outline"
+                                                onClick={handleDownloadPDF}
+                                                className="w-full md:w-auto bg-white dark:bg-slate-700 border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-50 text-xs sm:text-sm h-11 rounded-2xl shadow-sm"
+                                            >
+                                                <Download size={16} className="mr-2 shrink-0" /> Baixar
+                                            </Button>
+                                            <Button
+                                                variant="outline"
+                                                onClick={handleViewPDF}
+                                                className="w-full md:w-auto bg-white dark:bg-slate-700 border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-50 text-xs sm:text-sm h-11 rounded-2xl shadow-sm"
+                                            >
+                                                <Eye size={16} className="mr-2 shrink-0" /> Visualizar
+                                            </Button>
+                                            <Button
+                                                variant="outline"
+                                                onClick={handleWhatsApp}
+                                                className="w-full md:w-auto bg-white dark:bg-slate-700 border-slate-200 dark:border-slate-600 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/10 text-xs sm:text-sm h-11 rounded-2xl shadow-sm"
+                                            >
+                                                <MessageCircle size={16} className="mr-2 shrink-0" /> WhatsApp
+                                            </Button>
+                                            <Button
+                                                variant="outline"
+                                                onClick={handleEmail}
+                                                className="w-full md:w-auto col-span-2 sm:col-span-1 border-slate-200 dark:border-slate-600 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/10 text-xs sm:text-sm h-11 rounded-2xl shadow-sm bg-white dark:bg-slate-700"
+                                            >
+                                                <Mail size={16} className="mr-2 shrink-0" /> Email
+                                            </Button>
                                         </div>
                                     </div>
 
-                                    <div className="flex flex-col md:flex-row gap-4">
-                                        <Input
-                                            label="Data Inicial"
-                                            type="date"
-                                            value={filters.startDate}
-                                            onChange={(e) => setFilters({ ...filters, startDate: e.target.value })}
-                                            containerClassName="flex-1"
-                                        />
-                                        <Input
-                                            label="Data Final"
-                                            type="date"
-                                            value={filters.endDate}
-                                            onChange={(e) => setFilters({ ...filters, endDate: e.target.value })}
-                                            containerClassName="flex-1"
-                                        />
-                                    </div>
-
-                                    <div className="flex flex-col gap-1.5">
-                                        <label className="text-sm font-semibold text-slate-700">Status</label>
-                                        <select
-                                            value={filters.status}
-                                            onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-                                            className="w-full h-12 pl-4 pr-9 rounded-xl border border-slate-200 bg-white text-slate-900 focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-200 appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20fill%3D%22none%22%20viewBox%3D%220%200%2024%2024%22%20stroke%3D%22%2364748b%22%3E%3Cpath%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20stroke-width%3D%222%22%20d%3D%22M19%209l-7%207-7-7%22%2F%3E%3C%2Fsvg%3E')] bg-[length:1.25em_1.25em] bg-[right_0.4rem_center] bg-no-repeat"
-                                        >
-                                            <option value="all">Todos os Status</option>
-                                            <option value="taken">Tomadas</option>
-                                            <option value="pending">Pendentes</option>
-                                        </select>
-                                    </div>
-
-                                    <Button onClick={generateReport} className="w-full">
-                                        <FileText size={18} className="mr-2" /> Gerar Relatório
-                                    </Button>
-                                </div>
-                            </CardContent>
-                        </Card>
-
-                        {/* History Table Results */}
-                        {reportData && (
-                            <>
-                                {/* Quick Actions Panel - Senior UI/UX Refinement */}
-                                <div className="bg-slate-100/50 dark:bg-slate-800/40 p-4 rounded-3xl border border-slate-200/50 dark:border-slate-700/50 no-print mb-6">
-                                    <div className="grid grid-cols-2 sm:grid-cols-3 md:flex md:flex-wrap gap-3 justify-center">
-                                        <Button
-                                            variant="outline"
-                                            onClick={handlePrint}
-                                            className="w-full md:w-auto bg-white dark:bg-slate-700 border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-50 text-xs sm:text-sm h-11 rounded-2xl shadow-sm"
-                                        >
-                                            <Printer size={16} className="mr-2 shrink-0" /> Imprimir
-                                        </Button>
-                                        <Button
-                                            variant="outline"
-                                            onClick={handleDownloadPDF}
-                                            className="w-full md:w-auto bg-white dark:bg-slate-700 border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-50 text-xs sm:text-sm h-11 rounded-2xl shadow-sm"
-                                        >
-                                            <Download size={16} className="mr-2 shrink-0" /> Baixar
-                                        </Button>
-                                        <Button
-                                            variant="outline"
-                                            onClick={handleViewPDF}
-                                            className="w-full md:w-auto bg-white dark:bg-slate-700 border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-50 text-xs sm:text-sm h-11 rounded-2xl shadow-sm"
-                                        >
-                                            <Eye size={16} className="mr-2 shrink-0" /> Visualizar
-                                        </Button>
-                                        <Button
-                                            variant="outline"
-                                            onClick={handleWhatsApp}
-                                            className="w-full md:w-auto bg-white dark:bg-slate-700 border-slate-200 dark:border-slate-600 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/10 text-xs sm:text-sm h-11 rounded-2xl shadow-sm"
-                                        >
-                                            <MessageCircle size={16} className="mr-2 shrink-0" /> WhatsApp
-                                        </Button>
-                                        <Button
-                                            variant="outline"
-                                            onClick={handleEmail}
-                                            className="w-full md:w-auto col-span-2 sm:col-span-1 border-slate-200 dark:border-slate-600 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/10 text-xs sm:text-sm h-11 rounded-2xl shadow-sm bg-white dark:bg-slate-700"
-                                        >
-                                            <Mail size={16} className="mr-2 shrink-0" /> Email
-                                        </Button>
-                                    </div>
-                                </div>
-
-                                {paginatedItems.length > 0 ? (
-                                    <>
-                                        <div className="grid gap-3">
-                                            {paginatedItems.map((item, idx) => (
-                                                <Card key={idx} className={`${item.status === 'taken' ? 'border-green-200 bg-green-50/30' : 'border-orange-200 bg-orange-50/30'}`}>
-                                                    <CardContent className="p-4">
-                                                        <div className="flex items-center justify-between">
-                                                            <div className="flex items-center gap-4">
-                                                                <div className={`w-9 h-9 rounded-full flex items-center justify-center ${item.status === 'taken' ? 'bg-green-500 shadow-green-100' : 'bg-orange-500 shadow-orange-100'} text-white shadow-lg shrink-0`}>
-                                                                    {item.status === 'taken' ? <CheckCircle size={18} /> : <Timer size={18} />}
+                                    {paginatedItems.length > 0 ? (
+                                        <>
+                                            <div className="grid gap-3">
+                                                {paginatedItems.map((item, idx) => (
+                                                    <Card key={idx} className={`${item.status === 'taken' ? 'border-green-200 bg-green-50/30' : 'border-orange-200 bg-orange-50/30'}`}>
+                                                        <CardContent className="p-4">
+                                                            <div className="flex items-center justify-between">
+                                                                <div className="flex items-center gap-4">
+                                                                    <div className={`w-9 h-9 rounded-full flex items-center justify-center ${item.status === 'taken' ? 'bg-green-500 shadow-green-100' : 'bg-orange-500 shadow-orange-100'} text-white shadow-lg shrink-0`}>
+                                                                        {item.status === 'taken' ? <CheckCircle size={18} /> : <Timer size={18} />}
+                                                                    </div>
+                                                                    <div>
+                                                                        <p className="font-semibold text-slate-900">{item.medication}</p>
+                                                                        <p className="text-sm text-slate-600">{item.patient}</p>
+                                                                        <p className="text-xs text-slate-400">
+                                                                            {formatDate(item.date)} às {item.time}
+                                                                        </p>
+                                                                    </div>
                                                                 </div>
-                                                                <div>
-                                                                    <p className="font-semibold text-slate-900">{item.medication}</p>
-                                                                    <p className="text-sm text-slate-600">{item.patient}</p>
-                                                                    <p className="text-xs text-slate-400">
-                                                                        {formatDate(item.date)} às {item.time}
-                                                                    </p>
-                                                                </div>
+                                                                <span className={`px-3 py-1 rounded-full text-sm font-medium ${item.status === 'taken' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
+                                                                    {item.status === 'taken' ? 'Tomado' : 'Pendente'}
+                                                                </span>
                                                             </div>
-                                                            <span className={`px-3 py-1 rounded-full text-sm font-medium ${item.status === 'taken' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
-                                                                {item.status === 'taken' ? 'Tomado' : 'Pendente'}
-                                                            </span>
-                                                        </div>
-                                                    </CardContent>
-                                                </Card>
-                                            ))}
-                                        </div>
+                                                        </CardContent>
+                                                    </Card>
+                                                ))}
+                                            </div>
 
-                                        <Pagination
-                                            currentPage={currentPage}
-                                            totalPages={totalPages}
-                                            onPageChange={setCurrentPage}
-                                        />
-                                    </>
+                                            <Pagination
+                                                currentPage={currentPage}
+                                                totalPages={totalPages}
+                                                onPageChange={setCurrentPage}
+                                            />
+                                        </>
+                                    ) : (
+                                        <Card>
+                                            <CardContent className="p-12 text-center">
+                                                <FileText size={48} className="mx-auto text-slate-300 mb-4" />
+                                                <p className="text-slate-500">Nenhum item encontrado para os filtros selecionados.</p>
+                                            </CardContent>
+                                        </Card>
+                                    )}
+                                </>
+                            )}
+                        </div>
+                    )
+                }
+
+                {
+                    activeTab === 'birthdays' && (
+                        <div className="flex flex-col gap-6">
+                            <div className="bg-pink-50 border border-pink-100 rounded-xl p-4 text-pink-700 text-sm no-print leading-snug">
+                                Celebre a vida! Identifique aniversariantes e envie felicitações via WhatsApp ou E-mail com um toque.
+                            </div>
+                            <Card className="no-print overflow-visible">
+                                <CardHeader>
+                                    <h3 className="font-bold text-xl text-slate-900 dark:text-white">Buscar Aniversariantes</h3>
+                                    <p className="text-sm text-slate-500 dark:text-slate-400">Selecione uma data para ver os aniversariantes do dia</p>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="flex flex-col md:flex-row gap-4 items-end">
+                                        <div className="flex-1 flex gap-3">
+                                            <div className="w-24 shrink-0">
+                                                <label className="text-sm font-semibold text-slate-700 mb-1.5 block">Dia</label>
+                                                <select
+                                                    value={selectedDay}
+                                                    onChange={(e) => setSelectedDay(Number(e.target.value))}
+                                                    className="w-full h-12 pl-4 pr-9 rounded-xl border border-slate-200 bg-white text-slate-900 focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-200 appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20fill%3D%22none%22%20viewBox%3D%220%200%2024%2024%22%20stroke%3D%22%2364748b%22%3E%3Cpath%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20stroke-width%3D%222%22%20d%3D%22M19%209l-7%207-7-7%22%2F%3E%3C%2Fsvg%3E')] bg-[length:1.25em_1.25em] bg-[right_0.4rem_center] bg-no-repeat"
+                                                >
+                                                    {Array.from({ length: 31 }, (_, i) => i + 1).map(day => (
+                                                        <option key={day} value={day}>{day}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                            <div className="flex-1 min-w-[170px]">
+                                                <label className="text-sm font-semibold text-slate-700 mb-1.5 block">Mês</label>
+                                                <select
+                                                    value={selectedMonth}
+                                                    onChange={(e) => setSelectedMonth(Number(e.target.value))}
+                                                    className="w-full h-12 pl-4 pr-9 rounded-xl border border-slate-200 bg-white text-slate-900 focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-200 appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20fill%3D%22none%22%20viewBox%3D%220%200%2024%2024%22%20stroke%3D%22%2364748b%22%3E%3Cpath%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20stroke-width%3D%222%22%20d%3D%22M19%209l-7%207-7-7%22%2F%3E%3C%2Fsvg%3E')] bg-[length:1.25em_1.25em] bg-[right_0.4rem_center] bg-no-repeat"
+                                                >
+                                                    {['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'].map((month, idx) => (
+                                                        <option key={idx} value={idx + 1}>{month}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <Button
+                                            variant="outline"
+                                            onClick={() => {
+                                                const today = new Date();
+                                                setSelectedDay(today.getDate());
+                                                setSelectedMonth(today.getMonth() + 1);
+                                            }}
+                                            className="mb-0.5"
+                                        >
+                                            Hoje
+                                        </Button>
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                            <div className="grid gap-3">
+                                {birthdayData.length > 0 ? (
+                                    birthdayData.map(patient => (
+                                        <Card key={patient.id} className="border-pink-200 bg-pink-50/30">
+                                            <CardContent className="p-4">
+                                                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                                    <div className="flex items-center gap-4">
+                                                        <div className="w-9 h-9 rounded-full bg-pink-500 shrink-0 flex items-center justify-center text-white">
+                                                            <Gift size={18} />
+                                                        </div>
+                                                        <div>
+                                                            <p className="font-semibold text-slate-900">{patient.name}</p>
+                                                            <p className="text-sm text-slate-600">
+                                                                {formatDate(patient.birthDate)} <span className="text-pink-500 font-medium">• {patient.detailedAge}</span>
+                                                            </p>
+                                                            {patient.phone && (
+                                                                <p className="text-xs text-slate-500 mt-0.5 flex items-center gap-1">
+                                                                    <MessageCircle size={12} /> {patient.phone}
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex gap-2 w-full md:w-auto">
+                                                        <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            onClick={() => {
+                                                                const msg = `Olá ${patient.name}, feliz aniversário! 🎂🎉🥳 Que seu dia seja iluminado e cheio de alegria! Desejamos muita saúde, paz e felicidades! ✨🎈`;
+                                                                window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+                                                            }}
+                                                            className="text-pink-600 hover:text-pink-700 hover:bg-pink-50 border-pink-200 flex-1 md:flex-none"
+                                                        >
+                                                            <MessageCircle size={16} className="mr-2" /> WhatsApp
+                                                        </Button>
+                                                        <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            onClick={() => openBirthdayEmailModal(patient)}
+                                                            className="text-purple-600 hover:text-purple-700 hover:bg-purple-50 border-purple-200"
+                                                        >
+                                                            <Mail size={16} className="mr-2" /> Email
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                            </CardContent>
+                                        </Card>
+                                    ))
                                 ) : (
                                     <Card>
                                         <CardContent className="p-12 text-center">
-                                            <FileText size={48} className="mx-auto text-slate-300 mb-4" />
-                                            <p className="text-slate-500">Nenhum item encontrado para os filtros selecionados.</p>
+                                            <Gift size={48} className="mx-auto text-slate-300 mb-4" />
+                                            <p className="text-slate-500">Nenhum aniversariante encontrado nesta data.</p>
                                         </CardContent>
                                     </Card>
                                 )}
-                            </>
-                        )}
-                    </div>
-                )}
-
-                {activeTab === 'birthdays' && (
-                    <div className="flex flex-col gap-6">
-                        <div className="bg-pink-50 border border-pink-100 rounded-xl p-4 text-pink-700 text-sm no-print leading-snug">
-                            Celebre a vida! Identifique aniversariantes e envie felicitações via WhatsApp ou E-mail com um toque.
+                            </div>
                         </div>
-                        <Card className="no-print overflow-visible">
-                            <CardHeader>
-                                <h3 className="font-bold text-xl text-slate-900 dark:text-white">Buscar Aniversariantes</h3>
-                                <p className="text-sm text-slate-500 dark:text-slate-400">Selecione uma data para ver os aniversariantes do dia</p>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="flex flex-col md:flex-row gap-4 items-end">
-                                    <div className="flex-1 flex gap-3">
-                                        <div className="w-24 shrink-0">
-                                            <label className="text-sm font-semibold text-slate-700 mb-1.5 block">Dia</label>
-                                            <select
-                                                value={selectedDay}
-                                                onChange={(e) => setSelectedDay(Number(e.target.value))}
-                                                className="w-full h-12 pl-4 pr-9 rounded-xl border border-slate-200 bg-white text-slate-900 focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-200 appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20fill%3D%22none%22%20viewBox%3D%220%200%2024%2024%22%20stroke%3D%22%2364748b%22%3E%3Cpath%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20stroke-width%3D%222%22%20d%3D%22M19%209l-7%207-7-7%22%2F%3E%3C%2Fsvg%3E')] bg-[length:1.25em_1.25em] bg-[right_0.4rem_center] bg-no-repeat"
-                                            >
-                                                {Array.from({ length: 31 }, (_, i) => i + 1).map(day => (
-                                                    <option key={day} value={day}>{day}</option>
-                                                ))}
-                                            </select>
-                                        </div>
-                                        <div className="flex-1 min-w-[170px]">
-                                            <label className="text-sm font-semibold text-slate-700 mb-1.5 block">Mês</label>
-                                            <select
-                                                value={selectedMonth}
-                                                onChange={(e) => setSelectedMonth(Number(e.target.value))}
-                                                className="w-full h-12 pl-4 pr-9 rounded-xl border border-slate-200 bg-white text-slate-900 focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-200 appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20fill%3D%22none%22%20viewBox%3D%220%200%2024%2024%22%20stroke%3D%22%2364748b%22%3E%3Cpath%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20stroke-width%3D%222%22%20d%3D%22M19%209l-7%207-7-7%22%2F%3E%3C%2Fsvg%3E')] bg-[length:1.25em_1.25em] bg-[right_0.4rem_center] bg-no-repeat"
-                                            >
-                                                {['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'].map((month, idx) => (
-                                                    <option key={idx} value={idx + 1}>{month}</option>
-                                                ))}
-                                            </select>
-                                        </div>
-                                    </div>
-                                    <Button
-                                        variant="outline"
-                                        onClick={() => {
-                                            const today = new Date();
-                                            setSelectedDay(today.getDate());
-                                            setSelectedMonth(today.getMonth() + 1);
-                                        }}
-                                        className="mb-0.5"
-                                    >
-                                        Hoje
-                                    </Button>
-                                </div>
-                            </CardContent>
-                        </Card>
-
-                        <div className="grid gap-3">
-                            {birthdayData.length > 0 ? (
-                                birthdayData.map(patient => (
-                                    <Card key={patient.id} className="border-pink-200 bg-pink-50/30">
-                                        <CardContent className="p-4">
-                                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                                                <div className="flex items-center gap-4">
-                                                    <div className="w-9 h-9 rounded-full bg-pink-500 shrink-0 flex items-center justify-center text-white">
-                                                        <Gift size={18} />
-                                                    </div>
-                                                    <div>
-                                                        <p className="font-semibold text-slate-900">{patient.name}</p>
-                                                        <p className="text-sm text-slate-600">
-                                                            {formatDate(patient.birthDate)} <span className="text-pink-500 font-medium">• {patient.detailedAge}</span>
-                                                        </p>
-                                                        {patient.phone && (
-                                                            <p className="text-xs text-slate-500 mt-0.5 flex items-center gap-1">
-                                                                <MessageCircle size={12} /> {patient.phone}
-                                                            </p>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                                <div className="flex gap-2 w-full md:w-auto">
-                                                    <Button
-                                                        variant="outline"
-                                                        size="sm"
-                                                        onClick={() => {
-                                                            const msg = `Olá ${patient.name}, feliz aniversário! 🎂🎉🥳 Que seu dia seja iluminado e cheio de alegria! Desejamos muita saúde, paz e felicidades! ✨🎈`;
-                                                            window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
-                                                        }}
-                                                        className="text-pink-600 hover:text-pink-700 hover:bg-pink-50 border-pink-200 flex-1 md:flex-none"
-                                                    >
-                                                        <MessageCircle size={16} className="mr-2" /> WhatsApp
-                                                    </Button>
-                                                    <Button
-                                                        variant="outline"
-                                                        size="sm"
-                                                        onClick={() => openBirthdayEmailModal(patient)}
-                                                        className="text-purple-600 hover:text-purple-700 hover:bg-purple-50 border-purple-200"
-                                                    >
-                                                        <Mail size={16} className="mr-2" /> Email
-                                                    </Button>
-                                                </div>
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-                                ))
-                            ) : (
-                                <Card>
-                                    <CardContent className="p-12 text-center">
-                                        <Gift size={48} className="mx-auto text-slate-300 mb-4" />
-                                        <p className="text-slate-500">Nenhum aniversariante encontrado nesta data.</p>
-                                    </CardContent>
-                                </Card>
-                            )}
-                        </div>
-                    </div>
-                )}
+                    )
+                }
 
 
 
@@ -1399,11 +1301,9 @@ const Reports = () => {
                 </Modal>
 
 
-            </div >
+            </div>
             {/* Spacing for dropdowns */}
             <div className="h-64 no-print sm:hidden" />
-
-
         </>
     );
 };

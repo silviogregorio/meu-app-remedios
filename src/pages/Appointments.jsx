@@ -42,6 +42,7 @@ const Appointments = () => {
     const [isModalStatusOpen, setIsModalStatusOpen] = useState(false);
     const [isPatientDropdownOpen, setIsPatientDropdownOpen] = useState(false);
     const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200);
+    const [minLoading, setMinLoading] = useState(true);
 
     // Pagination
     const [currentPage, setCurrentPage] = useState(1);
@@ -233,6 +234,12 @@ const Appointments = () => {
         };
     }, []);
 
+    // Min Shimmer Duration
+    React.useEffect(() => {
+        const timer = setTimeout(() => setMinLoading(false), 1000);
+        return () => clearTimeout(timer);
+    }, []);
+
     const statusOptions = [
         { value: 'all', label: 'Todos os Status', emoji: '🔍' },
         { value: 'scheduled', label: 'Agendadas', emoji: '📅' },
@@ -296,7 +303,7 @@ const Appointments = () => {
     };
 
     // Shimmer Loading State
-    if (loadingData) {
+    if (loadingData || minLoading) {
         return (
             <div className="space-y-6 pb-20 lg:pb-8 px-2 sm:px-0 max-w-full overflow-x-hidden">
                 {/* Header Shimmer */}

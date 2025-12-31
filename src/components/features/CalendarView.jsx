@@ -153,7 +153,7 @@ const CalendarView = ({ prescriptions, consumptionLog, healthLogs = [], onDateSe
 
                         // Selected Highlight (Primary - Overrides)
                         if (isSelected) {
-                            bgClass = "bg-slate-800 text-white border-slate-800 shadow-lg scale-105 z-10 hover:bg-slate-700";
+                            bgClass = "bg-emerald-600 text-white border-emerald-500 shadow-lg shadow-emerald-200 dark:shadow-emerald-900/20 scale-105 z-10 hover:bg-emerald-500";
                             // Adjust icon for dark background
                             if (statusIcon) {
                                 // Clone icon with white border or just keep it (dots usually visible on dark if colored brightly, but maybe need adjustment)

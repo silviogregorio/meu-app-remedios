@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import PillIcon from '../components/ui/PillIcon';
 import { useApp } from '../context/AppContext';
 import Card, { CardHeader, CardContent } from '../components/ui/Card';
@@ -14,6 +14,7 @@ import { format } from 'date-fns';
 import { supabase } from '../lib/supabase';
 import CalendarView from '../components/features/CalendarView';
 import Pagination from '../components/ui/Pagination';
+import Shimmer from '../components/ui/Shimmer';
 import { useNavigate } from 'react-router-dom';
 import confetti from 'canvas-confetti';
 import { getApiEndpoint } from '../config/api';
@@ -36,11 +37,22 @@ const HealthDiary = () => {
     const [showForm, setShowForm] = useState(false);
     const [activeTab, setActiveTab] = useState('adherence'); // 'adherence' | 'list' | 'charts' | 'symptoms'
     const [selectedPatientId, setSelectedPatientId] = useState('all');
+    const [isInitialLoading, setIsInitialLoading] = useState(true);
+
+    // Min Shimmer Duration
+    useEffect(() => {
+        const timer = setTimeout(() => setIsInitialLoading(false), 1000);
+        return () => clearTimeout(timer);
+    }, []);
     const [filterCategory, setFilterCategory] = useState('all');
     const [currentPage, setCurrentPage] = useState(1);
+    const [symptomCurrentPage, setSymptomCurrentPage] = useState(1);
     const ITEMS_PER_PAGE = 6;
+    const SYMPTOMS_PER_PAGE = 3;
 
     const [viewDate, setViewDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+    const [startDate, setStartDate] = useState('');
+    const [endDate, setEndDate] = useState('');
     const [editingLogId, setEditingLogId] = useState(null);
     const [logToDelete, setLogToDelete] = useState(null);
     const [symptomToDelete, setSymptomToDelete] = useState(null);
@@ -48,14 +60,18 @@ const HealthDiary = () => {
     const [deleteLogId, setDeleteLogId] = useState(null);
 
 
-    // Auto-scroll when switching tabs
-    React.useEffect(() => {
-        // Scroll to form or top of content
-        // Finding the container or just generic window scroll
-        const offset = 100; // Offset for sticky headers if any, or just breathing room
-        const bodyRect = document.body.getBoundingClientRect().top;
-        // Try to find the tab container or just scroll window
+    // Auto-scroll e Reset de Filtros ao Mudar Aba
+    useEffect(() => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
+        // Reset sub-filters to avoid cross-tab state pollution
+        setFilterCategory('all');
+        setSymptomCurrentPage(1);
+        setCurrentPage(1);
+        // Reset range if moving to Adherence to keep focus on today
+        if (activeTab === 'adherence') {
+            setStartDate('');
+            setEndDate('');
+        }
     }, [activeTab]);
 
     // Dose Management Modal
@@ -211,7 +227,16 @@ const HealthDiary = () => {
     const filteredLogs = healthLogs.filter(log => {
         const matchPatient = selectedPatientId === 'all' || log.patient_id === selectedPatientId;
         const matchCategory = filterCategory === 'all' || log.category === filterCategory;
-        return matchPatient && matchCategory;
+
+        // Date Range logic - robust check
+        const dateToFormat = log.measured_at || log.created_at;
+        if (!dateToFormat) return matchPatient && matchCategory && !startDate && !endDate;
+
+        const logDate = format(new Date(dateToFormat), 'yyyy-MM-dd');
+        const matchStart = !startDate || logDate >= startDate;
+        const matchEnd = !endDate || logDate <= endDate;
+
+        return matchPatient && matchCategory && matchStart && matchEnd;
     });
 
     const getChartData = () => {
@@ -231,8 +256,33 @@ const HealthDiary = () => {
     const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
     const paginatedLogs = filteredLogs.slice(startIndex, startIndex + ITEMS_PER_PAGE);
 
+    // Symptom Filtering & Pagination Logic
+    const filteredSymptomLogs = (symptomLogs || []).filter(log => {
+        const matchPatient = selectedPatientId === 'all' || log.patient_id === selectedPatientId;
+        const matchSymptom = filterCategory === 'all' || log.symptom === filterCategory;
+
+        const dateToFormat = log.created_at || log.measured_at;
+        if (!dateToFormat) return matchPatient && matchSymptom && !startDate && !endDate;
+
+        const logDate = format(new Date(dateToFormat), 'yyyy-MM-dd');
+        const matchStart = !startDate || logDate >= startDate;
+        const matchEnd = !endDate || logDate <= endDate;
+
+        return matchPatient && matchSymptom && matchStart && matchEnd;
+    });
+
+    const totalSymptomPages = Math.ceil(filteredSymptomLogs.length / SYMPTOMS_PER_PAGE);
+    const symptomStartIndex = (symptomCurrentPage - 1) * SYMPTOMS_PER_PAGE;
+    const paginatedSymptomLogs = filteredSymptomLogs.slice(symptomStartIndex, symptomStartIndex + SYMPTOMS_PER_PAGE);
+
     // generateHealthReportText foi movido para utils/reportGenerators.js
     // Uso: generateHealthReportText(filteredLogs, patients, selectedPatientId)
+
+    // Reset pagination when filters change
+    useEffect(() => {
+        setCurrentPage(1);
+        setSymptomCurrentPage(1);
+    }, [selectedPatientId, filterCategory, viewDate]);
 
     const handleSendEmail = async () => {
         if (!emailData.to) {
@@ -241,9 +291,15 @@ const HealthDiary = () => {
         }
         setSendingEmail(true);
         try {
-            const doc = await generatePDFHealthDiary(filteredLogs, { patientId: selectedPatientId }, patients);
+            const doc = await generatePDFHealthDiary(
+                activeTab === 'symptoms' ? [] : filteredLogs,
+                { patientId: selectedPatientId, date: viewDate, startDate, endDate },
+                patients,
+                [],
+                activeTab === 'symptoms' ? filteredSymptomLogs : []
+            );
             const pdfBase64 = doc.output('datauristring').split(',')[1];
-            const filename = `diario - saude - ${format(new Date(), 'dd-MM')}.pdf`;
+            const filename = `diario-saude-${format(new Date(), 'dd-MM')}.pdf`;
 
             const { data: { session } } = await supabase.auth.getSession();
             const response = await fetch(getApiEndpoint('/api/send-email'), {
@@ -258,7 +314,31 @@ const HealthDiary = () => {
                     text: 'Segue em anexo o relatório de saúde solicitado.',
                     type: 'health-diary',
                     observations: emailData.observations,
-                    healthLogsByPatient: (() => {
+                    symptomLogsByPatient: activeTab === 'symptoms' ? (() => {
+                        const logsByP = {};
+                        filteredSymptomLogs.forEach(log => {
+                            const pId = log.patient_id;
+                            if (!logsByP[pId]) logsByP[pId] = [];
+                            logsByP[pId].push(log);
+                        });
+                        return Object.entries(logsByP).map(([pId, logs]) => {
+                            const pat = patients.find(p => p.id === pId);
+                            return {
+                                patientName: pat?.name || 'Desconhecido',
+                                patientId: pId,
+                                count: logs.length,
+                                logs: logs.sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+                                    .slice(0, 30)
+                                    .map(l => ({
+                                        date: formatDateTime(l.created_at || l.measured_at),
+                                        symptom: l.symptom,
+                                        intensity: `Nível ${l.intensity}`,
+                                        notes: l.notes || '-'
+                                    }))
+                            };
+                        });
+                    })() : null,
+                    healthLogsByPatient: activeTab !== 'symptoms' ? (() => {
                         // Agrupar logs por paciente
                         const logsByPatient = {};
                         filteredLogs.forEach(log => {
@@ -291,7 +371,7 @@ const HealthDiary = () => {
                                 logs: sortedLogs
                             };
                         });
-                    })(),
+                    })() : null,
                     attachments: [{
                         filename: filename,
                         content: pdfBase64,
@@ -320,17 +400,29 @@ const HealthDiary = () => {
     };
 
     const handleWhatsApp = () => {
-        const text = generateHealthReportText(filteredLogs, patients, selectedPatientId);
+        const text = activeTab === 'symptoms'
+            ? generateHealthReportText(filteredSymptomLogs, patients, selectedPatientId, 'symptom')
+            : generateHealthReportText(filteredLogs, patients, selectedPatientId, 'vital');
         window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
     };
 
     const handlePrint = async (e) => {
         if (e) e.preventDefault();
         try {
+            if (activeTab === 'symptoms') {
+                const doc = await generatePDFHealthDiary([], { patientId: selectedPatientId, date: viewDate, startDate, endDate }, patients, [], filteredSymptomLogs);
+                window.open(doc.output('bloburl'), '_blank');
+                return;
+            }
+
             // Determine filter date range based on View (Day or All)
             let logsToPrint = filteredLogs;
 
-            if (viewDate) {
+            if (startDate || endDate) {
+                // If special range selected
+                logsToPrint = filteredLogs; // Já está filtrado pelo componente, mas garantimos passá-lo
+            } else if (viewDate) {
+                // ...
                 // Filter HEALTH LOGS by viewDate (Local Time match)
                 logsToPrint = filteredLogs.filter(log => {
                     const localDate = format(new Date(log.measured_at), 'yyyy-MM-dd');
@@ -450,96 +542,153 @@ const HealthDiary = () => {
 
     // handlePrint_Legacy foi removido - código legado não utilizado
 
-    return (
-        <div className="flex flex-col gap-8 pt-8 pb-24 animate-in fade-in duration-500 max-w-6xl mx-auto w-full px-4 md:px-6">
-            {activeTab !== 'symptoms' && (
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 no-print">
-                    <div>
-                        <h2 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Diário de Saúde</h2>
-                        <p className="text-slate-500 dark:text-slate-400 mt-1">Registre e acompanhe sua pressão, glicemia e mais.</p>
+    if (isInitialLoading) {
+        return (
+            <div className="space-y-4 pb-20 lg:pb-8 max-w-6xl mx-auto w-full px-4 md:px-6">
+                {/* Header Shimmer */}
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 py-2">
+                    <div className="space-y-2">
+                        <Shimmer className="h-10 w-64 rounded-xl" />
+                        <Shimmer className="h-4 w-96 rounded-lg" />
                     </div>
-                    {!showForm && (
-                        <Button onClick={() => setShowForm(true)} className="shadow-xl shadow-primary/20">
-                            <Plus size={20} className="mr-2" />
-                            Novo Registro
-                        </Button>
-                    )}
                 </div>
-            )}
+
+                {/* Tabs Shimmer */}
+                <div className="bg-slate-100/80 dark:bg-slate-800/50 p-1.5 rounded-3xl grid grid-cols-1 sm:grid-cols-3 gap-1.5">
+                    <Shimmer className="h-11 rounded-2xl" />
+                    <Shimmer className="h-11 rounded-2xl" />
+                    <Shimmer className="h-11 rounded-2xl" />
+                </div>
+
+                {/* Filters Shimmer */}
+                <div className="bg-white dark:bg-slate-900 p-4 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <Shimmer className="h-12 rounded-xl" />
+                        <Shimmer className="h-12 rounded-xl" />
+                        <Shimmer className="h-12 rounded-xl" />
+                    </div>
+                    <div className="flex justify-center gap-2">
+                        <Shimmer className="h-10 w-24 rounded-xl" />
+                        <Shimmer className="h-10 w-24 rounded-xl" />
+                        <Shimmer className="h-10 w-24 rounded-xl" />
+                    </div>
+                </div>
+
+                {/* Content Shimmer */}
+                <div className="space-y-3">
+                    {[1, 2, 3].map(i => (
+                        <Shimmer key={i} className="h-32 w-full rounded-[2rem]" />
+                    ))}
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className={`flex flex-col ${activeTab === 'symptoms' ? 'gap-2' : 'gap-4'} pt-0 pb-24 animate-in fade-in duration-500 max-w-6xl mx-auto w-full px-4 md:px-6`}>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 no-print">
+                <div>
+                    <h2 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Diário de Saúde</h2>
+                    <p className="text-slate-500 dark:text-slate-400 mt-1">Acompanhe suas prescrições, sinais vitais e sintomas em um só lugar.</p>
+                </div>
+                {!showForm && (
+                    <Button
+                        variant="secondary"
+                        onClick={() => setShowForm(true)}
+                        className="shadow-sm border-slate-200"
+                    >
+                        <Plus size={18} className="mr-2" />
+                        Novo Registro
+                    </Button>
+                )}
+            </div>
 
             {!showForm && (
                 <>
-                    {/* 1. ABAS DE NAVEGAÇÃO (Topo) - Premium Segmented Control */}
-                    {activeTab !== 'symptoms' ? (
-                        <div className="bg-slate-100/80 dark:bg-slate-800/50 p-1.5 rounded-3xl mb-6 no-print">
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5">
-                                <button
-                                    onClick={() => setActiveTab('adherence')}
-                                    className={`flex items-center justify-center gap-2 px-4 py-3 rounded-2xl font-bold text-sm transition-all duration-300 ${activeTab === 'adherence'
-                                        ? 'bg-white dark:bg-slate-700 text-primary dark:text-white shadow-sm ring-1 ring-slate-200/50'
-                                        : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
-                                        }`}
-                                >
-                                    <CalendarIcon size={18} />
-                                    Frequência
-                                </button>
-                                <button
-                                    onClick={() => setActiveTab('list')}
-                                    className={`flex items-center justify-center gap-2 px-4 py-3 rounded-2xl font-bold text-sm transition-all duration-300 ${activeTab === 'list'
-                                        ? 'bg-white dark:bg-slate-700 text-primary dark:text-white shadow-sm ring-1 ring-slate-200/50'
-                                        : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
-                                        }`}
-                                >
-                                    <FileText size={18} />
-                                    Sinais Vitais
-                                </button>
-                                <button
-                                    onClick={() => setActiveTab('symptoms')}
-                                    className={`flex items-center justify-center gap-2 px-4 py-3 rounded-2xl font-bold text-sm transition-all duration-300 ${activeTab === 'symptoms'
-                                        ? 'bg-white dark:bg-slate-700 text-primary dark:text-white shadow-sm ring-1 ring-slate-200/50'
-                                        : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
-                                        }`}
-                                >
-                                    <SmilePlus size={18} />
-                                    Sintomas
-                                </button>
-                            </div>
+                    {/* 1. ABAS DE NAVEGAÇÃO (Topo) - Premium Segmented Control (Persistente) */}
+                    <div className="bg-slate-100/80 dark:bg-slate-800/50 p-1.5 rounded-3xl no-print w-fit">
+                        <div className="flex flex-wrap gap-1.5">
+                            <button
+                                onClick={() => setActiveTab('adherence')}
+                                className={`min-w-[120px] sm:min-w-[140px] flex items-center justify-center gap-2 px-6 py-3 rounded-2xl font-bold text-xs sm:text-sm transition-all duration-300 ${activeTab === 'adherence'
+                                    ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm ring-1 ring-slate-200/50'
+                                    : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+                                    }`}
+                            >
+                                <CalendarIcon size={18} />
+                                <span className="whitespace-nowrap">Prescrições</span>
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('list')}
+                                className={`min-w-[120px] sm:min-w-[140px] flex items-center justify-center gap-2 px-6 py-3 rounded-2xl font-bold text-xs sm:text-sm transition-all duration-300 ${activeTab === 'list'
+                                    ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm ring-1 ring-slate-200/50'
+                                    : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+                                    }`}
+                            >
+                                <FileText size={18} />
+                                <span className="whitespace-nowrap">Sinais Vitais</span>
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('symptoms')}
+                                className={`min-w-[120px] sm:min-w-[140px] flex items-center justify-center gap-2 px-6 py-3 rounded-2xl font-bold text-xs sm:text-sm transition-all duration-300 ${activeTab === 'symptoms'
+                                    ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm ring-1 ring-slate-200/50'
+                                    : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+                                    }`}
+                            >
+                                <SmilePlus size={18} />
+                                <span className="whitespace-nowrap">Sintomas</span>
+                            </button>
                         </div>
-                    ) : (
-                        <div className="mb-6 no-print animate-in slide-in-from-right-4">
+                    </div>
 
 
-                            <div className="flex items-center justify-between bg-gradient-to-r from-indigo-600 to-violet-600 p-6 rounded-2xl shadow-lg shadow-indigo-100">
-                                <div className="flex items-center gap-4 text-white">
-                                    <div className="bg-white/20 p-2 rounded-xl backdrop-blur-sm">
-                                        <SmilePlus size={28} />
-                                    </div>
-                                    <div>
-                                        <h2 className="text-xl font-bold leading-none">Meus Sintomas</h2>
-                                        <p className="text-indigo-100 text-sm mt-1 opacity-80">Registre como você está se sentindo agora</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* 2. BARRA DE FERRAMENTAS (Filtros + Ações) - Apenas se não for Sintomas */}
-                    {!showForm && activeTab !== 'symptoms' && (
-                        <Card className="no-print mb-6">
-                            <CardContent className="pt-6">
-                                <div className="flex flex-col gap-6">
+                    {/* 2. BARRA DE FERRAMENTAS (Filtros + Ações) - Ativa apenas para Sinais Vitais aqui */}
+                    {!showForm && activeTab === 'list' && (
+                        <Card className="no-print shadow-sm overflow-hidden">
+                            <CardContent className="p-3">
+                                <div className="flex flex-col gap-3">
                                     {/* Filtros */}
-                                    <div className="flex flex-col md:flex-row gap-4 w-full">
+                                    <div className="flex flex-col md:flex-row gap-3 w-full">
                                         <select
                                             id="filter-patient-select"
                                             name="selectedPatientId"
-                                            className="flex-1 px-4 py-3 rounded-xl border border-slate-200 text-sm"
+                                            className="flex-1 px-4 py-3 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
                                             value={selectedPatientId}
                                             onChange={e => setSelectedPatientId(e.target.value)}
                                         >
-                                            <option value="all">Todos os Pacientes</option>
+                                            <option value="all">👥 Todos os Pacientes</option>
                                             {patients.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                                         </select>
+
+                                        <div className="flex-[2] flex gap-2">
+                                            <div className="flex-1 relative">
+                                                <label className="absolute -top-2 left-3 bg-white px-1 text-[10px] text-slate-400 font-bold z-10">DE</label>
+                                                <input
+                                                    type="date"
+                                                    className="w-full px-3 py-3 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
+                                                    value={startDate}
+                                                    onChange={e => setStartDate(e.target.value)}
+                                                />
+                                            </div>
+                                            <div className="flex-1 relative">
+                                                <label className="absolute -top-2 left-3 bg-white px-1 text-[10px] text-slate-400 font-bold z-10">ATÉ</label>
+                                                <input
+                                                    type="date"
+                                                    className="w-full px-3 py-3 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
+                                                    value={endDate}
+                                                    onChange={e => setEndDate(e.target.value)}
+                                                />
+                                            </div>
+                                            {(startDate || endDate) && (
+                                                <button
+                                                    onClick={() => { setStartDate(''); setEndDate(''); }}
+                                                    className="px-2 text-slate-400 hover:text-slate-600 transition-colors"
+                                                    title="Limpar Período"
+                                                >
+                                                    <RotateCcw size={14} />
+                                                </button>
+                                            )}
+                                        </div>
                                         <select
                                             id="filter-category-select"
                                             name="filterCategory"
@@ -547,18 +696,31 @@ const HealthDiary = () => {
                                             value={filterCategory}
                                             onChange={e => setFilterCategory(e.target.value)}
                                         >
-                                            <option value="all">📂 Todas as Categorias</option>
-                                            {categories.map(c => (
-                                                <option key={c.id} value={c.id}>
-                                                    {c.emoji} {c.label}
-                                                </option>
-                                            ))}
+                                            <option value="all">{activeTab === 'symptoms' ? '📂 Todos os Sintomas' : '📂 Todas as Categorias'}</option>
+                                            {activeTab === 'symptoms' ? (
+                                                <>
+                                                    <option value="Dor de Cabeça">🧠 Dor de Cabeça</option>
+                                                    <option value="Enjoo">🤢 Enjoo</option>
+                                                    <option value="Tontura">🌀 Tontura</option>
+                                                    <option value="Cansaço">☕ Cansaço</option>
+                                                    <option value="Febre">🌡️ Febre</option>
+                                                    <option value="Dor no Corpo">⚡ Dor no Corpo</option>
+                                                    <option value="Cólicas">⚠️ Cólicas</option>
+                                                    <option value="Palpitação">💓 Palpitação</option>
+                                                </>
+                                            ) : (
+                                                categories.map(c => (
+                                                    <option key={c.id} value={c.id}>
+                                                        {c.emoji} {c.label}
+                                                    </option>
+                                                ))
+                                            )}
                                         </select>
                                     </div>
 
                                     {/* Quick Actions Panel - Senior UI/UX Refinement */}
-                                    <div className="bg-slate-50 dark:bg-slate-800/40 p-3 rounded-2xl border border-slate-100 dark:border-slate-700/50 no-print">
-                                        <div className="grid grid-cols-3 sm:flex sm:flex-wrap gap-2 justify-center">
+                                    <div className="bg-slate-50 dark:bg-slate-800/40 p-2 rounded-2xl border border-slate-100 dark:border-slate-700/50 no-print">
+                                        <div className="grid grid-cols-3 sm:flex sm:flex-wrap gap-1.5 justify-center">
                                             <Button
                                                 variant="outline"
                                                 size="sm"
@@ -695,7 +857,7 @@ const HealthDiary = () => {
 
                     {activeTab === 'adherence' && (
                         <div className="animate-in fade-in slide-in-from-bottom-2">
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                                 <div className="space-y-4">
                                     <div className="bg-slate-50 border border-slate-200/60 p-3 rounded-xl flex items-center gap-2 text-slate-600 text-[13px] font-medium">
                                         <Info size={14} className="text-blue-400" />
@@ -713,7 +875,7 @@ const HealthDiary = () => {
                                 </div>
                                 <div>
                                     <Card className="h-full bg-slate-50 border-none shadow-inner">
-                                        <CardContent className="p-6">
+                                        <CardContent className="p-4">
                                             {viewDate ? (
                                                 <div className="animate-in slide-in-from-right-4">
                                                     <div className="flex items-center justify-between mb-4">
@@ -743,10 +905,10 @@ const HealthDiary = () => {
                                                                         const patientName = patients.find(p => p.id === log.patient_id)?.name || 'Desconhecido';
 
                                                                         return (
-                                                                            <div key={log.id} className="bg-white p-3 rounded-lg border border-slate-100 shadow-sm flex flex-col gap-2 relative overflow-hidden">
+                                                                            <div key={log.id} className="bg-white p-2.5 rounded-lg border border-slate-100 shadow-sm flex flex-col gap-1.5 relative overflow-hidden">
                                                                                 {/* Patient Name Header - Centered */}
-                                                                                <div className="flex justify-center border-b border-slate-50 pb-2 mb-1">
-                                                                                    <span className="text-[13px] font-bold text-primary bg-primary/10 px-4 py-1.5 rounded-full text-center truncate max-w-full">
+                                                                                <div className="flex justify-center border-b border-slate-50 pb-1 mb-1">
+                                                                                    <span className="text-[13px] font-bold text-primary bg-primary/10 px-5 py-0.5 rounded-full text-center truncate max-w-full">
                                                                                         {patientName}
                                                                                     </span>
                                                                                 </div>
@@ -881,7 +1043,7 @@ const HealthDiary = () => {
                                                                             >
                                                                                 {/* Patient Name Header - Centered */}
                                                                                 <div className="flex justify-center border-b border-slate-50 pb-2 mb-1">
-                                                                                    <span className="text-[13px] font-bold text-primary bg-primary/10 px-4 py-1.5 rounded-full text-center truncate max-w-full">
+                                                                                    <span className="text-[13px] font-bold text-primary bg-primary/10 px-5 py-0.5 rounded-full text-center truncate max-w-full">
                                                                                         {patientName}
                                                                                     </span>
                                                                                 </div>
@@ -909,7 +1071,7 @@ const HealthDiary = () => {
                                                                                                 {prescription.times?.length}x ao dia • {prescription.times?.join(' - ')}
                                                                                             </p>
 
-                                                                                            <div className={`px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider whitespace-nowrap shrink-0 ${statusColor}`}>
+                                                                                            <div className={`px-3 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider whitespace-nowrap shrink-0 ${statusColor}`}>
                                                                                                 {statusText}
                                                                                             </div>
                                                                                         </div>
@@ -981,7 +1143,7 @@ const HealthDiary = () => {
                                     const Icon = info.icon;
                                     return (
                                         <Card key={log.id} className="group hover:border-primary/30 transition-all">
-                                            <div className="flex items-center p-4 gap-4">
+                                            <div className="flex items-center p-3 gap-3">
                                                 <div className="w-12 h-12 rounded-full flex items-center justify-center text-white shadow-md" style={{ backgroundColor: info.color }}>
                                                     <Icon size={20} />
                                                 </div>
@@ -1077,71 +1239,194 @@ const HealthDiary = () => {
 
             {
                 activeTab === 'symptoms' && (
-                    <div className="animate-in fade-in slide-in-from-bottom-2 grid grid-cols-1 lg:grid-cols-5 gap-6">
+                    <div className="animate-in fade-in slide-in-from-bottom-2 grid grid-cols-1 lg:grid-cols-5 gap-4 items-start">
                         <div className="lg:col-span-2">
-                            <SymptomSelector />
+                            <SymptomSelector initialPatientId={selectedPatientId} />
                         </div>
-                        <div className="lg:col-span-3">
-                            <Card>
-                                <CardHeader>
-                                    <h3 className="font-bold text-lg flex items-center gap-2">
-                                        <FileText className="text-primary" size={20} />
+                        <div className="lg:col-span-3 flex flex-col gap-2">
+                            {/* Toolbar repositioned inside symptoms tab for better mobile flow */}
+                            <Card className="no-print border border-slate-100 shadow-sm bg-slate-50/50 dark:bg-slate-800/30">
+                                <CardContent className="p-3">
+                                    <div className="flex flex-col gap-3">
+                                        {/* Row 1: Primary Filters - Flex layout to adapt better to content */}
+                                        <div className="flex flex-wrap gap-3">
+                                            <div className="flex-[2] min-w-[240px] relative">
+                                                <label className="absolute -top-2 left-3 bg-white dark:bg-slate-900 px-1.5 text-[10px] text-slate-400 font-bold z-10 uppercase tracking-wider">Paciente</label>
+                                                <select
+                                                    id="filter-patient-select-symptoms"
+                                                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-[13px] font-medium focus:ring-2 focus:ring-emerald-500 outline-none transition-all appearance-none"
+                                                    value={selectedPatientId}
+                                                    onChange={e => setSelectedPatientId(e.target.value)}
+                                                >
+                                                    <option value="all">👥 Todos os Pacientes</option>
+                                                    {patients.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                                                </select>
+                                            </div>
+
+                                            <div className="flex-[1.5] min-w-[200px] relative">
+                                                <label className="absolute -top-2 left-3 bg-white dark:bg-slate-900 px-1.5 text-[10px] text-slate-400 font-bold z-10 uppercase tracking-wider">Categoria</label>
+                                                <select
+                                                    id="filter-category-select-symptoms"
+                                                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-[13px] font-medium focus:ring-2 focus:ring-emerald-500 outline-none transition-all appearance-none"
+                                                    value={filterCategory}
+                                                    onChange={e => setFilterCategory(e.target.value)}
+                                                >
+                                                    <option value="all">📂 Todos os Sintomas</option>
+                                                    <option value="Dor de Cabeça">🧠 Dor de Cabeça</option>
+                                                    <option value="Enjoo">🤢 Enjoo</option>
+                                                    <option value="Tontura">🌀 Tontura</option>
+                                                    <option value="Cansaço">☕ Cansaço</option>
+                                                    <option value="Febre">🌡️ Febre</option>
+                                                    <option value="Dor no Corpo">⚡ Dor no Corpo</option>
+                                                    <option value="Cólicas">⚠️ Cólicas</option>
+                                                    <option value="Palpitação">💓 Palpitação</option>
+                                                </select>
+                                            </div>
+
+                                            <div className="flex-1 min-w-[240px] flex gap-2">
+                                                <div className="flex-1 relative">
+                                                    <label className="absolute -top-2 left-3 bg-white dark:bg-slate-900 px-1.5 text-[10px] text-slate-400 font-bold z-10 uppercase tracking-wider">De</label>
+                                                    <input
+                                                        type="date"
+                                                        className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
+                                                        value={startDate}
+                                                        onChange={e => setStartDate(e.target.value)}
+                                                    />
+                                                </div>
+                                                <div className="flex-1 relative">
+                                                    <label className="absolute -top-2 left-3 bg-white dark:bg-slate-900 px-1.5 text-[10px] text-slate-400 font-bold z-10 uppercase tracking-wider">Até</label>
+                                                    <input
+                                                        type="date"
+                                                        className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
+                                                        value={endDate}
+                                                        onChange={e => setEndDate(e.target.value)}
+                                                    />
+                                                </div>
+                                                {(startDate || endDate) && (
+                                                    <button
+                                                        onClick={() => { setStartDate(''); setEndDate(''); }}
+                                                        className="px-1.5 text-slate-400 hover:text-rose-500 transition-colors"
+                                                        title="Limpar Período"
+                                                    >
+                                                        <RotateCcw size={16} />
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {/* Row 2: Actions */}
+                                        <div className="flex flex-wrap items-center justify-center sm:justify-end gap-3 pt-3 border-t border-slate-200/50 dark:border-slate-700/50">
+                                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mr-auto hidden md:block">Ações & Relatórios</span>
+                                            <div className="flex items-center gap-2">
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => setShowEmailModal(true)}
+                                                    className="bg-white dark:bg-slate-800 h-9 border-slate-200 dark:border-slate-700 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 px-3 rounded-xl shadow-sm"
+                                                >
+                                                    <Mail size={16} className="md:mr-2" /> <span className="hidden md:inline">Email</span>
+                                                </Button>
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={handlePrint}
+                                                    className="bg-white dark:bg-slate-800 h-9 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 px-3 rounded-xl shadow-sm"
+                                                >
+                                                    <Printer size={16} className="md:mr-2" /> <span className="hidden md:inline">Imprimir</span>
+                                                </Button>
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={handleWhatsApp}
+                                                    className="bg-white dark:bg-slate-800 h-9 border-slate-200 dark:border-slate-700 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 px-3 rounded-xl shadow-sm"
+                                                >
+                                                    <MessageCircle size={16} className="md:mr-2" /> <span className="hidden md:inline">WhatsApp</span>
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                            <Card className="border-none shadow-sm">
+                                <CardHeader className="py-2">
+                                    <h3 className="font-bold text-base flex items-center gap-2 text-slate-700 dark:text-slate-200">
+                                        <SmilePlus className="text-emerald-500" size={18} />
                                         Histórico de Sintomas
                                     </h3>
                                 </CardHeader>
-                                <CardContent>
-                                    {symptomLogs && symptomLogs.length > 0 ? (
-                                        <div className="space-y-3">
-                                            {symptomLogs.map((log) => (
-                                                <div key={log.id} className="flex items-start justify-between p-3 rounded-lg border border-slate-100 hover:bg-slate-50 transition-colors">
-                                                    <div className="flex gap-3">
-                                                        <div className={`p-2 rounded-full h-fit mt-1 
-                                                        ${log.intensity <= 2 ? 'bg-green-100 text-green-600' :
-                                                                log.intensity <= 3 ? 'bg-yellow-100 text-yellow-600' :
-                                                                    'bg-red-100 text-red-600'
-                                                            }`}>
-                                                            {log.symptom === 'Dor de Cabeça' && <Brain size={18} />}
-                                                            {log.symptom === 'Enjoo' && <Frown size={18} />}
-                                                            {log.symptom === 'Tontura' && <Activity size={18} />}
-                                                            {log.symptom === 'Cansaço' && <Coffee size={18} />}
-                                                            {log.symptom === 'Febre' && <Thermometer size={18} />}
-                                                            {log.symptom === 'Dor no Corpo' && <Zap size={18} />}
-                                                            {log.symptom === 'Cólicas' && <AlertCircle size={18} />}
-                                                            {log.symptom === 'Palpitação' && <HeartPulse size={18} />}
-                                                            {/* Fallback Icon */}
-                                                            {!['Dor de Cabeça', 'Enjoo', 'Tontura', 'Cansaço', 'Febre', 'Dor no Corpo', 'Cólicas', 'Palpitação'].includes(log.symptom) && <Activity size={18} />}
-                                                        </div>
-                                                        <div>
-                                                            <p className="font-bold text-slate-800">{log.symptom}</p>
-                                                            <div className="flex items-center gap-2 text-xs text-slate-500 mt-1">
-                                                                <span className="font-medium bg-slate-100 px-1.5 py-0.5 rounded">
-                                                                    Nível {log.intensity}
-                                                                </span>
-                                                                <span>•</span>
-                                                                <span>{formatDateTime(log.created_at)}</span>
+                                <CardContent className="pb-2">
+                                    {filteredSymptomLogs && filteredSymptomLogs.length > 0 ? (
+                                        <div className="space-y-2">
+                                            {paginatedSymptomLogs.map((log) => (
+                                                <div key={log.id} className="p-2.5 rounded-2xl border border-slate-100 hover:bg-slate-50 transition-colors bg-white dark:bg-slate-800/40">
+                                                    <div className="flex items-start justify-between mb-2">
+                                                        <div className="flex gap-3 items-center">
+                                                            <div className={`p-2 rounded-xl h-fit 
+                                                            ${log.intensity <= 2 ? 'bg-green-100/50 text-green-600' :
+                                                                    log.intensity <= 3 ? 'bg-yellow-100/50 text-yellow-600' :
+                                                                        'bg-red-100/50 text-red-600'
+                                                                }`}>
+                                                                {log.symptom === 'Dor de Cabeça' && <Brain size={18} />}
+                                                                {log.symptom === 'Enjoo' && <Frown size={18} />}
+                                                                {log.symptom === 'Tontura' && <Activity size={18} />}
+                                                                {log.symptom === 'Cansaço' && <Coffee size={18} />}
+                                                                {log.symptom === 'Febre' && <Thermometer size={18} />}
+                                                                {log.symptom === 'Dor no Corpo' && <Zap size={18} />}
+                                                                {log.symptom === 'Cólicas' && <AlertCircle size={18} />}
+                                                                {log.symptom === 'Palpitação' && <HeartPulse size={18} />}
+                                                                {!['Dor de Cabeça', 'Enjoo', 'Tontura', 'Cansaço', 'Febre', 'Dor no Corpo', 'Cólicas', 'Palpitação'].includes(log.symptom) && <Activity size={18} />}
                                                             </div>
-                                                            {log.notes && (
-                                                                <p className="text-sm text-slate-600 mt-2 bg-slate-50 p-2 rounded-md italic">
-                                                                    "{log.notes}"
-                                                                </p>
-                                                            )}
+                                                            <div>
+                                                                <div className="flex items-center gap-2">
+                                                                    <p className="font-bold text-slate-800 dark:text-slate-200">{log.symptom}</p>
+                                                                    <span className="text-[10px] bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 px-2 py-0.5 rounded-full font-bold uppercase tracking-tight">
+                                                                        {patients.find(p => p.id === log.patient_id)?.name || 'Paciente Desconhecido'}
+                                                                    </span>
+                                                                </div>
+                                                                <div className="flex items-center gap-2 text-xs text-slate-500 mt-0.5">
+                                                                    <span className="font-medium bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded text-[10px]">
+                                                                        Nível {log.intensity}
+                                                                    </span>
+                                                                    <span>•</span>
+                                                                    <span>{formatDateTime(log.created_at)}</span>
+                                                                </div>
+                                                            </div>
                                                         </div>
+                                                        <button
+                                                            onClick={() => setSymptomToDelete(log)}
+                                                            className="text-slate-400 hover:text-rose-500 p-2 transition-colors"
+                                                            title="Excluir"
+                                                        >
+                                                            <Trash2 size={16} />
+                                                        </button>
                                                     </div>
-                                                    <button
-                                                        onClick={() => setSymptomToDelete(log)}
-                                                        className="text-slate-400 hover:text-rose-500 p-2 transition-colors"
-                                                        title="Excluir"
-                                                    >
-                                                        <Trash2 size={16} />
-                                                    </button>
+                                                    {log.notes && (
+                                                        <div className="mt-2 px-1 border-t border-slate-50 dark:border-slate-700/30 pt-2">
+                                                            <p className="text-[14px] text-slate-600 dark:text-slate-400 italic leading-relaxed w-full">
+                                                                "{log.notes}"
+                                                            </p>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             ))}
+                                            {totalSymptomPages > 1 && (
+                                                <Pagination
+                                                    currentPage={symptomCurrentPage}
+                                                    totalPages={totalSymptomPages}
+                                                    onPageChange={setSymptomCurrentPage}
+                                                />
+                                            )}
                                         </div>
                                     ) : (
-                                        <div className="text-center py-12 text-slate-400">
-                                            <SmilePlus size={48} className="mx-auto mb-3 opacity-20" />
-                                            <p>Nenhum sintoma registrado.</p>
-                                            <p className="text-sm">Selecione um ícone ao lado para começar.</p>
+                                        <div className="flex flex-col items-center justify-center py-12 text-center animate-in fade-in zoom-in-95 duration-500">
+                                            <div className="bg-slate-50 dark:bg-slate-800/50 p-6 rounded-full mb-4 shadow-inner border border-slate-100/50 dark:border-slate-700/50">
+                                                <SmilePlus size={42} className="text-slate-200 dark:text-slate-600" />
+                                            </div>
+                                            <h4 className="font-bold text-slate-700 dark:text-slate-200 text-lg">Nenhum registro encontrado</h4>
+                                            <p className="text-sm text-slate-500 max-w-[260px] mt-2 leading-relaxed">
+                                                Parece que você ainda não relatou sintomas. Use o seletor para começar seu acompanhamento de saúde hoje.
+                                            </p>
                                         </div>
                                     )}
                                 </CardContent>
@@ -1191,8 +1476,18 @@ const HealthDiary = () => {
             <Modal
                 isOpen={doseModalOpen}
                 onClose={() => setDoseModalOpen(false)}
-                title="Gerenciar Doses"
-                footer={<Button onClick={() => setDoseModalOpen(false)}>Fechar</Button>}
+                title="Conformidade de Doses"
+                maxWidth="max-w-md"
+                footer={
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setDoseModalOpen(false)}
+                        className="rounded-lg px-6 font-medium text-slate-400 hover:text-slate-600 h-9 min-h-[36px]"
+                    >
+                        Fechar Janela
+                    </Button>
+                }
             >
                 {selectedPrescriptionForDosing && viewDate && (() => {
                     const med = medications.find(m => m.id === selectedPrescriptionForDosing.medicationId);
@@ -1206,7 +1501,7 @@ const HealthDiary = () => {
                             </div>
 
                             <div className="space-y-4">
-                                <p className="text-sm font-bold text-slate-700 uppercase tracking-wide border-b pb-2">
+                                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-2 mb-2">
                                     Horários Agendados
                                 </p>
                                 {selectedPrescriptionForDosing.times?.map(time => {
@@ -1257,41 +1552,41 @@ const HealthDiary = () => {
                                             {/* Row 1: Time and Status Label */}
                                             <div className="flex items-center justify-between">
                                                 <div className="flex items-center gap-2">
-                                                    <Clock size={20} className="text-slate-400" />
-                                                    <span className="text-xl font-bold text-slate-800">{time}</span>
+                                                    <Clock size={16} className="text-slate-400" />
+                                                    <span className="text-lg font-bold text-slate-700">{time}</span>
                                                 </div>
-                                                <div className={`px-3 py-1 rounded-full flex items-center gap-1.5 text-sm font-bold ${statusBg}`}>
-                                                    <StatusIcon size={16} />
+                                                <div className={`px-2.5 py-0.5 rounded-full flex items-center gap-1 text-[11px] font-bold ${statusBg}`}>
+                                                    <StatusIcon size={12} />
                                                     {statusLabel}
                                                 </div>
                                             </div>
 
-                                            {/* Row 2: Action Button */}
-                                            <div className="pt-1">
+                                            {/* Row 2: Action Button - Minimalist Style */}
+                                            <div className="pt-0.5">
                                                 {isTaken ? (
                                                     <button
                                                         onClick={() => handleToggleDose(time, isTaken)}
-                                                        className="w-full flex items-center justify-center gap-2 p-2.5 rounded-xl border border-rose-200 bg-rose-50/50 text-rose-600 hover:bg-rose-100/50 font-semibold text-sm transition-all active:scale-[0.98]"
+                                                        className="w-full flex items-center justify-center gap-2 py-1.5 rounded-lg border border-rose-100 bg-rose-50/20 text-rose-500 hover:bg-rose-50 font-medium text-[11px] transition-all active:scale-[0.98]"
                                                     >
-                                                        <RotateCcw size={16} />
-                                                        DESFAZER (Marcar como não tomado)
+                                                        <RotateCcw size={13} />
+                                                        Anular registro
                                                     </button>
                                                 ) : (
                                                     <button
                                                         onClick={() => handleToggleDose(time, isTaken)}
-                                                        className="w-full flex items-center justify-center gap-2 p-3 rounded-xl bg-emerald-500 text-white shadow-sm hover:bg-emerald-600 font-bold text-base transition-all active:scale-[0.98]"
+                                                        className="w-full flex items-center justify-center gap-2 py-2 rounded-lg bg-emerald-50/50 border border-emerald-100/50 text-emerald-600 hover:bg-emerald-100/80 font-bold text-[12px] transition-all active:scale-[0.98]"
                                                     >
-                                                        <CheckCircle2 size={20} />
-                                                        CONFIRMAR QUE TOMEI
+                                                        <CheckCircle2 size={14} />
+                                                        CONFIRMAR DOSE
                                                     </button>
                                                 )}
                                             </div>
 
-                                            {/* Helper Text */}
-                                            <p className="text-center text-xs text-slate-400">
+                                            {/* Helper Text - Softer */}
+                                            <p className="text-center text-[10px] text-slate-400 mt-1">
                                                 {isTaken
-                                                    ? "Clique acima se você marcou por engano."
-                                                    : "Clique no botão verde para confirmar a dose."}
+                                                    ? "Clique acima se precisar reverter."
+                                                    : "Clique para confirmar que tomou."}
                                             </p>
                                         </div>
                                     );
@@ -1342,9 +1637,11 @@ const HealthDiary = () => {
                             <strong className="text-slate-900 block font-bold text-lg leading-tight">
                                 {symptomToDelete.symptom}
                             </strong>
-                            <span className="text-slate-500 text-sm block mt-1">
-                                Nível {symptomToDelete.intensity} • {formatDateTime(symptomToDelete.created_at)}
-                            </span>
+                            <div className="mt-2">
+                                <span className="text-[11px] font-bold bg-slate-50 text-slate-500 px-3 py-0.5 rounded-full border border-slate-100 inline-block uppercase tracking-tight">
+                                    Nível {symptomToDelete.intensity} • {formatDateTime(symptomToDelete.created_at)}
+                                </span>
+                            </div>
                             <br />
                             <span className="block text-red-600 font-medium">
                                 Essa ação não pode ser desfeita.

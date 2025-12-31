@@ -92,7 +92,7 @@ const Patients = () => {
     const [isPageLoading, setIsPageLoading] = useState(true);
 
     React.useEffect(() => {
-        const timer = setTimeout(() => setIsPageLoading(false), 2000);
+        const timer = setTimeout(() => setIsPageLoading(false), 1000);
         return () => clearTimeout(timer);
     }, []);
 

@@ -342,14 +342,15 @@ export function getCategoryInfo(catId) {
 }
 
 /**
- * Gera texto formatado para WhatsApp do diário de saúde
- * @param {Array} filteredLogs - Logs de saúde filtrados
+ * Gera texto formatado para WhatsApp do diário de saúde (Sinais Vitais ou Sintomas)
+ * @param {Array} filteredLogs - Logs filtrados (sinais ou sintomas)
  * @param {Array} patients - Lista de pacientes
- * @param {string} selectedPatientId - ID do paciente selecionado ('all' ou ID específico)
- * @returns {string} Texto formatado para WhatsApp
+ * @param {string} selectedPatientId - ID do paciente selecionado
+ * @param {string} type - 'vital' ou 'symptom'
+ * @returns {string} Texto formatado
  */
-export function generateHealthReportText(filteredLogs, patients, selectedPatientId) {
-    let text = '*DIÁRIO DE SAÚDE*\n';
+export function generateHealthReportText(filteredLogs, patients, selectedPatientId, type = 'vital') {
+    let text = type === 'symptom' ? '*HISTÓRICO DE SINTOMAS*\n' : '*DIÁRIO DE SAÚDE*\n';
     text += '========================\n';
     if (selectedPatientId !== 'all') {
         const p = patients.find(pat => pat.id === selectedPatientId);
@@ -389,39 +390,47 @@ export function generateHealthReportText(filteredLogs, patients, selectedPatient
             // Cabeçalho do paciente (apenas se houver múltiplos pacientes)
             if (Object.keys(logsByPatient).length > 1) {
                 if (patientIndex > 0) text += '\n';
-                text += `-- - * _${patientName} _ * ---\n`;
+                text += `-- - *_ ${patientName} _* ---\n`;
             }
 
             // Registros do paciente (limitado a 30 total)
             const logsToShow = logs.slice(0, 30);
             logsToShow.forEach((log) => {
-                const info = getCategoryInfo(log.category);
+                if (type === 'symptom') {
+                    text += `*${log.symptom}*\n`;
+                    text += `Data: ${formatDateTime(log.created_at || log.measured_at)}\n`;
+                    text += `Intensidade: *Nível ${log.intensity}*\n`;
+                    if (log.notes) text += `Obs: ${log.notes}\n`;
+                    text += '\n';
+                } else {
+                    const info = getCategoryInfo(log.category);
 
-                // Tag baseada na categoria
-                let tag = '';
-                if (log.category === 'pressure') tag = '[PA]';
-                else if (log.category === 'glucose') tag = '[GLI]';
-                else if (log.category === 'weight') tag = '[PESO]';
-                else if (log.category === 'temperature') tag = '[TEMP]';
-                else if (log.category === 'heart_rate') tag = '[BPM]';
-                else tag = '[REG]';
+                    // Tag baseada na categoria
+                    let tag = '';
+                    if (log.category === 'pressure') tag = '[PA]';
+                    else if (log.category === 'glucose') tag = '[GLI]';
+                    else if (log.category === 'weight') tag = '[PESO]';
+                    else if (log.category === 'temperature') tag = '[TEMP]';
+                    else if (log.category === 'heart_rate') tag = '[BPM]';
+                    else tag = '[REG]';
 
-                text += `${tag} * ${info.label}*\n`;
-                text += `Data: ${formatDateTime(log.measured_at)} \n`;
+                    text += `${tag} *${info.label}*\n`;
+                    text += `Data: ${formatDateTime(log.measured_at)} \n`;
 
-                let val = `${log.value} `;
-                if (log.value_secondary) val += ` / ${log.value_secondary} `;
-                val += ` ${info.unit} `;
+                    let val = `${log.value} `;
+                    if (log.value_secondary) val += ` / ${log.value_secondary} `;
+                    val += ` ${info.unit} `;
 
-                text += `Valor: * ${val}*\n`;
+                    text += `Valor: *${val}*\n`;
 
-                if (log.notes) {
-                    text += `Obs: ${log.notes} \n`;
+                    if (log.notes) {
+                        text += `Obs: ${log.notes} \n`;
+                    }
                 }
             });
 
             if (logs.length > 30) {
-                text += `_... e mais ${logs.length - 30} registro(s) de ${patientName} _\n`;
+                text += `_... e mais ${logs.length - 30} registro(s) de ${patientName}_ \n`;
             }
         });
     }

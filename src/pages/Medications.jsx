@@ -70,7 +70,7 @@ const Medications = () => {
         if (medications.length >= 0) {
             const timer = setTimeout(() => {
                 setIsInitialLoading(false);
-            }, 2000);
+            }, 1000);
             return () => clearTimeout(timer);
         }
     }, [medications]);
