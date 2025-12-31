@@ -85,22 +85,29 @@ textarea {
   outline: none;
 }
 
-/* Custom Scrollbar */
+/* Custom Scrollbar - Brand Color */
 ::-webkit-scrollbar {
-  width: 8px;
+  width: 8px !important;
+  height: 8px !important;
 }
 
 ::-webkit-scrollbar-track {
-  background: transparent;
+  background: transparent !important;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 4px;
+  background: #14b8a6 !important;
+  border-radius: 4px !important;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: #0d9488 !important;
+}
+
+/* Firefox scrollbar support */
+* {
+  scrollbar-width: thin !important;
+  scrollbar-color: #14b8a6 transparent !important;
 }
 
 /* Driver.js Popover Fixes */

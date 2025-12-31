@@ -31,8 +31,8 @@ export const useNotifications = () => {
         if (Notification.permission === 'granted') {
             try {
                 const notification = new Notification(title, {
-                    icon: '/vite.svg', // Adjust if you have a specific icon
-                    badge: '/vite.svg',
+                    icon: '/pwa-192x192.png',
+                    badge: '/pwa-192x192.png',
                     ...options
                 });
 

@@ -36,7 +36,7 @@ self.addEventListener('push', (event) => {
     const phone = rawPhone.replace(/\D/g, '');
     const mapUrl = data.mapUrl || 'https://sigremedios.vercel.app';
     const appUrl = data.appUrl || 'https://sigremedios.vercel.app/';
-    const icon = 'https://sigremedios.vercel.app/logo192.png';
+    const icon = 'https://sigremedios.vercel.app/pwa-192x192.png';
 
     // Broadcast to foreground
     broadcastChannel.postMessage({ type: 'FCM_PUSH', ...data });

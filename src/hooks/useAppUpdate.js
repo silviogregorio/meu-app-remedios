@@ -22,6 +22,11 @@ export const useAppUpdate = () => {
 
     const checkForUpdates = async () => {
         try {
+            // Ignora verificação em ambiente de desenvolvimento
+            if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                return;
+            }
+
             // Busca version.json do servidor (sem cache)
             const response = await fetch('/version.json?t=' + Date.now(), {
                 cache: 'no-store',
