@@ -132,7 +132,19 @@ const SOSMonitor = () => {
         }
     };
 
-    const handleClose = () => {
+    const handleClose = async () => {
+        if (activeAlert) {
+            // Marcar como dismissed no banco para não aparecer novamente
+            try {
+                await supabase
+                    .from('sos_alerts')
+                    .update({ status: 'dismissed' })
+                    .eq('id', activeAlert.id);
+                console.log('🔕 Alerta SOS dismissed');
+            } catch (error) {
+                console.error('Erro ao ignorar SOS:', error);
+            }
+        }
         setActiveAlert(null);
     };
 
