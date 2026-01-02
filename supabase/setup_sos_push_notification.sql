@@ -52,16 +52,16 @@ BEGIN
 END;
 $$;
 
--- PASSO 3: Criar o trigger na tabela sos_alerts
+-- PASSO 3: Criar o trigger na tabela sos_alerts (agora também no UPDATE)
 DROP TRIGGER IF EXISTS on_sos_alert_created ON public.sos_alerts;
 
 CREATE TRIGGER on_sos_alert_created
-  AFTER INSERT ON public.sos_alerts
+  AFTER INSERT OR UPDATE ON public.sos_alerts
   FOR EACH ROW
   EXECUTE FUNCTION public.trigger_sos_push_notification();
 
 -- PASSO 4: Verificar se funcionou
-SELECT 'Trigger criado com sucesso!' as status;
+SELECT 'Trigger criado com sucesso (INSERT + UPDATE)!' as status;
 
 -- =====================================================
 -- INFORMAÇÕES IMPORTANTES PARA O DEPLOY:

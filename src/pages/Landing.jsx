@@ -6,10 +6,19 @@ import confetti from 'canvas-confetti';
 import { getApiEndpoint } from '../config/api';
 import HealthTips from '../components/features/HealthTips';
 import CustomUserLock from '../components/ui/CustomUserLock';
+import { useAuth } from '../context/AuthContext';
 
 
 const Landing = () => {
     const navigate = useNavigate();
+    const { user } = useAuth();
+
+    // Redirecionar para /app se já estiver logado
+    useEffect(() => {
+        if (user) {
+            navigate('/app', { replace: true });
+        }
+    }, [user, navigate]);
 
     const [contactForm, setContactForm] = useState({ name: '', email: '', phone: '', message: '', website: '' });
     const [sendingContact, setSendingContact] = useState(false);

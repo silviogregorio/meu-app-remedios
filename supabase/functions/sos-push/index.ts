@@ -149,8 +149,10 @@ Deno.serve(async (req) => {
         console.log('🚨 SOS Edge Function triggered')
         console.log('Payload:', JSON.stringify(payload, null, 2))
 
-        // Get the new alert from the webhook payload
+        // Get the alert from the webhook payload
         const alert = payload.record
+        const eventType = payload.type // 'INSERT' or 'UPDATE'
+
         if (!alert) {
             return new Response(JSON.stringify({ error: 'No record in payload' }), { status: 400 })
         }
@@ -167,64 +169,105 @@ Deno.serve(async (req) => {
             .eq('id', alert.patient_id)
             .single()
 
-        // 2. Get user profile who triggered the alert
-        const { data: userProfile } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', alert.triggered_by)
-            .single()
+        // Handle UPDATE (acknowledgment) - notify the patient that help is coming
+        if (eventType === 'UPDATE' && alert.status === 'acknowledged' && alert.acknowledged_by) {
+            console.log('✅ SOS was ACKNOWLEDGED - notifying patient')
 
-        // 3. Get FCM tokens for users who should receive the notification
-        const userIds = [patient?.user_id, alert.triggered_by].filter(Boolean)
+            // Get the profile of who acknowledged
+            const { data: acknowledger } = await supabase
+                .from('profiles')
+                .select('full_name, email')
+                .eq('id', alert.acknowledged_by)
+                .single()
 
-        // Also get tokens from caregivers (people who have access to this patient)
-        const { data: shares } = await supabase
-            .from('patient_shares')
-            .select('shared_with_user_id')
-            .eq('patient_id', patient?.id)
-            .eq('status', 'accepted')
+            const acknowledgerName = acknowledger?.full_name || acknowledger?.email || 'Alguém'
 
-        if (shares) {
-            shares.forEach((s: any) => {
-                if (s.shared_with_user_id) userIds.push(s.shared_with_user_id)
+            // Get FCM token of the person who TRIGGERED the alert (the patient/caregiver in danger)
+            const { data: tokens } = await supabase
+                .from('fcm_tokens')
+                .select('token')
+                .eq('user_id', alert.triggered_by)
+
+            if (tokens && tokens.length > 0) {
+                const fcmTokens = tokens.map((t: any) => t.token)
+
+                await sendPushNotification(fcmTokens, '✅ AJUDA A CAMINHO!', `${acknowledgerName} viu seu alerta e está a caminho!`, {
+                    type: 'sos_acknowledged',
+                    alertId: String(alert.id),
+                    appUrl: 'https://sigremedios.vercel.app/',
+                    patientName: patient?.name || 'Paciente'
+                })
+
+                console.log('✅ Acknowledgment notification sent to patient')
+            }
+
+            return new Response(JSON.stringify({ success: true, type: 'acknowledged' }), {
+                headers: { 'Content-Type': 'application/json' },
+                status: 200
             })
         }
 
-        const { data: tokens } = await supabase
-            .from('fcm_tokens')
-            .select('token')
-            .in('user_id', userIds)
+        // Handle INSERT - notify caregivers about the new SOS
+        if (eventType === 'INSERT') {
+            // 2. Get user profile who triggered the alert
+            const { data: userProfile } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', alert.triggered_by)
+                .single()
 
-        if (!tokens || tokens.length === 0) {
-            console.log('⚠️ No FCM tokens found')
-            return new Response(JSON.stringify({ success: true, message: 'No tokens to notify' }), { status: 200 })
+            // 3. Get FCM tokens for users who should receive the notification
+            const userIds = [patient?.user_id, alert.triggered_by].filter(Boolean)
+
+            // Also get tokens from caregivers (people who have access to this patient)
+            const { data: shares } = await supabase
+                .from('patient_shares')
+                .select('shared_with_user_id')
+                .eq('patient_id', patient?.id)
+                .eq('status', 'accepted')
+
+            if (shares) {
+                shares.forEach((s: any) => {
+                    if (s.shared_with_user_id) userIds.push(s.shared_with_user_id)
+                })
+            }
+
+            const { data: tokens } = await supabase
+                .from('fcm_tokens')
+                .select('token')
+                .in('user_id', userIds)
+
+            if (!tokens || tokens.length === 0) {
+                console.log('⚠️ No FCM tokens found')
+                return new Response(JSON.stringify({ success: true, message: 'No tokens to notify' }), { status: 200 })
+            }
+
+            // 4. Build notification content
+            const isHelpRequest = alert.alert_type === 'help_request'
+            const pushTitle = isHelpRequest ? '💡 PEDIDO DE AJUDA' : '🚨 EMERGÊNCIA SOS'
+
+            const locationUrl = (alert.location_lat && alert.location_lng)
+                ? `https://www.google.com/maps?q=${alert.location_lat},${alert.location_lng}`
+                : 'https://sigremedios.vercel.app'
+
+            const pushBody = isHelpRequest
+                ? `${patient?.name || 'Alguém'} precisa de ajuda com o aplicativo.`
+                : `${patient?.name || 'Alguém'} PRECISA DE AJUDA URGENTE!`
+
+            const fcmTokens = tokens.map((t: any) => t.token)
+
+            // 5. Send push notification
+            await sendPushNotification(fcmTokens, pushTitle, pushBody, {
+                type: isHelpRequest ? 'help_request' : 'sos',
+                alertId: String(alert.id),
+                mapUrl: locationUrl,
+                appUrl: 'https://sigremedios.vercel.app/',
+                phone: userProfile?.phone || patient?.phone || '',
+                patientName: patient?.name || 'Alguém'
+            })
+
+            console.log('✅ SOS push notification sent successfully')
         }
-
-        // 4. Build notification content
-        const isHelpRequest = alert.alert_type === 'help_request'
-        const pushTitle = isHelpRequest ? '💡 PEDIDO DE AJUDA' : '🚨 EMERGÊNCIA SOS'
-
-        const locationUrl = (alert.location_lat && alert.location_lng)
-            ? `https://www.google.com/maps?q=${alert.location_lat},${alert.location_lng}`
-            : 'https://sigremedios.vercel.app'
-
-        const pushBody = isHelpRequest
-            ? `${patient?.name || 'Alguém'} precisa de ajuda com o aplicativo.`
-            : `${patient?.name || 'Alguém'} PRECISA DE AJUDA URGENTE!`
-
-        const fcmTokens = tokens.map((t: any) => t.token)
-
-        // 5. Send push notification
-        await sendPushNotification(fcmTokens, pushTitle, pushBody, {
-            type: isHelpRequest ? 'help_request' : 'sos',
-            alertId: String(alert.id),
-            mapUrl: locationUrl,
-            appUrl: 'https://sigremedios.vercel.app/',
-            phone: userProfile?.phone || patient?.phone || '',
-            patientName: patient?.name || 'Alguém'
-        })
-
-        console.log('✅ SOS push notification sent successfully')
 
         return new Response(JSON.stringify({ success: true }), {
             headers: { 'Content-Type': 'application/json' },
