@@ -329,10 +329,10 @@ const Home = () => {
                     <div className="flex items-center gap-2">
                         <button
                             onClick={() => updateUserPreferences({ simplified_mode: true })}
-                            className="flex items-center gap-2 px-4 py-2.5 bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-900 rounded-full transition-all text-sm font-semibold shadow-sm"
+                            className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-teal-600 to-emerald-500 hover:from-teal-500 hover:to-emerald-400 text-white rounded-full transition-all text-sm font-semibold shadow-lg shadow-teal-500/25 hover:shadow-teal-500/40 hover:scale-105 shimmer-premium"
                             title="Modo para Idosos"
                         >
-                            <Accessibility size={16} />
+                            <Accessibility size={16} className="animate-pulse" />
                             Modo Sênior
                         </button>
                         <button
@@ -341,7 +341,7 @@ const Home = () => {
                             title="Ajuda e Tutorial"
                         >
                             <CircleHelp size={16} />
-                            Manual
+                            Dicas
                         </button>
                     </div>
                 </div>

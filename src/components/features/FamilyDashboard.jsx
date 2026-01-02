@@ -6,73 +6,111 @@ import clsx from 'clsx';
 const FamilyDashboard = ({ patients, todaysSchedule, visible }) => {
     if (!visible || patients.length <= 1) return null;
 
+    // Calculate overall family progress
+    const totalDoses = todaysSchedule.length;
+    const takenDoses = todaysSchedule.filter(i => i.isTaken).length;
+    const overallProgress = totalDoses > 0 ? Math.round((takenDoses / totalDoses) * 100) : 100;
+
     return (
-        <Card className="mb-6 overflow-hidden border-slate-200/30 shadow-sm bg-white/70">
-            {/* Header Compacto */}
-            <div className="px-4 py-3 border-b border-slate-100/50 flex items-center gap-3 bg-slate-50/30">
-                <Users size={18} className="text-blue-500 shrink-0" />
-                <span className="text-base font-black text-slate-800 dark:text-white">Família</span>
-                <span className="text-xs font-bold text-slate-400 ml-auto">{patients.length} pacientes</span>
+        <Card className="mb-6 overflow-hidden border-0 shadow-xl shadow-slate-200/50 bg-gradient-to-br from-white via-white to-slate-50/80">
+            {/* Premium Header with Gradient */}
+            <div className="relative px-5 py-4 border-b border-slate-100/80 bg-gradient-to-r from-blue-50/50 via-indigo-50/30 to-violet-50/50">
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(99,102,241,0.05),transparent_50%)]"></div>
+                <div className="relative flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2.5 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-lg shadow-blue-500/20">
+                            <Users size={18} className="text-white" />
+                        </div>
+                        <div>
+                            <span className="text-lg font-black text-slate-800 dark:text-white">Família</span>
+                            <p className="text-[10px] font-medium text-slate-400 -mt-0.5">{patients.length} membros ativos</p>
+                        </div>
+                    </div>
+
+                    {/* Overall Progress Badge */}
+                    <div className={clsx(
+                        "px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5",
+                        overallProgress === 100
+                            ? "bg-emerald-100 text-emerald-700 border border-emerald-200"
+                            : "bg-amber-100 text-amber-700 border border-amber-200"
+                    )}>
+                        {overallProgress === 100 ? <Sparkles size={12} className="animate-pulse" /> : <Clock size={12} />}
+                        {overallProgress}% hoje
+                    </div>
+                </div>
             </div>
 
-            <div className="divide-y divide-slate-100">
+            <div className="p-4 space-y-3">
                 {patients.map((patient, index) => {
                     const patientSchedule = todaysSchedule.filter(i => i.patientId === patient.id);
                     const total = patientSchedule.length;
                     const taken = patientSchedule.filter(i => i.isTaken).length;
+                    const progress = total > 0 ? Math.round((taken / total) * 100) : 100;
                     const isAllTaken = total > 0 && total === taken;
                     const hasDoses = total > 0;
-                    const isEven = index % 2 === 0;
 
                     return (
                         <div
                             key={patient.id}
-                            className={clsx(
-                                "p-5 transition-all duration-300",
-                                isEven ? "bg-white/40" : "bg-slate-50/50"
-                            )}
+                            className="relative p-4 rounded-2xl bg-white border border-slate-100 shadow-sm"
                         >
-                            <div className="flex flex-col gap-3">
-                                {/* Top Row: Status + Icon */}
-                                <div className="flex items-center justify-between">
+                            <div className="flex items-center justify-between gap-4">
+                                {/* Patient Info */}
+                                <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-2">
+                                        {/* Status Dot */}
                                         <div className={clsx(
-                                            "w-8 h-8 rounded-full flex items-center justify-center shrink-0",
-                                            isAllTaken ? "bg-emerald-100 text-emerald-600" :
-                                                hasDoses ? "bg-amber-100 text-amber-600" :
-                                                    "bg-slate-100 text-slate-400"
-                                        )}>
-                                            {isAllTaken ? <CheckCircle2 size={16} /> : <User size={16} />}
-                                        </div>
-                                        <div className="flex flex-col">
-                                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-0.5">Status</span>
-                                            <span className={clsx(
-                                                "text-sm font-black leading-none",
-                                                isAllTaken ? "text-emerald-600" :
-                                                    hasDoses ? "text-amber-600" : "text-slate-400"
-                                            )}>
-                                                {isAllTaken ? 'Completo' : hasDoses ? 'Pendente' : 'Livre'}
-                                            </span>
-                                        </div>
+                                            "w-2 h-2 rounded-full shrink-0",
+                                            isAllTaken ? "bg-emerald-500" :
+                                                hasDoses ? "bg-amber-500" : "bg-slate-300"
+                                        )} />
+                                        <h4 className="font-bold text-slate-800 text-base truncate">
+                                            {patient.name}
+                                        </h4>
                                     </div>
-
-                                    {/* Doses Counter */}
-                                    {hasDoses && (
-                                        <div className="bg-white px-3 py-1 rounded-lg border border-slate-100 shadow-sm">
-                                            <span className="font-black text-slate-700 text-sm">{taken}/{total}</span>
-                                            <span className="text-[9px] font-bold text-slate-400 uppercase ml-1">Doses</span>
-                                        </div>
-                                    )}
+                                    <div className="flex items-center gap-2 mt-1 ml-4">
+                                        <span className={clsx(
+                                            "text-xs font-semibold",
+                                            isAllTaken ? "text-emerald-600" :
+                                                hasDoses ? "text-amber-600" : "text-slate-400"
+                                        )}>
+                                            {isAllTaken ? '✓ Completo' : hasDoses ? 'Pendente' : 'Livre hoje'}
+                                        </span>
+                                        {hasDoses && (
+                                            <span className="text-[10px] text-slate-400">
+                                                • {taken}/{total} doses
+                                            </span>
+                                        )}
+                                    </div>
                                 </div>
 
-                                {/* Patient Row */}
-                                <div className="pl-1">
-                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-0 leading-none">Familiar</p>
-                                    <p className="font-black text-slate-700 dark:text-slate-300 text-lg leading-tight break-words mt-0.5">
-                                        {patient.name}
-                                    </p>
-                                </div>
+                                {/* Progress Badge */}
+                                {hasDoses && (
+                                    <div className={clsx(
+                                        "px-3 py-1.5 rounded-full font-bold text-sm shrink-0",
+                                        isAllTaken
+                                            ? "bg-emerald-100 text-emerald-600"
+                                            : "bg-amber-100 text-amber-600"
+                                    )}>
+                                        {progress}%
+                                    </div>
+                                )}
                             </div>
+
+                            {/* Progress Bar */}
+                            {hasDoses && (
+                                <div className="mt-3 h-1 bg-slate-100 rounded-full overflow-hidden">
+                                    <div
+                                        className={clsx(
+                                            "h-full rounded-full transition-all duration-700 ease-out",
+                                            isAllTaken
+                                                ? "bg-gradient-to-r from-emerald-400 to-emerald-500"
+                                                : "bg-gradient-to-r from-amber-400 to-orange-400"
+                                        )}
+                                        style={{ width: `${progress}%` }}
+                                    />
+                                </div>
+                            )}
                         </div>
                     );
                 })}

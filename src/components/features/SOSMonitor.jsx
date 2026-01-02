@@ -30,6 +30,40 @@ const SOSMonitor = () => {
     useEffect(() => {
         if (!user) return;
 
+        // 1. Buscar alertas ativos existentes ao abrir o app
+        const fetchActiveAlerts = async () => {
+            try {
+                const { data: alerts, error } = await supabase
+                    .from('sos_alerts')
+                    .select('*')
+                    .eq('status', 'active')
+                    .order('created_at', { ascending: false })
+                    .limit(1);
+
+                if (error) {
+                    console.error('Erro ao buscar alertas ativos:', error);
+                    return;
+                }
+
+                if (alerts && alerts.length > 0) {
+                    const alert = alerts[0];
+                    // Verificar se é um paciente que eu cuido
+                    const patient = patientsRef.current.find(p => p.id === alert.patient_id);
+                    if (patient) {
+                        const patientName = patient.name || 'Paciente';
+                        setActiveAlert({ ...alert, patientName });
+                        setIsAcknowledged(false);
+                        console.log('🚨 Alerta ativo encontrado ao abrir app:', patientName);
+                    }
+                }
+            } catch (err) {
+                console.error('Erro ao buscar alertas:', err);
+            }
+        };
+
+        fetchActiveAlerts();
+
+        // 2. Inscrever no Realtime para novos alertas
         const channel = supabase.channel('sos-realtime-global')
             .on('postgres_changes', {
                 event: 'INSERT',

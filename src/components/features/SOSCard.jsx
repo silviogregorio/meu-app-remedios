@@ -400,6 +400,7 @@ const SOSCard = ({ onClose }) => {
                                 showToast('Obtendo localização...', 'info');
                                 navigator.geolocation.getCurrentPosition(async (pos) => {
                                     await triggerPanicAlert(selectedPatientId, pos.coords.latitude, pos.coords.longitude);
+                                    onClose(); // Fechar popup após enviar
                                 }, () => showToast('Erro ao obter localização. Verifique as permissões.', 'error'));
                             }}
                         >

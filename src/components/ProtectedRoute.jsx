@@ -224,7 +224,7 @@ const ProtectedRoute = ({ children, adminOnly = false, skipProfileCheck = false 
     if (mfaRequired && currentAal !== 'aal2') {
         // console.log('🛡️ ProtectedRoute: Gate triggered. mfaRequired:', mfaRequired, 'currentAal:', currentAal);
         return (
-            <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-slate-100 dark:bg-slate-950 p-4">
+            <div className="fixed inset-0 z-50 flex flex-col items-center justify-start pt-12 sm:pt-20 md:justify-center md:pt-0 bg-slate-100 dark:bg-slate-950 p-4 overflow-y-auto">
                 <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-2xl p-8">
                     <div className="flex flex-col items-center mb-6">
                         <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center text-white mb-4 shadow-lg">
