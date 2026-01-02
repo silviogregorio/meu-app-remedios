@@ -92,8 +92,13 @@ const SOSMonitor = () => {
                 const updated = payload.new;
                 const currentAlert = activeAlertRef.current;
 
-                if (currentAlert && updated.id === currentAlert.id && updated.status !== 'active') {
-                    setActiveAlert(null);
+                // Fechar popup se o status mudou de 'active' para qualquer outro
+                // Isso acontece quando alguém clica "Tô a caminho" ou "Ignorar"
+                if (updated.status !== 'active') {
+                    if (currentAlert && updated.id === currentAlert.id) {
+                        console.log('🔔 SOS status changed to:', updated.status, '- closing popup');
+                        setActiveAlert(null);
+                    }
                 }
             })
             .subscribe();
@@ -111,10 +116,15 @@ const SOSMonitor = () => {
             // Update DB
             await SOSService.acknowledgeAlert(activeAlert.id, user.id);
 
-            // Update local state to show "caminho"
+            // Update local state to show "Visualizado"
             setIsAcknowledged(true);
 
             showToast(`Confirmado! O paciente será avisado que você está a caminho.`);
+
+            // Fechar popup após 2 segundos
+            setTimeout(() => {
+                setActiveAlert(null);
+            }, 2000);
 
         } catch (error) {
             console.error('Erro ao confirmar SOS:', error);
