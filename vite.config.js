@@ -101,6 +101,12 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: './src/setupTests.js',
     css: true,
+    exclude: [
+      '**/node_modules/**',
+      '**/dist/**',
+      '**/backup_*/**',
+      '**/backups/**'
+    ]
   }
 })
 // Trigger reload

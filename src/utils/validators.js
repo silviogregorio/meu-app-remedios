@@ -97,9 +97,65 @@ export const sanitizeInput = (input) => {
     if (typeof input !== 'string') return input;
 
     return input
+        .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#x27;')
-        .replace(/\//g, '&#x2F;');
+        .replace(/\//g, '&#x2F;')
+        .replace(/`/g, '&#x60;')
+        .replace(/=/g, '&#x3D;');
+};
+
+/**
+ * Sanitizes an object by applying sanitizeInput to all string values (deep)
+ * @param {Object} obj - Object to sanitize
+ * @returns {Object} - Sanitized object
+ */
+export const sanitizeObject = (obj) => {
+    if (obj === null || obj === undefined) return obj;
+    if (typeof obj === 'string') return sanitizeInput(obj);
+    if (typeof obj !== 'object') return obj;
+    if (Array.isArray(obj)) return obj.map(sanitizeObject);
+
+    const sanitized = {};
+    for (const [key, value] of Object.entries(obj)) {
+        sanitized[key] = sanitizeObject(value);
+    }
+    return sanitized;
+};
+
+/**
+ * Validates and sanitizes a URL to prevent javascript: and data: attacks
+ * @param {string} url - URL to validate
+ * @returns {string|null} - Safe URL or null if dangerous
+ */
+export const sanitizeUrl = (url) => {
+    if (typeof url !== 'string') return null;
+
+    const trimmed = url.trim().toLowerCase();
+
+    // Block dangerous protocols
+    const dangerousProtocols = ['javascript:', 'data:', 'vbscript:', 'file:'];
+    if (dangerousProtocols.some(p => trimmed.startsWith(p))) {
+        return null;
+    }
+
+    // Allow relative URLs, http, https, mailto, tel
+    const safeProtocols = ['http://', 'https://', 'mailto:', 'tel:', '/'];
+    if (safeProtocols.some(p => trimmed.startsWith(p)) || !trimmed.includes(':')) {
+        return url;
+    }
+
+    return null;
+};
+
+/**
+ * Strips all HTML tags from input (for plain text contexts)
+ * @param {string} input - Input with potential HTML
+ * @returns {string} - Plain text without tags
+ */
+export const stripHtml = (input) => {
+    if (typeof input !== 'string') return input;
+    return input.replace(/<[^>]*>/g, '');
 };

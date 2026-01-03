@@ -32,3 +32,16 @@ server/.env
 
 .vercel
 sig-remedios-firebase-adminsdk*.json
+
+# Security: Exclude backups and sensitive files
+backups/
+backup_*/
+*.zip
+*.sql.bak
+*.backup
+full_backup*.sql
+*_backup*.zip
+
+# Sensitive test outputs
+test_output.txt
+*.report.html
