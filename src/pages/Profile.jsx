@@ -183,6 +183,26 @@ const Profile = () => {
 
                 if (profileError) console.error('Error updating profiles table:', profileError);
 
+                // ✨ SYNC TO SELF-PATIENT (Robustness 🛡️)
+                // If a self-patient exists, update its details to match the profile
+                await supabase
+                    .from('patients')
+                    .update({
+                        name: editForm.name,
+                        email: user.email,
+                        cep: editForm.cep,
+                        city: editForm.city,
+                        state: editForm.state,
+                        street: editForm.street,
+                        number: editForm.number,
+                        neighborhood: editForm.neighborhood,
+                        emergency_contact_name: editForm.emergency_contact_name,
+                        emergency_contact_phone: editForm.emergency_contact_phone.replace(/\D/g, ''),
+                        emergency_contact_email: editForm.emergency_contact_email
+                    })
+                    .eq('user_id', user.id)
+                    .eq('is_self', true);
+
                 if (error) {
                     showToast('Erro ao atualizar perfil: ' + error.message, 'error');
                     return;

@@ -7,6 +7,10 @@ export const PatientService = {
         birthDate: p.birth_date,
         bloodType: p.blood_type,
         allergies: p.allergies,
+        isSelf: p.is_self,
+        emergencyContactName: p.emergency_contact_name,
+        emergencyContactPhone: p.emergency_contact_phone,
+        emergencyContactEmail: p.emergency_contact_email,
         sharedWith: p.patient_shares ? p.patient_shares.map(s => ({
             email: s.shared_with_email,
             permission: s.permission,
@@ -31,7 +35,11 @@ export const PatientService = {
             neighborhood: patientData.neighborhood,
             city: patientData.city,
             state: patientData.state,
-            observations: patientData.observations
+            observations: patientData.observations,
+            is_self: patientData.isSelf || false,
+            emergency_contact_name: patientData.emergencyContactName,
+            emergency_contact_phone: patientData.emergencyContactPhone,
+            emergency_contact_email: patientData.emergencyContactEmail
         };
 
         const { data, error } = await supabase
@@ -60,6 +68,10 @@ export const PatientService = {
         if (updatedData.city) dbData.city = updatedData.city;
         if (updatedData.state) dbData.state = updatedData.state;
         if (updatedData.observations) dbData.observations = updatedData.observations;
+        if (updatedData.isSelf !== undefined) dbData.is_self = updatedData.isSelf;
+        if (updatedData.emergencyContactName !== undefined) dbData.emergency_contact_name = updatedData.emergencyContactName;
+        if (updatedData.emergencyContactPhone !== undefined) dbData.emergency_contact_phone = updatedData.emergencyContactPhone;
+        if (updatedData.emergencyContactEmail !== undefined) dbData.emergency_contact_email = updatedData.emergencyContactEmail;
 
         const { data, error } = await supabase
             .from('patients')

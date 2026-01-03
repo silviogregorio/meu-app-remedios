@@ -622,7 +622,14 @@ const Patients = () => {
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-center justify-between mb-1">
                                                 <h3 className="font-bold text-xl text-slate-900 truncate">{patient.name}</h3>
-                                                <ChevronRight size={20} className="text-slate-300 md:hidden" />
+                                                <div className="flex items-center gap-2">
+                                                    {patient.isSelf && (
+                                                        <span className="bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800 uppercase tracking-wider">
+                                                            Eu mesmo
+                                                        </span>
+                                                    )}
+                                                    <ChevronRight size={20} className="text-slate-300 md:hidden" />
+                                                </div>
                                             </div>
 
                                             <div className="flex flex-wrap items-center gap-3 text-sm text-slate-500 mb-3">
@@ -719,7 +726,7 @@ const Patients = () => {
                                                                 >
                                                                     <Edit2 size={18} className="mr-2" /> Editar
                                                                 </Button>
-                                                                {isOwner && (
+                                                                {isOwner && !patient.isSelf && (
                                                                     <Button
                                                                         variant="ghost"
                                                                         size="sm"

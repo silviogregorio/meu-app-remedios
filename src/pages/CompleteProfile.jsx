@@ -22,6 +22,9 @@ const CompleteProfile = () => {
     const [loading, setLoading] = useState(false);
     const [cepLoading, setCepLoading] = useState(false);
     const [error, setError] = useState('');
+    const [emergencyName, setEmergencyName] = useState('');
+    const [emergencyPhone, setEmergencyPhone] = useState('');
+    const [emergencyEmail, setEmergencyEmail] = useState('');
 
     const handleCepChange = async (e) => {
         let value = e.target.value.replace(/\D/g, '');
@@ -106,6 +109,48 @@ const CompleteProfile = () => {
 
             if (profileError) {
                 console.error('Profile update error:', profileError);
+            }
+
+            // Sync Emergency Contact to Profile too if not already there
+            await supabase
+                .from('profiles')
+                .update({
+                    emergency_contact_name: emergencyName,
+                    emergency_contact_phone: emergencyPhone,
+                    emergency_contact_email: emergencyEmail
+                })
+                .eq('id', user.id);
+
+            // 3. AUTO-CREATE PATIENT (Mágica ✨)
+            // Check if patient already exists for this user to avoid duplicates
+            const { data: existingPatients } = await supabase
+                .from('patients')
+                .select('id')
+                .eq('user_id', user.id)
+                .eq('is_self', true);
+
+            if (!existingPatients || existingPatients.length === 0) {
+                const { error: patientError } = await supabase
+                    .from('patients')
+                    .insert([{
+                        user_id: user.id,
+                        name: user.user_metadata?.full_name || 'Eu mesmo',
+                        email: user.email,
+                        cep: cep,
+                        street: street,
+                        number: number,
+                        neighborhood: neighborhood,
+                        city: city,
+                        state: state,
+                        is_self: true,
+                        emergency_contact_name: emergencyName,
+                        emergency_contact_phone: emergencyPhone,
+                        emergency_contact_email: emergencyEmail
+                    }]);
+
+                if (patientError) {
+                    console.error('Auto-patient creation error:', patientError);
+                }
             }
 
             showToast('Perfil atualizado com sucesso!', 'success');
@@ -247,6 +292,61 @@ const CompleteProfile = () => {
                             />
                         </>
                     )}
+
+                    {/* Emergency Contact Section */}
+                    <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+                        <h3 className="text-sm font-bold text-red-600 dark:text-red-400 mb-4 flex items-center gap-2">
+                            🚨 Contato de Emergência (SOS)
+                        </h3>
+                        <div className="flex flex-col gap-3">
+                            <Input
+                                label="Nome do Responsável"
+                                type="text"
+                                id="emName"
+                                name="emName"
+                                placeholder="Cônjuge, Filho, Vizinho..."
+                                value={emergencyName}
+                                onChange={e => setEmergencyName(e.target.value)}
+                                required
+                            />
+                            <div className="flex gap-3">
+                                <div className="flex-1">
+                                    <Input
+                                        label="Telefone"
+                                        type="tel"
+                                        id="emPhone"
+                                        name="emPhone"
+                                        placeholder="(00) 00000-0000"
+                                        value={emergencyPhone}
+                                        onChange={e => {
+                                            const val = e.target.value.replace(/\D/g, '');
+                                            let formatted = val;
+                                            if (val.length > 2) formatted = `(${val.slice(0, 2)}) ${val.slice(2)}`;
+                                            if (val.length > 7) formatted = `(${val.slice(0, 2)}) ${val.slice(2, 7)}-${val.slice(7, 11)}`;
+                                            setEmergencyPhone(formatted);
+                                        }}
+                                        maxLength={15}
+                                        required
+                                    />
+                                </div>
+                                <div className="flex-1">
+                                    <Input
+                                        label="Email"
+                                        type="email"
+                                        id="emEmail"
+                                        name="emEmail"
+                                        placeholder="email@exemplo.com"
+                                        value={emergencyEmail}
+                                        onChange={e => setEmergencyEmail(e.target.value)}
+                                        required
+                                    />
+                                </div>
+                            </div>
+                            <p className="text-[10px] text-slate-400 leading-tight">
+                                * Este contato receberá um email com sua localização caso você use o botão de pânico.
+                            </p>
+                        </div>
+                    </div>
 
                     <Button type="submit" fullWidth disabled={loading || !ibgeCode} className="mt-2">
                         {loading ? 'Salvando...' : 'Continuar para o App'}
