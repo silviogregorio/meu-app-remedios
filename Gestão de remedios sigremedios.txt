@@ -1,5 +1,5 @@
 https://securityheaders.com/
-
+https://securityheaders.com/?q=https://sigremedios.vercel.app
 
 
 02/01/2026
