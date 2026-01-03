@@ -749,7 +749,7 @@ const Profile = () => {
                 onClose={() => setIsEditing(false)}
                 title="Editar Perfil"
             >
-                <div className="flex flex-col gap-4">
+                <div className="flex flex-col gap-4 pb-10">
                     <Input
                         label="Nome Completo"
                         id="profileName"
