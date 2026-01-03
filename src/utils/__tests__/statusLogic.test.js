@@ -27,10 +27,14 @@ describe('Health Diary Status Logic', () => {
     });
 
     it('returns "Não Tomado" for past dates with 0 taken', () => {
-        // Create a past date
+        // Use a date that is definitely in the past (fixed date, not dynamic)
+        // The calculateStatus function uses local time comparison
         const pastDate = new Date();
-        pastDate.setDate(pastDate.getDate() - 1);
-        const dateStr = pastDate.toISOString().split('T')[0];
+        pastDate.setDate(pastDate.getDate() - 2); // Use 2 days ago to avoid edge cases
+        const year = pastDate.getFullYear();
+        const month = String(pastDate.getMonth() + 1).padStart(2, '0');
+        const day = String(pastDate.getDate()).padStart(2, '0');
+        const dateStr = `${year}-${month}-${day}`;
 
         expect(calculateStatus(0, 2, dateStr)).toBe('Não Tomado');
     });
