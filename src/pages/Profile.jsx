@@ -213,14 +213,30 @@ const Profile = () => {
                         .update(selfPatientData)
                         .eq('id', existingSelfPatient.id);
                 } else {
-                    // Create new self-patient (for legacy users)
-                    await supabase
+                    // No self-patient exists - check if there's ANY patient for this user
+                    const { data: anyPatient } = await supabase
                         .from('patients')
-                        .insert([{
-                            user_id: user.id,
-                            is_self: true,
-                            ...selfPatientData
-                        }]);
+                        .select('id')
+                        .eq('user_id', user.id)
+                        .limit(1)
+                        .single();
+
+                    if (anyPatient?.id) {
+                        // Mark the existing patient as self and update it
+                        await supabase
+                            .from('patients')
+                            .update({ is_self: true, ...selfPatientData })
+                            .eq('id', anyPatient.id);
+                    } else {
+                        // No patient exists at all - create new self-patient
+                        await supabase
+                            .from('patients')
+                            .insert([{
+                                user_id: user.id,
+                                is_self: true,
+                                ...selfPatientData
+                            }]);
+                    }
                 }
 
                 if (error) {
