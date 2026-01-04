@@ -184,24 +184,44 @@ const Profile = () => {
                 if (profileError) console.error('Error updating profiles table:', profileError);
 
                 // ✨ SYNC TO SELF-PATIENT (Robustness 🛡️)
-                // If a self-patient exists, update its details to match the profile
-                await supabase
+                // Check if self-patient exists for this user
+                const { data: existingSelfPatient } = await supabase
                     .from('patients')
-                    .update({
-                        name: editForm.name,
-                        email: user.email,
-                        cep: editForm.cep,
-                        city: editForm.city,
-                        state: editForm.state,
-                        street: editForm.street,
-                        number: editForm.number,
-                        neighborhood: editForm.neighborhood,
-                        emergency_contact_name: editForm.emergency_contact_name,
-                        emergency_contact_phone: editForm.emergency_contact_phone.replace(/\D/g, ''),
-                        emergency_contact_email: editForm.emergency_contact_email
-                    })
+                    .select('id')
                     .eq('user_id', user.id)
-                    .eq('is_self', true);
+                    .eq('is_self', true)
+                    .single();
+
+                const selfPatientData = {
+                    name: editForm.name,
+                    email: user.email,
+                    cep: editForm.cep,
+                    city: editForm.city,
+                    state: editForm.state,
+                    street: editForm.street,
+                    number: editForm.number,
+                    neighborhood: editForm.neighborhood,
+                    emergency_contact_name: editForm.emergency_contact_name,
+                    emergency_contact_phone: editForm.emergency_contact_phone.replace(/\D/g, ''),
+                    emergency_contact_email: editForm.emergency_contact_email
+                };
+
+                if (existingSelfPatient?.id) {
+                    // Update existing self-patient
+                    await supabase
+                        .from('patients')
+                        .update(selfPatientData)
+                        .eq('id', existingSelfPatient.id);
+                } else {
+                    // Create new self-patient (for legacy users)
+                    await supabase
+                        .from('patients')
+                        .insert([{
+                            user_id: user.id,
+                            is_self: true,
+                            ...selfPatientData
+                        }]);
+                }
 
                 if (error) {
                     showToast('Erro ao atualizar perfil: ' + error.message, 'error');
