@@ -809,7 +809,7 @@ const Profile = () => {
                                         ibge_code: address.ibge || ''
                                     }));
                                 } catch (err) {
-                                    showToast('CEP não encontrado', 'error');
+                                    showToast(err.message || 'CEP não encontrado', 'error');
                                 }
                             }
                         }}
@@ -851,14 +851,17 @@ const Profile = () => {
                     />
 
                     <Input
-                        label="Cidade"
+                        label="Cidade / Estado"
                         id="profileCity"
                         name="city"
                         autoComplete="address-level2"
                         value={editForm.city ? `${editForm.city} - ${editForm.state}` : ''}
-                        disabled
-                        className="bg-slate-50"
-                        placeholder="..."
+                        onChange={(e) => {
+                            const [c, s] = e.target.value.split('-').map(x => x.trim());
+                            setEditForm(prev => ({ ...prev, city: c || '', state: s || '' }));
+                        }}
+                        placeholder="Ex: São Paulo - SP"
+                        className={editForm.city ? 'bg-slate-50' : ''}
                     />
 
                     <div className="mt-4 pt-6 border-t border-slate-100">

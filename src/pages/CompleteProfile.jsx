@@ -54,11 +54,11 @@ const CompleteProfile = () => {
                 setIbgeCode(address.ibge);
                 setError('');
             } catch (err) {
-                setError('CEP não encontrado. Verifique e tente novamente.');
-                setStreet('');
-                setNeighborhood('');
+                console.error('CEP lookup error:', err);
+                setError(err.message || 'CEP não encontrado. Você pode preencher os dados manualmente.');
+                // Don't clear fields if they were already partially filled, 
+                // but allow them to be visible by setting a flag or just city=''
                 setCity('');
-                setState('');
                 setIbgeCode('');
             } finally {
                 setCepLoading(false);
@@ -70,8 +70,8 @@ const CompleteProfile = () => {
         e.preventDefault();
         setError('');
 
-        if (!ibgeCode) {
-            setError('Por favor, digite um CEP válido.');
+        if (!city || !state) {
+            setError('Por favor, informe pelo menos a cidade e o estado.');
             return;
         }
 
@@ -236,8 +236,8 @@ const CompleteProfile = () => {
                         </div>
                     )}
 
-                    {/* Address fields - shown after CEP is found */}
-                    {city && (
+                    {/* Address fields - shown after CEP is found or if user needs to fill manually on error */}
+                    {(city || error.includes('manualmente')) && (
                         <>
                             {/* Rua + Número */}
                             <div className="flex gap-3">
@@ -250,8 +250,7 @@ const CompleteProfile = () => {
                                         placeholder="Rua das Flores"
                                         value={street}
                                         onChange={e => setStreet(e.target.value)}
-                                        disabled={!!street}
-                                        className={street ? 'bg-slate-50 dark:bg-slate-800' : ''}
+                                        className={street && !error ? 'bg-slate-50 dark:bg-slate-800' : ''}
                                     />
                                 </div>
                                 <div className="w-24">
@@ -276,19 +275,27 @@ const CompleteProfile = () => {
                                 placeholder="Centro"
                                 value={neighborhood}
                                 onChange={e => setNeighborhood(e.target.value)}
-                                disabled={!!neighborhood}
-                                className={neighborhood ? 'bg-slate-50 dark:bg-slate-800' : ''}
+                                className={neighborhood && !error ? 'bg-slate-50 dark:bg-slate-800' : ''}
                             />
 
                             {/* Cidade / Estado */}
                             <Input
-                                label="Cidade"
+                                label="Cidade / Estado"
                                 type="text"
                                 id="city"
                                 name="city"
-                                value={`${city} - ${state}`}
-                                disabled
-                                className="bg-slate-50 dark:bg-slate-800"
+                                value={city ? `${city} - ${state}` : ''}
+                                onChange={e => {
+                                    if (!city || error.includes('manualmente')) {
+                                        const [c, s] = e.target.value.split('-').map(x => x.trim());
+                                        setCity(c || '');
+                                        setState(s || '');
+                                    }
+                                }}
+                                placeholder="Ex: São Paulo - SP"
+                                disabled={!!city && !error}
+                                className={city && !error ? 'bg-slate-50 dark:bg-slate-800' : ''}
+                                required
                             />
                         </>
                     )}
@@ -348,7 +355,7 @@ const CompleteProfile = () => {
                         </div>
                     </div>
 
-                    <Button type="submit" fullWidth disabled={loading || !ibgeCode} className="mt-2">
+                    <Button type="submit" fullWidth disabled={loading || (!city && !error.includes('manualmente'))} className="mt-2">
                         {loading ? 'Salvando...' : 'Continuar para o App'}
                     </Button>
                 </form>

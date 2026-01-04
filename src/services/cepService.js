@@ -18,11 +18,17 @@ export const fetchAddressByCEP = async (cep) => {
 
     try {
         // 1. Primary: ViaCEP (Best for IBGE)
+        console.log('🔍 Fetching CEP from ViaCEP:', cleanCep);
         const response = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`);
+
+        if (!response.ok) {
+            throw new Error(`ViaCEP HTTP error: ${response.status}`);
+        }
+
         const data = await response.json();
 
         if (data.erro) {
-            throw new Error('CEP não encontrado (ViaCEP)');
+            throw new Error('CEP_NOT_FOUND');
         }
 
         return {
@@ -34,30 +40,48 @@ export const fetchAddressByCEP = async (cep) => {
             ibge: data.ibge // 7 digit code
         };
     } catch (viacepError) {
-        console.warn('ViaCEP failed, trying BrasilAPI...', viacepError);
+        if (viacepError.message === 'CEP_NOT_FOUND') {
+            throw new Error('CEP não encontrado. Verifique os números informados.');
+        }
+
+        console.warn('ViaCEP failed or network issue, trying BrasilAPI...', viacepError);
 
         try {
             // 2. Fallback: BrasilAPI
             const response = await fetch(`https://brasilapi.com.br/api/cep/v2/${cleanCep}`);
-            if (!response.ok) throw new Error('BrasilAPI Request Failed');
+
+            if (!response.ok) {
+                // Try v1 if v2 fails (some CEPs might have issues in v2)
+                const responseV1 = await fetch(`https://brasilapi.com.br/api/cep/v1/${cleanCep}`);
+                if (!responseV1.ok) throw new Error('CEP_NOT_FOUND_ALT');
+
+                const dataV1 = await responseV1.json();
+                return {
+                    cep: dataV1.cep.replace(/\D/g, ''),
+                    city: dataV1.city,
+                    state: dataV1.state,
+                    street: dataV1.street,
+                    neighborhood: dataV1.neighborhood,
+                    ibge: null // v1 doesn't usually have IBGE
+                };
+            }
 
             const data = await response.json();
 
-            // BrasilAPI v2 returns 'ibge' inside 'location' sometimes? Or just root?
-            // Actually verification shows it might match. 
-            // But let's return what we have. If IBGE is missing here, we might have an issue for exclusivity.
-            // Ideally assume ViaCEP works 99% of time.
-
+            // BrasilAPI v2 returns 'city' and 'state'
             return {
                 cep: data.cep.replace(/\D/g, ''),
                 city: data.city,
                 state: data.state,
                 street: data.street,
                 neighborhood: data.neighborhood,
-                ibge: null // Marking null to warn if BrasilAPI doesn't provide it easily in this version
+                ibge: data.location?.city_ibge || null // Try to get from location metadata if available
             };
         } catch (brasilError) {
-            throw new Error('Erro ao buscar CEP. Verifique sua conexão.');
+            if (brasilError.message === 'CEP_NOT_FOUND_ALT') {
+                throw new Error('CEP não encontrado em nenhuma base oficial.');
+            }
+            throw new Error('Erro ao buscar CEP. Verifique sua conexão com a internet.');
         }
     }
 };
