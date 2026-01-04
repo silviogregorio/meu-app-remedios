@@ -47,7 +47,8 @@ const Register = () => {
                 }));
                 setError('');
             } catch (err) {
-                setError('CEP não encontrado. Digite manualmente ou verifique.');
+                setError(err.message || 'CEP não encontrado. Preencha cidade/estado manualmente.');
+                // Allow manual entry - don't clear the city/state fields if already set
             }
         }
     };
@@ -76,9 +77,10 @@ const Register = () => {
             return;
         }
 
-        if (!formData.ibge_code) {
-            if (formData.cep.length === 9 && !formData.city) {
-                setError('Aguarde a busca do CEP completar.');
+        // Validation: require city OR allow error with manual fill
+        if (!formData.city && !error) {
+            if (formData.cep.length === 9) {
+                setError('Aguarde a busca do CEP completar ou preencha a cidade manualmente.');
                 return;
             }
         }
@@ -193,10 +195,14 @@ const Register = () => {
                                 id="cityState"
                                 name="cityState"
                                 autoComplete="off"
-                                placeholder="Preenchido automaticamente"
+                                placeholder={error ? "Ex: São Paulo/SP" : "Preenchido automaticamente"}
                                 value={formData.city ? `${formData.city}/${formData.state}` : ''}
-                                disabled
-                                className="bg-slate-50"
+                                onChange={e => {
+                                    const [c, s] = e.target.value.split('/').map(x => x.trim());
+                                    setFormData(prev => ({ ...prev, city: c || '', state: s || '' }));
+                                }}
+                                disabled={!!formData.city && !error}
+                                className={formData.city && !error ? 'bg-slate-50' : ''}
                             />
                         </div>
                     </div>
