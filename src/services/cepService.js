@@ -41,7 +41,7 @@ export const fetchAddressByCEP = async (cep) => {
         };
     } catch (viacepError) {
         if (viacepError.message === 'CEP_NOT_FOUND') {
-            throw new Error('CEP não encontrado. Verifique os números informados.');
+            throw new Error('CEP não encontrado. Você pode preencher os dados manualmente.');
         }
 
         console.warn('ViaCEP failed or network issue, trying BrasilAPI...', viacepError);
@@ -79,9 +79,9 @@ export const fetchAddressByCEP = async (cep) => {
             };
         } catch (brasilError) {
             if (brasilError.message === 'CEP_NOT_FOUND_ALT') {
-                throw new Error('CEP não encontrado em nenhuma base oficial.');
+                throw new Error('CEP não encontrado em nenhuma base oficial. Preencha manualmente.');
             }
-            throw new Error('Erro ao buscar CEP. Verifique sua conexão com a internet.');
+            throw new Error('Erro ao buscar CEP. Você pode tentar preencher manualmente.');
         }
     }
 };

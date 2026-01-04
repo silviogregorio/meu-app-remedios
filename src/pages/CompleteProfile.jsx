@@ -237,7 +237,8 @@ const CompleteProfile = () => {
                     )}
 
                     {/* Address fields - shown after CEP is found or if user needs to fill manually on error */}
-                    {(city || error.includes('manualmente')) && (
+                    {/* Address fields - shown after CEP is found or if user needs to fill manually on error */}
+                    {(city || (error && cep.replace(/\D/g, '').length === 8)) && (
                         <>
                             {/* Rua + Número */}
                             <div className="flex gap-3">
@@ -355,7 +356,7 @@ const CompleteProfile = () => {
                         </div>
                     </div>
 
-                    <Button type="submit" fullWidth disabled={loading || (!city && !error.includes('manualmente'))} className="mt-2">
+                    <Button type="submit" fullWidth disabled={loading || (!city && !error)} className="mt-2">
                         {loading ? 'Salvando...' : 'Continuar para o App'}
                     </Button>
                 </form>
