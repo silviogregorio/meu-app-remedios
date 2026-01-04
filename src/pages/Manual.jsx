@@ -92,52 +92,87 @@ const Manual = () => {
                     <ul className="space-y-2 mt-2">
                         <li className="flex items-start gap-2">
                             <div className="w-4 h-4 rounded-full bg-emerald-500 mt-1.5" />
-                            <span><strong>Controle de Estoque:</strong> Marque a caixa "Controlar Estoque" e diga quantos comprimidos tem na caixa. O app desconta automaticamente cada vez que você toma! 📉</span>
+                            <span><strong>Controle de Estoque:</strong> Marque a caixa "Controlar Estoque" e o app desconta automaticamente cada vez que você toma! 📉</span>
                         </li>
                         <li className="flex items-start gap-2">
                             <div className="w-4 h-4 rounded-full bg-emerald-500 mt-1.5" />
-                            <span><strong>Bula e Dosagem:</strong> Registre a miligramagem (ex: 500mg) para evitar confusões.</span>
+                            <span><strong>Bula e Dosagem:</strong> Registre a miligramagem para evitar confusões de dosagem.</span>
                         </li>
                     </ul>
                 </ManualSection>
 
-                <ManualSection title="Prescrições (Agendamentos)" icon={ClipboardList} color="bg-violet-500" delay={400}>
+                <ManualSection title="Prescrições (O Agendamento)" icon={ClipboardList} color="bg-violet-500" delay={400}>
                     <p>
                         O cérebro do app! 🧠 Aqui você conecta: <strong>Paciente + Medicamento + Horário</strong>.
                     </p>
-                    <div className="bg-violet-50 p-3 rounded-lg text-sm text-violet-800">
-                        <strong>Exemplo:</strong> "Dona Maria" deve tomar "Dipirona" todos os dias às "08:00" e "20:00" até "30/12".
+                    <div className="bg-violet-50 p-4 rounded-xl text-sm text-violet-800 border border-violet-100">
+                        <strong>Como funciona:</strong> Defina o intervalo (ex: a cada 8h) ou horários fixos. O app cuidará de criar os lembretes automáticos para você.
                     </div>
                 </ManualSection>
 
                 <ManualSection title="Diário de Saúde" icon={Heart} color="bg-rose-500" delay={500}>
                     <p>
-                        Sentiu algo estranho? Registre aqui!
+                        Sentiu algo estranho? Registre aqui! O Diário serve para anotar sintomas, pressão arterial, febre ou qualquer ocorrência importante.
                     </p>
                     <p>
-                        O Diário serve para anotar sintomas, pressão arterial, febre ou qualquer ocorrência. Esses dados aparecem depois no <strong>Relatório</strong>, ajudando o médico a entender se o tratamento está funcionando.
+                        Esses dados aparecem depois no <strong>Relatório</strong>, ajudando o médico a entender a evolução do tratamento.
                     </p>
                 </ManualSection>
 
-                <ManualSection title="Relatórios PDF" icon={FileText} color="bg-orange-500" delay={600}>
+                <ManualSection title="Relatórios & WhatsApp" icon={FileText} color="bg-orange-500" delay={600}>
                     <p>
-                        Vai na consulta médica? Não vá de mãos abanando! 📄
-                    </p>
-                    <p>
-                        Gere um relatório PDF completo com todo o histórico de medicamentos tomados (e esquecidos!) e o diário de sintomas. Você pode enviar direto para o WhatsApp do médico.
+                        Gere um relatório completo com todo o histórico de uso e sintomas. Você pode enviar o PDF ou um resumo em texto direto para o WhatsApp do médico ou cuidador. 📄
                     </p>
                 </ManualSection>
 
-                <ManualSection title="Acesso Geral (Chave Mestra)" icon={Share2} color="bg-cyan-500" delay={700}>
+                <ManualSection title="SOS & Emergência" icon={AlertCircle} color="bg-red-600" delay={700}>
                     <p>
-                        <strong className="text-cyan-700">⚠️ Atenção Máxima aqui!</strong>
+                        <strong>O Botão de Pânico:</strong> Quando ativado, o SOS envia um alerta imediato com sua <strong>localização em tempo real</strong> para todos os seus cuidadores cadastrados.
                     </p>
+                    <p className="text-sm font-bold text-red-700 bg-red-50 p-3 rounded-lg border border-red-100">
+                        Certifique-se de preencher o "Contato de Emergência" no seu Perfil para esta função funcionar.
+                    </p>
+                </ManualSection>
+
+                <ManualSection title="Perfil & Segurança" icon={User} color="bg-slate-700" delay={800}>
                     <p>
-                        Este menu (na barra lateral) serve para dar acesso TOTAL à sua conta. Quem você convidar aqui verá <strong>TODOS</strong> os seus pacientes e remédios.
+                        Gerencie sua conta e privacidade. Aqui você pode:
                     </p>
-                    <p className="text-sm border-l-4 border-cyan-500 pl-3 italic text-slate-500">
-                        Use para marido/esposa. Para outros casos, prefira compartilhar só o Paciente.
+                    <ul className="space-y-1 text-sm list-disc pl-4">
+                        <li>Ativar a <strong>Verificação em Duas Etapas (2FA)</strong> para proteger sua conta.</li>
+                        <li>Configurar se você é o paciente principal (<em>Is Self</em>).</li>
+                        <li>Trocar sua foto e senha de acesso.</li>
+                    </ul>
+                </ManualSection>
+
+                <ManualSection title="Acessibilidade" icon={CheckCircle} color="bg-cyan-600" delay={900}>
+                    <p>
+                        Ajuste o app para o seu conforto visual:
                     </p>
+                    <ul className="space-y-1 text-sm list-disc pl-4">
+                        <li><strong>Modo Escuro:</strong> Ideal para usar à noite.</li>
+                        <li><strong>Alto Contraste:</strong> Facilita a leitura para quem tem baixa visão.</li>
+                        <li><strong>Daltônicos:</strong> Ajuste de cores para melhor distinção.</li>
+                    </ul>
+                </ManualSection>
+
+                <ManualSection title="Parceiros & Ofertas" icon={Pill} color="bg-pink-600" delay={1000}>
+                    <p>
+                        Economize na compra dos seus remédios! Através da sua localização, mostramos farmácias parceiras que oferecem descontos exclusivos para usuários do app.
+                    </p>
+                </ManualSection>
+
+                <ManualSection title="Tipos de Compartilhamento" icon={Share2} color="bg-indigo-500" delay={1100}>
+                    <div className="space-y-3">
+                        <div className="p-3 bg-indigo-50 rounded-xl border border-indigo-100">
+                            <p className="text-xs font-black uppercase text-indigo-600 mb-1">Acesso Geral (Barra Lateral)</p>
+                            <p className="text-sm">Dá acesso a <strong>TUDO</strong> na sua conta. Use apenas para familiares muito próximos ou cônjuges.</p>
+                        </div>
+                        <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                            <p className="text-xs font-black uppercase text-slate-600 mb-1">Acesso por Paciente (Menu Paciente)</p>
+                            <p className="text-sm">Dá acesso <strong>APENAS</strong> aos dados daquela pessoa específica. Ideal para cuidadores ou médicos.</p>
+                        </div>
+                    </div>
                 </ManualSection>
 
             </div>

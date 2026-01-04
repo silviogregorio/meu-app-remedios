@@ -84,6 +84,58 @@ export const PatientService = {
     },
 
     delete: async (id) => {
+        // Delete all related data in cascade order
+        // 1. Delete consumption logs (depends on prescriptions)
+        const { data: prescriptions } = await supabase
+            .from('prescriptions')
+            .select('id')
+            .eq('patient_id', id);
+
+        if (prescriptions && prescriptions.length > 0) {
+            const prescriptionIds = prescriptions.map(p => p.id);
+            await supabase
+                .from('consumption_log')
+                .delete()
+                .in('prescription_id', prescriptionIds);
+        }
+
+        // 2. Delete prescriptions
+        await supabase
+            .from('prescriptions')
+            .delete()
+            .eq('patient_id', id);
+
+        // 3. Delete health logs (vital signs)
+        await supabase
+            .from('health_logs')
+            .delete()
+            .eq('patient_id', id);
+
+        // 4. Delete symptom logs
+        await supabase
+            .from('symptom_logs')
+            .delete()
+            .eq('patient_id', id);
+
+        // 5. Delete appointments
+        await supabase
+            .from('appointments')
+            .delete()
+            .eq('patient_id', id);
+
+        // 6. Delete patient shares
+        await supabase
+            .from('patient_shares')
+            .delete()
+            .eq('patient_id', id);
+
+        // 7. Delete SOS alerts (if any)
+        await supabase
+            .from('sos_alerts')
+            .delete()
+            .eq('patient_id', id);
+
+        // 8. Finally, delete the patient
         const { error } = await supabase
             .from('patients')
             .delete()

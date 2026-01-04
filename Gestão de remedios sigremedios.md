@@ -2,6 +2,11 @@ Observações importantes para próximos aplicativos:
 
 O Firebase no app é v12.7.0, mas o Service Worker usa v10.8.0. Essa incompatibilidade causa o erro. Vou atualizar o Service Worker para usar a versão correta. Todo dia vou ter que pedir para verificar ?
 
+quando travar:
+allow pasting;
+localStorage.clear(); sessionStorage.clear(); location.reload();
+localStorage.removeItem('mfa_lockout_until'); localStorage.removeItem('mfa_failed_attempts');
+
 
 **********************************************************************************************************************************************************************************************************
 

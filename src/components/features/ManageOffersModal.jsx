@@ -570,7 +570,7 @@ const ManageOffersModal = ({ sponsor, onClose }) => {
                                                     </button>
                                                     <button
                                                         onClick={() => handleDelete(offer)}
-                                                        className="p-2.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-all active:scale-90"
+                                                        className="p-2.5 text-rose-400 hover:text-rose-500 hover:bg-rose-50 rounded-full transition-all active:scale-90"
                                                         title="Excluir"
                                                         aria-label={`Excluir oferta ${offer.title}`}
                                                     >

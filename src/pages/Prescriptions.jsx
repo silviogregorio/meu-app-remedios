@@ -335,37 +335,34 @@ const Prescriptions = () => {
                 </div>
             )}
 
-            {/* Search Bar */}
-            {isPageLoading ? (
-                <div className="h-12 w-full bg-slate-200 rounded-2xl animate-pulse" />
-            ) : (
-                !showForm && prescriptions.length > 0 && (
-                    <div className="relative">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
-                        <input
-                            type="text"
-                            placeholder="Buscar por paciente, medicamento ou frequência..."
-                            className="w-full pl-12 pr-4 py-3 rounded-2xl border-none bg-white shadow-soft focus:ring-2 focus:ring-primary/20 transition-all"
-                            value={searchTerm}
-                            onChange={e => setSearchTerm(e.target.value)}
-                        />
-                    </div>
-                )
-            )}
-
             {/* Form Section */}
             {showForm ? (
                 <Card className="border-l-4 border-l-primary shadow-2xl ring-1 ring-black/5">
-                    <CardHeader className="flex justify-between items-center">
-                        <div>
-                            <h3 className="font-bold text-xl text-slate-900 dark:text-white">{editingId ? 'Editar Prescrição' : 'Nova Prescrição'}</h3>
-                            <p className="text-sm text-slate-500 dark:text-slate-400">Preencha os dados abaixo</p>
+                    <CardHeader className="flex flex-col gap-5 border-b border-slate-50 pb-6">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                            <button
+                                onClick={handleCancel}
+                                className="p-2.5 rounded-xl bg-white border border-slate-200 text-slate-400 hover:text-slate-600 hover:border-slate-300 transition-all shadow-sm shrink-0 flex items-center justify-center mr-2"
+                                title="Fechar"
+                            >
+                                <X size={20} />
+                            </button>
+                            <h3 className="font-black text-2xl text-slate-900 tracking-tight flex items-center gap-2 min-w-0">
+                                <div className="p-2 bg-primary/10 rounded-xl shrink-0">
+                                    <ClipboardList className="text-primary" size={24} />
+                                </div>
+                                <span className="truncate">{editingId ? 'Editar Prescrição' : 'Nova Prescrição'}</span>
+                            </h3>
                         </div>
-                        <button onClick={handleCancel} className="text-slate-400 hover:text-slate-600 p-2 rounded-full hover:bg-slate-100 transition-colors">
-                            <X size={24} />
-                        </button>
+
+                        <div className="flex flex-col gap-3">
+                            <div className="w-full h-px bg-slate-100" />
+                            <p className="text-slate-500 font-medium text-sm italic border-l-4 border-primary/20 pl-3 py-1">
+                                Preencha os dados abaixo para organizar os horários de medicação.
+                            </p>
+                        </div>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="pt-6">
                         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
                             {/* Patient Select */}
                             <div className="flex flex-col gap-1.5">
@@ -570,7 +567,25 @@ const Prescriptions = () => {
                     </CardContent>
                 </Card>
             ) : (
-                <>
+                <div className="flex flex-col gap-8">
+                    {/* Search Bar */}
+                    {isPageLoading ? (
+                        <div className="h-12 w-full bg-slate-200 rounded-2xl animate-pulse" />
+                    ) : (
+                        prescriptions.length > 0 && (
+                            <div className="relative">
+                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+                                <input
+                                    type="text"
+                                    placeholder="Buscar por paciente, medicamento ou frequência..."
+                                    className="w-full pl-12 pr-4 py-3 rounded-2xl border-none bg-white shadow-soft focus:ring-2 focus:ring-primary/20 transition-all"
+                                    value={searchTerm}
+                                    onChange={e => setSearchTerm(e.target.value)}
+                                />
+                            </div>
+                        )
+                    )}
+
                     {isPageLoading ? (
                         <div className="space-y-4">
                             {[...Array(3)].map((_, i) => (
@@ -685,7 +700,7 @@ const Prescriptions = () => {
                                         {patients.find(p => p.id === prescription.patientId)?.userId === user?.id ? (
                                             <>
                                                 <button
-                                                    className="h-9 px-4 flex items-center justify-center rounded-lg bg-white hover:bg-slate-50 text-slate-700 hover:text-blue-700 border border-slate-200 hover:border-blue-200 shadow-sm text-xs font-bold tracking-wide transition-all gap-2"
+                                                    className="h-9 px-4 flex items-center justify-center rounded-lg bg-white hover:bg-emerald-50 text-emerald-600 hover:text-emerald-700 border border-slate-200 hover:border-emerald-200 shadow-sm text-xs font-bold tracking-wide transition-all gap-2"
                                                     onClick={() => {
                                                         const med = medications.find(m => m.id === prescription.medicationId);
                                                         const pat = patients.find(p => p.id === prescription.patientId);
@@ -710,7 +725,7 @@ const Prescriptions = () => {
                                                         showToast('Processando calendário...', 'success');
                                                     }}
                                                 >
-                                                    <Calendar size={15} className="text-blue-500" />
+                                                    <Calendar size={15} className="text-emerald-600" />
                                                     Agendar
                                                 </button>
 
@@ -725,7 +740,7 @@ const Prescriptions = () => {
 
                                                 <button
                                                     onClick={() => handleDeleteClick(prescription)}
-                                                    className="h-9 px-3 flex items-center justify-center rounded-lg bg-white text-slate-600 border border-slate-200 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-100 transition-all shadow-sm text-xs font-bold gap-2"
+                                                    className="h-9 px-3 flex items-center justify-center rounded-lg bg-white text-rose-500 border border-slate-200 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-100 transition-all shadow-sm text-xs font-bold gap-2"
                                                     title="Excluir"
                                                 >
                                                     <Trash2 size={15} />
@@ -742,7 +757,7 @@ const Prescriptions = () => {
                             ))}
                         </div>
                     )}
-                </>
+                </div>
             )}
 
             {/* Pagination */}

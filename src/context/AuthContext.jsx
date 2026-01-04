@@ -186,15 +186,19 @@ export const AuthProvider = ({ children }) => {
                         setMfaRequired(false);
                         setMfaChallenge(null);
                     } else if (hasFactors) {
-                        // Only check MFA if we have factors and are at aal1
+                        // Only do network MFA check if we have factors and are at aal1
                         try {
                             await checkMfaRequirement();
                         } catch (mfaError) {
                             console.error('🔐 MFA check error:', mfaError);
+                            // Ensure we don't hang if MFA check fails
+                            setMfaRequired(hasFactors);
                         }
                     } else {
-                        // No factors configured
+                        // No factors configured - explicitly set to false
+                        console.log('🔐 No MFA factors configured, allowing access');
                         setMfaRequired(false);
+                        setCurrentAal('aal1'); // Ensure currentAal is also set
                     }
                 }
             } catch (err) {
@@ -237,10 +241,17 @@ export const AuthProvider = ({ children }) => {
                         await checkMfaRequirement();
                     } catch (mfaError) {
                         console.error('🔐 MFA check error:', mfaError);
+                        setMfaRequired(hasFactors);
                     }
                 } else {
+                    // No MFA factors - explicitly allow access
+                    console.log('🔐 onAuthStateChange: No MFA factors, allowing access');
                     setMfaRequired(false);
                 }
+            } else if (!session?.user) {
+                // No user session - reset MFA state
+                setMfaRequired(false);
+                setCurrentAal(null);
             }
         });
 

@@ -15,7 +15,6 @@ import { supabase } from '../lib/supabase';
 import CalendarView from '../components/features/CalendarView';
 import Pagination from '../components/ui/Pagination';
 import Shimmer from '../components/ui/Shimmer';
-import { useNavigate } from 'react-router-dom';
 import confetti from 'canvas-confetti';
 import { getApiEndpoint } from '../config/api';
 import SymptomSelector from '../components/features/SymptomSelector'; // Imported Component
@@ -32,7 +31,6 @@ import {
 
 const HealthDiary = () => {
     const { patients, healthLogs, addHealthLog, updateHealthLog, deleteHealthLog, user, showToast, prescriptions, consumptionLog, medications, logConsumption, removeConsumption, symptomLogs, removeSymptom } = useApp();
-    const navigate = useNavigate();
 
     const [showForm, setShowForm] = useState(false);
     const [activeTab, setActiveTab] = useState('adherence'); // 'adherence' | 'list' | 'charts' | 'symptoms'
@@ -755,12 +753,32 @@ const HealthDiary = () => {
             )}
 
             {showForm && (
-                <Card className="border-l-4 border-l-primary shadow-2xl">
-                    <CardHeader className="flex justify-between">
-                        <h3 className="font-bold text-xl">Novo Registro</h3>
-                        <Button variant="ghost" onClick={() => setShowForm(false)}><Plus className="rotate-45" /></Button>
+                <Card className="border-l-4 border-l-primary shadow-2xl ring-1 ring-black/5">
+                    <CardHeader className="flex flex-col gap-5 border-b border-slate-50 pb-6">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                            <button
+                                onClick={() => setShowForm(false)}
+                                className="p-2.5 rounded-xl bg-white border border-slate-200 text-slate-400 hover:text-slate-600 hover:border-slate-300 transition-all shadow-sm shrink-0 flex items-center justify-center mr-2"
+                                title="Fechar"
+                            >
+                                <X size={20} />
+                            </button>
+                            <h3 className="font-black text-2xl text-slate-900 tracking-tight flex items-center gap-2 min-w-0">
+                                <div className="p-2 bg-primary/10 rounded-xl shrink-0">
+                                    <Activity className="text-primary" size={24} />
+                                </div>
+                                <span className="truncate">{editingLogId ? 'Editar Sinais Vitais' : 'Novos Sinais Vitais'}</span>
+                            </h3>
+                        </div>
+
+                        <div className="flex flex-col gap-3">
+                            <div className="w-full h-px bg-slate-100" />
+                            <p className="text-slate-500 font-medium text-sm italic border-l-4 border-primary/20 pl-3 py-1">
+                                Registre pressão, glicemia ou peso para acompanhar a evolução da saúde.
+                            </p>
+                        </div>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="pt-6">
                         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <select
@@ -940,14 +958,14 @@ const HealthDiary = () => {
                                                                                             <div className="flex flex-col gap-1 items-center justify-center">
                                                                                                 <button
                                                                                                     onClick={() => handleEdit(log)}
-                                                                                                    className="text-blue-400 hover:text-blue-600 p-1"
+                                                                                                    className="text-slate-500 hover:text-slate-700 p-1"
                                                                                                     title="Editar"
                                                                                                 >
                                                                                                     <Edit size={12} />
                                                                                                 </button>
                                                                                                 <button
                                                                                                     onClick={() => handleDeleteClick(log.id)}
-                                                                                                    className="text-rose-400 hover:text-rose-600 p-1"
+                                                                                                    className="text-rose-500 hover:text-rose-700 p-1"
                                                                                                     title="Excluir"
                                                                                                 >
                                                                                                     <Trash2 size={12} />
@@ -1234,207 +1252,204 @@ const HealthDiary = () => {
                         </Card>
                     )}
                 </>
-            )
-            }
+            )}
 
-            {
-                activeTab === 'symptoms' && (
-                    <div className="animate-in fade-in slide-in-from-bottom-2 grid grid-cols-1 lg:grid-cols-5 gap-4 items-start">
-                        <div className="lg:col-span-2">
-                            <SymptomSelector initialPatientId={selectedPatientId} />
-                        </div>
-                        <div className="lg:col-span-3 flex flex-col gap-2">
-                            {/* Toolbar repositioned inside symptoms tab for better mobile flow */}
-                            <Card className="no-print border border-slate-100 shadow-sm bg-slate-50/50 dark:bg-slate-800/30">
-                                <CardContent className="p-3">
-                                    <div className="flex flex-col gap-3">
-                                        {/* Row 1: Primary Filters - Flex layout to adapt better to content */}
-                                        <div className="flex flex-wrap gap-3">
-                                            <div className="flex-[2] min-w-[240px] relative">
-                                                <label className="absolute -top-2 left-3 bg-white dark:bg-slate-900 px-1.5 text-[10px] text-slate-400 font-bold z-10 uppercase tracking-wider">Paciente</label>
-                                                <select
-                                                    id="filter-patient-select-symptoms"
-                                                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-[13px] font-medium focus:ring-2 focus:ring-emerald-500 outline-none transition-all appearance-none"
-                                                    value={selectedPatientId}
-                                                    onChange={e => setSelectedPatientId(e.target.value)}
-                                                >
-                                                    <option value="all">👥 Todos os Pacientes</option>
-                                                    {patients.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                                                </select>
-                                            </div>
-
-                                            <div className="flex-[1.5] min-w-[200px] relative">
-                                                <label className="absolute -top-2 left-3 bg-white dark:bg-slate-900 px-1.5 text-[10px] text-slate-400 font-bold z-10 uppercase tracking-wider">Categoria</label>
-                                                <select
-                                                    id="filter-category-select-symptoms"
-                                                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-[13px] font-medium focus:ring-2 focus:ring-emerald-500 outline-none transition-all appearance-none"
-                                                    value={filterCategory}
-                                                    onChange={e => setFilterCategory(e.target.value)}
-                                                >
-                                                    <option value="all">📂 Todos os Sintomas</option>
-                                                    <option value="Dor de Cabeça">🧠 Dor de Cabeça</option>
-                                                    <option value="Enjoo">🤢 Enjoo</option>
-                                                    <option value="Tontura">🌀 Tontura</option>
-                                                    <option value="Cansaço">☕ Cansaço</option>
-                                                    <option value="Febre">🌡️ Febre</option>
-                                                    <option value="Dor no Corpo">⚡ Dor no Corpo</option>
-                                                    <option value="Cólicas">⚠️ Cólicas</option>
-                                                    <option value="Palpitação">💓 Palpitação</option>
-                                                </select>
-                                            </div>
-
-                                            <div className="flex-1 min-w-[240px] flex gap-2">
-                                                <div className="flex-1 relative">
-                                                    <label className="absolute -top-2 left-3 bg-white dark:bg-slate-900 px-1.5 text-[10px] text-slate-400 font-bold z-10 uppercase tracking-wider">De</label>
-                                                    <input
-                                                        type="date"
-                                                        className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
-                                                        value={startDate}
-                                                        onChange={e => setStartDate(e.target.value)}
-                                                    />
-                                                </div>
-                                                <div className="flex-1 relative">
-                                                    <label className="absolute -top-2 left-3 bg-white dark:bg-slate-900 px-1.5 text-[10px] text-slate-400 font-bold z-10 uppercase tracking-wider">Até</label>
-                                                    <input
-                                                        type="date"
-                                                        className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
-                                                        value={endDate}
-                                                        onChange={e => setEndDate(e.target.value)}
-                                                    />
-                                                </div>
-                                                {(startDate || endDate) && (
-                                                    <button
-                                                        onClick={() => { setStartDate(''); setEndDate(''); }}
-                                                        className="px-1.5 text-slate-400 hover:text-rose-500 transition-colors"
-                                                        title="Limpar Período"
-                                                    >
-                                                        <RotateCcw size={16} />
-                                                    </button>
-                                                )}
-                                            </div>
+            {!showForm && activeTab === 'symptoms' && (
+                <div className="animate-in fade-in slide-in-from-bottom-2 grid grid-cols-1 lg:grid-cols-5 gap-4 items-start">
+                    <div className="lg:col-span-2">
+                        <SymptomSelector initialPatientId={selectedPatientId} />
+                    </div>
+                    <div className="lg:col-span-3 flex flex-col gap-2">
+                        {/* Toolbar repositioned inside symptoms tab for better mobile flow */}
+                        <Card className="no-print border border-slate-100 shadow-sm bg-slate-50/50 dark:bg-slate-800/30">
+                            <CardContent className="p-3">
+                                <div className="flex flex-col gap-3">
+                                    {/* Row 1: Primary Filters - Flex layout to adapt better to content */}
+                                    <div className="flex flex-wrap gap-3">
+                                        <div className="flex-[2] min-w-[240px] relative">
+                                            <label className="absolute -top-2 left-3 bg-white dark:bg-slate-900 px-1.5 text-[10px] text-slate-400 font-bold z-10 uppercase tracking-wider">Paciente</label>
+                                            <select
+                                                id="filter-patient-select-symptoms"
+                                                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-[13px] font-medium focus:ring-2 focus:ring-emerald-500 outline-none transition-all appearance-none"
+                                                value={selectedPatientId}
+                                                onChange={e => setSelectedPatientId(e.target.value)}
+                                            >
+                                                <option value="all">👥 Todos os Pacientes</option>
+                                                {patients.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                                            </select>
                                         </div>
 
-                                        {/* Row 2: Actions */}
-                                        <div className="flex flex-wrap items-center justify-center sm:justify-end gap-3 pt-3 border-t border-slate-200/50 dark:border-slate-700/50">
-                                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mr-auto hidden md:block">Ações & Relatórios</span>
-                                            <div className="flex items-center gap-2">
-                                                <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    onClick={() => setShowEmailModal(true)}
-                                                    className="bg-white dark:bg-slate-800 h-9 border-slate-200 dark:border-slate-700 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 px-3 rounded-xl shadow-sm"
-                                                >
-                                                    <Mail size={16} className="md:mr-2" /> <span className="hidden md:inline">Email</span>
-                                                </Button>
-                                                <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    onClick={handlePrint}
-                                                    className="bg-white dark:bg-slate-800 h-9 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 px-3 rounded-xl shadow-sm"
-                                                >
-                                                    <Printer size={16} className="md:mr-2" /> <span className="hidden md:inline">Imprimir</span>
-                                                </Button>
-                                                <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    onClick={handleWhatsApp}
-                                                    className="bg-white dark:bg-slate-800 h-9 border-slate-200 dark:border-slate-700 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 px-3 rounded-xl shadow-sm"
-                                                >
-                                                    <MessageCircle size={16} className="md:mr-2" /> <span className="hidden md:inline">WhatsApp</span>
-                                                </Button>
-                                            </div>
+                                        <div className="flex-[1.5] min-w-[200px] relative">
+                                            <label className="absolute -top-2 left-3 bg-white dark:bg-slate-900 px-1.5 text-[10px] text-slate-400 font-bold z-10 uppercase tracking-wider">Categoria</label>
+                                            <select
+                                                id="filter-category-select-symptoms"
+                                                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-[13px] font-medium focus:ring-2 focus:ring-emerald-500 outline-none transition-all appearance-none"
+                                                value={filterCategory}
+                                                onChange={e => setFilterCategory(e.target.value)}
+                                            >
+                                                <option value="all">📂 Todos os Sintomas</option>
+                                                <option value="Dor de Cabeça">🧠 Dor de Cabeça</option>
+                                                <option value="Enjoo">🤢 Enjoo</option>
+                                                <option value="Tontura">🌀 Tontura</option>
+                                                <option value="Cansaço">☕ Cansaço</option>
+                                                <option value="Febre">🌡️ Febre</option>
+                                                <option value="Dor no Corpo">⚡ Dor no Corpo</option>
+                                                <option value="Cólicas">⚠️ Cólicas</option>
+                                                <option value="Palpitação">💓 Palpitação</option>
+                                            </select>
                                         </div>
-                                    </div>
-                                </CardContent>
-                            </Card>
 
-                            <Card className="border-none shadow-sm">
-                                <CardHeader className="py-2">
-                                    <h3 className="font-bold text-base flex items-center gap-2 text-slate-700 dark:text-slate-200">
-                                        <SmilePlus className="text-emerald-500" size={18} />
-                                        Histórico de Sintomas
-                                    </h3>
-                                </CardHeader>
-                                <CardContent className="pb-2">
-                                    {filteredSymptomLogs && filteredSymptomLogs.length > 0 ? (
-                                        <div className="space-y-2">
-                                            {paginatedSymptomLogs.map((log) => (
-                                                <div key={log.id} className="p-2.5 rounded-2xl border border-slate-100 hover:bg-slate-50 transition-colors bg-white dark:bg-slate-800/40">
-                                                    <div className="flex items-start justify-between mb-2">
-                                                        <div className="flex gap-3 items-center">
-                                                            <div className={`p-2 rounded-xl h-fit 
-                                                            ${log.intensity <= 2 ? 'bg-green-100/50 text-green-600' :
-                                                                    log.intensity <= 3 ? 'bg-yellow-100/50 text-yellow-600' :
-                                                                        'bg-red-100/50 text-red-600'
-                                                                }`}>
-                                                                {log.symptom === 'Dor de Cabeça' && <Brain size={18} />}
-                                                                {log.symptom === 'Enjoo' && <Frown size={18} />}
-                                                                {log.symptom === 'Tontura' && <Activity size={18} />}
-                                                                {log.symptom === 'Cansaço' && <Coffee size={18} />}
-                                                                {log.symptom === 'Febre' && <Thermometer size={18} />}
-                                                                {log.symptom === 'Dor no Corpo' && <Zap size={18} />}
-                                                                {log.symptom === 'Cólicas' && <AlertCircle size={18} />}
-                                                                {log.symptom === 'Palpitação' && <HeartPulse size={18} />}
-                                                                {!['Dor de Cabeça', 'Enjoo', 'Tontura', 'Cansaço', 'Febre', 'Dor no Corpo', 'Cólicas', 'Palpitação'].includes(log.symptom) && <Activity size={18} />}
-                                                            </div>
-                                                            <div>
-                                                                <div className="flex items-center gap-2">
-                                                                    <p className="font-bold text-slate-800 dark:text-slate-200">{log.symptom}</p>
-                                                                    <span className="text-[10px] bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 px-2 py-0.5 rounded-full font-bold uppercase tracking-tight">
-                                                                        {patients.find(p => p.id === log.patient_id)?.name || 'Paciente Desconhecido'}
-                                                                    </span>
-                                                                </div>
-                                                                <div className="flex items-center gap-2 text-xs text-slate-500 mt-0.5">
-                                                                    <span className="font-medium bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded text-[10px]">
-                                                                        Nível {log.intensity}
-                                                                    </span>
-                                                                    <span>•</span>
-                                                                    <span>{formatDateTime(log.created_at)}</span>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                        <button
-                                                            onClick={() => setSymptomToDelete(log)}
-                                                            className="text-slate-400 hover:text-rose-500 p-2 transition-colors"
-                                                            title="Excluir"
-                                                        >
-                                                            <Trash2 size={16} />
-                                                        </button>
-                                                    </div>
-                                                    {log.notes && (
-                                                        <div className="mt-2 px-1 border-t border-slate-50 dark:border-slate-700/30 pt-2">
-                                                            <p className="text-[14px] text-slate-600 dark:text-slate-400 italic leading-relaxed w-full">
-                                                                "{log.notes}"
-                                                            </p>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            ))}
-                                            {totalSymptomPages > 1 && (
-                                                <Pagination
-                                                    currentPage={symptomCurrentPage}
-                                                    totalPages={totalSymptomPages}
-                                                    onPageChange={setSymptomCurrentPage}
+                                        <div className="flex-1 min-w-[240px] flex gap-2">
+                                            <div className="flex-1 relative">
+                                                <label className="absolute -top-2 left-3 bg-white dark:bg-slate-900 px-1.5 text-[10px] text-slate-400 font-bold z-10 uppercase tracking-wider">De</label>
+                                                <input
+                                                    type="date"
+                                                    className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
+                                                    value={startDate}
+                                                    onChange={e => setStartDate(e.target.value)}
                                                 />
+                                            </div>
+                                            <div className="flex-1 relative">
+                                                <label className="absolute -top-2 left-3 bg-white dark:bg-slate-900 px-1.5 text-[10px] text-slate-400 font-bold z-10 uppercase tracking-wider">Até</label>
+                                                <input
+                                                    type="date"
+                                                    className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
+                                                    value={endDate}
+                                                    onChange={e => setEndDate(e.target.value)}
+                                                />
+                                            </div>
+                                            {(startDate || endDate) && (
+                                                <button
+                                                    onClick={() => { setStartDate(''); setEndDate(''); }}
+                                                    className="px-1.5 text-slate-400 hover:text-rose-500 transition-colors"
+                                                    title="Limpar Período"
+                                                >
+                                                    <RotateCcw size={16} />
+                                                </button>
                                             )}
                                         </div>
-                                    ) : (
-                                        <div className="flex flex-col items-center justify-center py-12 text-center animate-in fade-in zoom-in-95 duration-500">
-                                            <div className="bg-slate-50 dark:bg-slate-800/50 p-6 rounded-full mb-4 shadow-inner border border-slate-100/50 dark:border-slate-700/50">
-                                                <SmilePlus size={42} className="text-slate-200 dark:text-slate-600" />
-                                            </div>
-                                            <h4 className="font-bold text-slate-700 dark:text-slate-200 text-lg">Nenhum registro encontrado</h4>
-                                            <p className="text-sm text-slate-500 max-w-[260px] mt-2 leading-relaxed">
-                                                Parece que você ainda não relatou sintomas. Use o seletor para começar seu acompanhamento de saúde hoje.
-                                            </p>
+                                    </div>
+
+                                    {/* Row 2: Actions */}
+                                    <div className="flex flex-wrap items-center justify-center sm:justify-end gap-3 pt-3 border-t border-slate-200/50 dark:border-slate-700/50">
+                                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mr-auto hidden md:block">Ações & Relatórios</span>
+                                        <div className="flex items-center gap-2">
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => setShowEmailModal(true)}
+                                                className="bg-white dark:bg-slate-800 h-9 border-slate-200 dark:border-slate-700 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 px-3 rounded-xl shadow-sm"
+                                            >
+                                                <Mail size={16} className="md:mr-2" /> <span className="hidden md:inline">Email</span>
+                                            </Button>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={handlePrint}
+                                                className="bg-white dark:bg-slate-800 h-9 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 px-3 rounded-xl shadow-sm"
+                                            >
+                                                <Printer size={16} className="md:mr-2" /> <span className="hidden md:inline">Imprimir</span>
+                                            </Button>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={handleWhatsApp}
+                                                className="bg-white dark:bg-slate-800 h-9 border-slate-200 dark:border-slate-700 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 px-3 rounded-xl shadow-sm"
+                                            >
+                                                <MessageCircle size={16} className="md:mr-2" /> <span className="hidden md:inline">WhatsApp</span>
+                                            </Button>
                                         </div>
-                                    )}
-                                </CardContent>
-                            </Card>
-                        </div>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        <Card className="border-none shadow-sm">
+                            <CardHeader className="py-2">
+                                <h3 className="font-bold text-base flex items-center gap-2 text-slate-700 dark:text-slate-200">
+                                    <SmilePlus className="text-emerald-500" size={18} />
+                                    Histórico de Sintomas
+                                </h3>
+                            </CardHeader>
+                            <CardContent className="pb-2">
+                                {filteredSymptomLogs && filteredSymptomLogs.length > 0 ? (
+                                    <div className="space-y-2">
+                                        {paginatedSymptomLogs.map((log) => (
+                                            <div key={log.id} className="p-2.5 rounded-2xl border border-slate-100 hover:bg-slate-50 transition-colors bg-white dark:bg-slate-800/40">
+                                                <div className="flex items-start justify-between mb-2">
+                                                    <div className="flex gap-3 items-center">
+                                                        <div className={`p-2 rounded-xl h-fit 
+                                                            ${log.intensity <= 2 ? 'bg-green-100/50 text-green-600' :
+                                                                log.intensity <= 3 ? 'bg-yellow-100/50 text-yellow-600' :
+                                                                    'bg-red-100/50 text-red-600'
+                                                            }`}>
+                                                            {log.symptom === 'Dor de Cabeça' && <Brain size={18} />}
+                                                            {log.symptom === 'Enjoo' && <Frown size={18} />}
+                                                            {log.symptom === 'Tontura' && <Activity size={18} />}
+                                                            {log.symptom === 'Cansaço' && <Coffee size={18} />}
+                                                            {log.symptom === 'Febre' && <Thermometer size={18} />}
+                                                            {log.symptom === 'Dor no Corpo' && <Zap size={18} />}
+                                                            {log.symptom === 'Cólicas' && <AlertCircle size={18} />}
+                                                            {log.symptom === 'Palpitação' && <HeartPulse size={18} />}
+                                                            {!['Dor de Cabeça', 'Enjoo', 'Tontura', 'Cansaço', 'Febre', 'Dor no Corpo', 'Cólicas', 'Palpitação'].includes(log.symptom) && <Activity size={18} />}
+                                                        </div>
+                                                        <div>
+                                                            <div className="flex items-center gap-2">
+                                                                <p className="font-bold text-slate-800 dark:text-slate-200">{log.symptom}</p>
+                                                                <span className="text-[10px] bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 px-2 py-0.5 rounded-full font-bold uppercase tracking-tight">
+                                                                    {patients.find(p => p.id === log.patient_id)?.name || 'Paciente Desconhecido'}
+                                                                </span>
+                                                            </div>
+                                                            <div className="flex items-center gap-2 text-xs text-slate-500 mt-0.5">
+                                                                <span className="font-medium bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded text-[10px]">
+                                                                    Nível {log.intensity}
+                                                                </span>
+                                                                <span>•</span>
+                                                                <span>{formatDateTime(log.created_at)}</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <button
+                                                        onClick={() => setSymptomToDelete(log)}
+                                                        className="text-rose-500 hover:text-rose-700 p-2 transition-colors"
+                                                        title="Excluir"
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                </div>
+                                                {log.notes && (
+                                                    <div className="mt-2 px-1 border-t border-slate-50 dark:border-slate-700/30 pt-2">
+                                                        <p className="text-[14px] text-slate-600 dark:text-slate-400 italic leading-relaxed w-full">
+                                                            "{log.notes}"
+                                                        </p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ))}
+                                        {totalSymptomPages > 1 && (
+                                            <Pagination
+                                                currentPage={symptomCurrentPage}
+                                                totalPages={totalSymptomPages}
+                                                onPageChange={setSymptomCurrentPage}
+                                            />
+                                        )}
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-col items-center justify-center py-12 text-center animate-in fade-in zoom-in-95 duration-500">
+                                        <div className="bg-slate-50 dark:bg-slate-800/50 p-6 rounded-full mb-4 shadow-inner border border-slate-100/50 dark:border-slate-700/50">
+                                            <SmilePlus size={42} className="text-slate-200 dark:text-slate-600" />
+                                        </div>
+                                        <h4 className="font-bold text-slate-700 dark:text-slate-200 text-lg">Nenhum registro encontrado</h4>
+                                        <p className="text-sm text-slate-500 max-w-[260px] mt-2 leading-relaxed">
+                                            Parece que você ainda não relatou sintomas. Use o seletor para começar seu acompanhamento de saúde hoje.
+                                        </p>
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
                     </div>
-                )
-            }
+                </div>
+            )}
 
 
             <Modal

@@ -18,8 +18,8 @@ const ProtectedRoute = ({ children, adminOnly = false, skipProfileCheck = false 
 
     // NEW: Robust Loading State
     // We must wait if Auth is loading OR if we are still checking MFA requirement (mfaRequired === null)
-    // We also wait for a definitive AAL level to avoid flickering the gate
-    const isActuallyReady = !authLoading && mfaRequired !== null && currentAal !== null;
+    // If MFA is not required (false), we don't need to wait for currentAal
+    const isActuallyReady = !authLoading && mfaRequired !== null && (mfaRequired === false || currentAal !== null);
     const [mfaCode, setMfaCode] = useState('');
     const [mfaError, setMfaError] = useState('');
     const [mfaLoading, setMfaLoading] = useState(false);
