@@ -16,7 +16,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "deploy": "npm version patch --no-git-tag-version && git add -A && git commit -m \"deploy: auto version bump\" && git push origin main"
+    "deploy": "npm run validate && npm version patch --no-git-tag-version && git add -A && git commit -m \"deploy: auto version bump\" && git push origin main",
+    "validate": "node scripts/validate-deploy.js"
   },
   "dependencies": {
     "@emailjs/browser": "^4.4.1",
