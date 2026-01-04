@@ -685,7 +685,7 @@ const Patients = () => {
                                             )}
                                         </div>
 
-                                        <div className="flex flex-row flex-wrap gap-1 mt-4 md:mt-0 md:ml-auto md:flex-nowrap md:gap-2">
+                                        <div className="flex flex-wrap gap-2 mt-4 md:mt-0 md:ml-auto justify-center md:justify-end">
                                             {/* Logic for permissions */}
                                             {(() => {
                                                 const isOwner = patient.userId === user?.id;
@@ -699,41 +699,37 @@ const Patients = () => {
                                                         {/* Share: Only Owner can share */}
                                                         {isOwner && (
                                                             <button
-                                                                className="p-2 rounded-lg text-indigo-600 hover:bg-indigo-50 transition-colors md:px-3 md:py-2 md:flex md:items-center md:gap-2"
+                                                                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-indigo-600 hover:bg-indigo-50 transition-colors text-xs font-medium"
                                                                 onClick={() => handleShareClick(patient)}
-                                                                title="Compartilhar"
                                                             >
-                                                                <Share2 size={18} />
-                                                                <span className="hidden md:inline text-sm font-medium">Compartilhar</span>
+                                                                <Share2 size={14} />
+                                                                <span>Compartilhar</span>
                                                             </button>
                                                         )}
 
                                                         {canEdit ? (
                                                             <>
                                                                 <button
-                                                                    className="p-2 rounded-lg text-emerald-600 hover:bg-emerald-50 transition-colors md:px-3 md:py-2 md:flex md:items-center md:gap-2"
+                                                                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-emerald-600 hover:bg-emerald-50 transition-colors text-xs font-medium"
                                                                     onClick={() => navigate('/appointments', { state: { patientId: patient.id } })}
-                                                                    title="Agendar"
                                                                 >
-                                                                    <Calendar size={18} />
-                                                                    <span className="hidden md:inline text-sm font-medium">Agendar</span>
+                                                                    <Calendar size={14} />
+                                                                    <span>Agendar</span>
                                                                 </button>
                                                                 <button
-                                                                    className="p-2 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors md:px-3 md:py-2 md:flex md:items-center md:gap-2"
+                                                                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors text-xs font-medium"
                                                                     onClick={() => handleEdit(patient)}
-                                                                    title="Editar"
                                                                 >
-                                                                    <Edit2 size={18} />
-                                                                    <span className="hidden md:inline text-sm font-medium">Editar</span>
+                                                                    <Edit2 size={14} />
+                                                                    <span>Editar</span>
                                                                 </button>
                                                                 {isOwner && !(patient.is_self || patient.isSelf) && (
                                                                     <button
-                                                                        className="p-2 rounded-lg text-rose-500 hover:bg-rose-50 transition-colors md:px-3 md:py-2 md:flex md:items-center md:gap-2"
+                                                                        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-rose-500 hover:bg-rose-50 transition-colors text-xs font-medium"
                                                                         onClick={() => handleDeleteClick(patient)}
-                                                                        title="Excluir"
                                                                     >
-                                                                        <Trash2 size={18} />
-                                                                        <span className="hidden md:inline text-sm font-medium">Excluir</span>
+                                                                        <Trash2 size={14} />
+                                                                        <span>Excluir</span>
                                                                     </button>
                                                                 )}
                                                             </>
