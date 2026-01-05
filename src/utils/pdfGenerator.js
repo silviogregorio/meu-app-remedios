@@ -7,8 +7,8 @@ import { ptBR } from 'date-fns/locale';
  * Generates a Comprehensive Medical Report PDF
  * @param {Object} data 
  * @param {Object} data.patient - Patient profile info
- * @param {Array} data.logs - All health logs
- * @param {Array} data.medications - Active medications
+ * @param {Object} data.logs - All health logs
+ * @param {Object} data.medications - Active medications
  * @param {String} data.periodLabel - e.g. "Últimos 30 dias"
  */
 // Update signature to accept separated meds
@@ -493,6 +493,234 @@ export const generatePDFHealthDiary = async (logs, filter, patients, medicationS
         doc.setTextColor(150);
         doc.text(`Página ${i} de ${pageCount} - App Remédios`, margin, pageHeight - 10);
     }
+
+    return doc;
+};
+
+/**
+ * Generates Offer Performance Report
+ */
+export const generatePDFOfferReport = async (sponsor, offers, totals, { startDate, endDate, period }) => {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.width;
+    const margin = 20;
+
+    // Brand Colors
+    const BLUE_COLOR = [37, 99, 235]; // Blue 600
+    const TEXT_DARK = [30, 41, 59];
+
+    // Header
+    doc.setFillColor(...BLUE_COLOR);
+    doc.rect(0, 0, pageWidth, 40, 'F');
+
+    doc.setFontSize(22);
+    doc.setTextColor(255, 255, 255);
+    doc.setFont("helvetica", "bold");
+    doc.text("Relatório de Performance", margin, 25);
+
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text(`${sponsor.name} • ${format(new Date(), "dd/MM/yyyy", { locale: ptBR })}`, margin, 35);
+
+    let rangeText = period === 'all' ? 'Completo' : `${startDate ? format(new Date(startDate), 'dd/MM/yyyy') : ''} a ${endDate ? format(new Date(endDate), 'dd/MM/yyyy') : ''}`;
+    doc.text(`Período: ${rangeText}`, pageWidth - margin, 35, { align: 'right' });
+
+    let currentY = 55;
+
+    // Summary Cards (Text based)
+    doc.setFontSize(14);
+    doc.setTextColor(...TEXT_DARK);
+    doc.setFont("helvetica", "bold");
+    doc.text("Resumo Geral", margin, currentY);
+    currentY += 10;
+
+    const summaryData = [
+        ['Visualizações', totals.totalViews],
+        ['Cliques', totals.totalClicks],
+        ['Conversão (CTR)', `${totals.avgCtr.toFixed(1)}%`]
+    ];
+
+    autoTable(doc, {
+        startY: currentY,
+        head: [['Métrica', 'Valor']],
+        body: summaryData,
+        theme: 'grid',
+        headStyles: { fillColor: [241, 245, 249], textColor: TEXT_DARK, fontStyle: 'bold' },
+        styles: { fontSize: 12, cellPadding: 5 },
+        columnStyles: { 0: { fontStyle: 'bold', cellWidth: 100 }, 1: { halign: 'right' } },
+        margin: { left: margin, right: pageWidth - margin - 80 } // Small table on left
+    });
+
+    currentY = doc.lastAutoTable.finalY + 20;
+
+    // Offers Table
+    doc.setFontSize(14);
+    doc.text("Detalhes das Ofertas", margin, currentY);
+    currentY += 10;
+
+    const tableData = offers.map(offer => {
+        const ctr = offer.views_count > 0 ? (offer.clicks_count / offer.views_count) * 100 : 0;
+        return [
+            offer.title,
+            `R$ ${offer.price.toFixed(2)}`,
+            offer.views_count || 0,
+            offer.clicks_count || 0,
+            `${ctr.toFixed(1)}%`,
+            offer.active ? 'Ativa' : 'Inativa'
+        ];
+    });
+
+    autoTable(doc, {
+        startY: currentY,
+        head: [['Oferta', 'Preço', 'Vis.', 'Cliques', 'CTR', 'Status']],
+        body: tableData,
+        theme: 'grid',
+        headStyles: { fillColor: BLUE_COLOR },
+        styles: { fontSize: 9, cellPadding: 3 },
+        columnStyles: {
+            0: { cellWidth: 50 },
+            4: { fontStyle: 'bold' }
+        },
+        margin: { left: margin, right: margin }
+    });
+
+    return doc;
+};
+
+/**
+ * Generates the main Medication/Adherence Report
+ */
+export const generatePDFReport = async (reportData, filters, patients) => {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.width;
+    const pageHeight = doc.internal.pageSize.height;
+    const margin = 20;
+
+    // Branding
+    doc.setFillColor(16, 185, 129); // Emerald
+    doc.rect(0, 0, pageWidth, 40, 'F');
+    doc.setFontSize(22);
+    doc.setTextColor(255, 255, 255);
+    doc.setFont("helvetica", "bold");
+    doc.text("Relatório de Medicamentos", margin, 25);
+
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    const dateStr = format(new Date(), "dd 'de' MMMM, yyyy", { locale: ptBR });
+    doc.text(`Gerado em ${dateStr}`, margin, 35);
+
+    // Context Filters
+    if (filters.patientId) {
+        const patientName = filters.patientId === 'all' ? 'Todos os Pacientes' : patients.find(p => p.id === filters.patientId)?.name || 'Desconhecido';
+        doc.text(`Paciente: ${patientName}`, pageWidth - margin, 25, { align: 'right' });
+    }
+    if (filters.startDate && filters.endDate) {
+        doc.text(`Período: ${format(new Date(filters.startDate), 'dd/MM')} a ${format(new Date(filters.endDate), 'dd/MM/yyyy')}`, pageWidth - margin, 35, { align: 'right' });
+    }
+
+    let currentY = 50;
+
+    // Summary Box
+    doc.setFillColor(248, 250, 252);
+    doc.roundedRect(margin, currentY, pageWidth - (margin * 2), 25, 3, 3, 'F');
+    doc.setFontSize(12);
+    doc.setTextColor(30, 41, 59);
+    doc.setFont("helvetica", "bold");
+    doc.text("Resumo de Adesão:", margin + 5, currentY + 10);
+
+    const summary = reportData.summary || { taken: 0, pending: 0, total: 0 };
+    doc.setFont("helvetica", "normal");
+    doc.text(`Tomados: ${summary.taken}   |   Pendentes: ${summary.pending}   |   Total: ${summary.total}`, margin + 5, currentY + 18);
+
+    // Calculate adherence rate
+    const rate = summary.total > 0 ? Math.round((summary.taken / summary.total) * 100) : 0;
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(16, 185, 129);
+    doc.text(`Taxa: ${rate}%`, pageWidth - margin - 30, currentY + 15);
+
+    currentY += 35;
+
+    // Table
+    const tableData = reportData.items.map(item => [
+        `${format(new Date(item.date), 'dd/MM')} ${item.time}`,
+        item.patient,
+        item.medication,
+        item.status === 'taken' ? 'Tomado' : 'Pendente'
+    ]);
+
+    autoTable(doc, {
+        startY: currentY,
+        head: [['Data/Hora', 'Paciente', 'Medicamento', 'Status']],
+        body: tableData,
+        theme: 'grid',
+        headStyles: { fillColor: [59, 130, 246] },
+        styles: { fontSize: 10, cellPadding: 3 },
+        createdCell: (cell, data) => {
+            if (data.column.index === 3) {
+                if (cell.raw === 'Tomado') {
+                    cell.styles.textColor = [22, 163, 74];
+                    cell.styles.fontStyle = 'bold';
+                } else {
+                    cell.styles.textColor = [220, 38, 38];
+                }
+            }
+        },
+        margin: { left: margin, right: margin }
+    });
+
+    return doc;
+};
+
+/**
+ * Generates Stock Movement Report
+ */
+export const generatePDFStockReport = async (stockData, filters, patients) => {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.width;
+    const margin = 20;
+
+    // Header
+    doc.setFillColor(245, 158, 11); // Amber
+    doc.rect(0, 0, pageWidth, 40, 'F');
+    doc.setFontSize(22);
+    doc.setTextColor(255, 255, 255);
+    doc.setFont("helvetica", "bold");
+    doc.text("Relatório de Estoque", margin, 25);
+
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Gerado em ${format(new Date(), "dd 'de' MMMM, yyyy", { locale: ptBR })}`, margin, 35);
+
+    let currentY = 50;
+
+    // Table
+    const tableData = stockData.map(item => [
+        format(new Date(item.created_at), 'dd/MM/yyyy HH:mm'),
+        item.medications?.name || 'Desconhecido',
+        item.type === 'in' ? 'Entrada' : 'Saída',
+        item.quantity,
+        item.patients?.name || '-',
+        item.profiles?.full_name || 'Usuário'
+    ]);
+
+    autoTable(doc, {
+        startY: currentY,
+        head: [['Data/Hora', 'Medicamento', 'Tipo', 'Qtd', 'Paciente', 'Resp.']],
+        body: tableData,
+        theme: 'grid',
+        headStyles: { fillColor: [217, 119, 6] },
+        styles: { fontSize: 9 },
+        createdCell: (cell, data) => {
+            if (data.column.index === 2) { // Type
+                if (cell.raw === 'Entrada') {
+                    cell.styles.textColor = [22, 163, 74];
+                } else {
+                    cell.styles.textColor = [220, 38, 38];
+                }
+            }
+        },
+        margin: { left: margin, right: margin }
+    });
 
     return doc;
 };
