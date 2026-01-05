@@ -17,7 +17,10 @@ import Pagination from '../components/ui/Pagination';
 import Shimmer from '../components/ui/Shimmer';
 import confetti from 'canvas-confetti';
 import { getApiEndpoint } from '../config/api';
-import SymptomSelector from '../components/features/SymptomSelector'; // Imported Component
+import SymptomSelector from '../components/features/SymptomSelector';
+import { AchievementService } from '../services/achievementService';
+import { AuditService } from '../services/AuditService';
+import AchievementNotification from '../components/ui/AchievementNotification';
 import {
     LineChart,
     Line,
@@ -59,6 +62,7 @@ const HealthDiary = () => {
     const [symptomToDelete, setSymptomToDelete] = useState(null);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [deleteLogId, setDeleteLogId] = useState(null);
+    const [unlockedAchievement, setUnlockedAchievement] = useState(null);
     const [formData, setFormData] = useState({
         patientId: '',
         category: 'pressure',
@@ -83,6 +87,17 @@ const HealthDiary = () => {
         }
     }, [activeTab]);
 
+    // Audit Access (Security)
+    useEffect(() => {
+        if (user && patients.length > 0) {
+            // Determine whose diary is being viewed (defaulting to user if not specified or found)
+            const targetPatient = patients.find(p => p.id === formData.patientId) || patients.find(p => p.userId === user.id);
+            if (targetPatient && targetPatient.userId !== user.id) {
+                AuditService.logAccess(targetPatient.userId, user.id, 'VIEW', 'DIARY', `Visualizou o diário de ${targetPatient.name}`);
+            }
+        }
+    }, [user, formData.patientId, patients]);
+
     // Dose Management Modal
     const [doseModalOpen, setDoseModalOpen] = useState(false);
     const [selectedPrescriptionForDosing, setSelectedPrescriptionForDosing] = useState(null);
@@ -102,7 +117,7 @@ const HealthDiary = () => {
                 showToast(`Dose das ${time} marcada como NÃO tomada`, 'info');
             } else {
                 // If not taken, we want to LOG it (take)
-                await logConsumption({
+                const { newLog, updatedMedication } = await logConsumption({
                     prescriptionId: selectedPrescriptionForDosing.id,
                     medicationId: selectedPrescriptionForDosing.medicationId,
                     date: viewDate,
@@ -110,6 +125,18 @@ const HealthDiary = () => {
                     takenBy: user?.id,
                     status: 'taken'
                 });
+
+                // Check Achievements
+                const newBadges = await AchievementService.checkAchievements(user.id, {
+                    type: 'medication',
+                    data: { log: newLog, prescription: selectedPrescriptionForDosing }
+                });
+
+                if (newBadges.length > 0) {
+                    const allBadges = await AchievementService.getAchievements(user.id);
+                    const badgeDetails = allBadges.find(b => b.code === newBadges[0]);
+                    setUnlockedAchievement(badgeDetails);
+                }
                 showToast(`Dose das ${time} confirmada com sucesso!`, 'success');
             }
             setDoseModalOpen(false);
@@ -208,7 +235,18 @@ const HealthDiary = () => {
             await updateHealthLog(editingLogId, payload);
             setEditingLogId(null);
         } else {
-            await addHealthLog(payload);
+            const newLog = await addHealthLog(payload);
+
+            // Check Achievements
+            const newBadges = await AchievementService.checkAchievements(user.id, {
+                type: 'health',
+                data: { log: newLog }
+            });
+            if (newBadges.length > 0) {
+                const allBadges = await AchievementService.getAchievements(user.id);
+                const badgeDetails = allBadges.find(b => b.code === newBadges[0]);
+                setUnlockedAchievement(badgeDetails);
+            }
         }
 
         setShowForm(false);
@@ -1658,6 +1696,11 @@ const HealthDiary = () => {
                         </span>
                     ) : "Confirmar exclusão?"
                 }
+            />
+            {/* Achievement Notification */}
+            <AchievementNotification
+                achievement={unlockedAchievement}
+                onClose={() => setUnlockedAchievement(null)}
             />
         </div >
     );

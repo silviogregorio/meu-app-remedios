@@ -1,4 +1,7 @@
 https://www.mindluster.com
+https://remove.photos
+3dlogolab.io
+
 
 Observações importantes para próximos aplicativos:
 
@@ -8,6 +11,13 @@ quando travar:
 allow pasting;
 localStorage.clear(); sessionStorage.clear(); location.reload();
 localStorage.removeItem('mfa_lockout_until'); localStorage.removeItem('mfa_failed_attempts');
+
+Aplicar no logotipo:
+O "Coração" (Heartbeat): Criei uma animação que faz a imagem escalar (aumentar para 110%) e voltar rapidinho, imitando uma batida cardíaca real, em vez de apenas piscar devagar.
+A "Aura" (Glow Azul): Usei uma borda azul translúcida combinada com uma sombra brilhante (box-shadow) para criar esse efeito de luz neon em volta do círculo branco.
+O "Radar" (Ondas de Fundo): Aqueles círculos que saem de trás? São apenas elementos transparentes onde apliquei um efeito de "Ping" (eco), fazendo eles crescerem e desaparecerem em loop.
+
+
 
 
 **********************************************************************************************************************************************************************************************************

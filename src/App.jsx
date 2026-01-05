@@ -25,6 +25,8 @@ const Profile = React.lazy(() => import('./pages/Profile'));
 const Share = React.lazy(() => import('./pages/Share'));
 const Appointments = React.lazy(() => import('./pages/Appointments'));
 const Widget = React.lazy(() => import('./pages/Widget'));
+const TrophyGallery = React.lazy(() => import('./pages/TrophyGallery'));
+const SecurityAudit = React.lazy(() => import('./pages/SecurityAudit'));
 
 // Admin Pages - Lazy
 const AdminSponsors = React.lazy(() => import('./pages/AdminSponsors'));
@@ -67,6 +69,8 @@ function App() {
                     <Route path="/contact" element={<ProtectedRoute><Support /></ProtectedRoute>} />
                     <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
                     <Route path="/widget" element={<ProtectedRoute><Widget /></ProtectedRoute>} />
+                    <Route path="/trophies" element={<ProtectedRoute><TrophyGallery /></ProtectedRoute>} />
+                    <Route path="/security-audit" element={<ProtectedRoute><SecurityAudit /></ProtectedRoute>} />
                     <Route path="/admin/settings" element={<ProtectedRoute adminOnly={true}><AdminSettings /></ProtectedRoute>} />
                     <Route path="/admin/sponsors" element={<ProtectedRoute><AdminSponsors /></ProtectedRoute>} />
                     <Route path="/admin/support" element={<ProtectedRoute adminOnly={true}><AdminSupport /></ProtectedRoute>} />

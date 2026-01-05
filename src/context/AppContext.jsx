@@ -528,6 +528,8 @@ export const AppProvider = ({ children }) => {
                 setTimeout(() => checkLowStock(prescription.medicationId), 1000);
             }
 
+            return { newLog, updatedMedication };
+
         } catch (error) {
             console.error('Erro ao registrar consumo:', error);
             showToast('Erro ao registrar dose', 'error');
@@ -586,6 +588,7 @@ export const AppProvider = ({ children }) => {
             // Manual State Update for immediate UI reflection (Realtime backup)
             setHealthLogs(prev => [newHealthLog, ...prev]);
             showToast('Registro de saúde adicionado!');
+            return newHealthLog;
         } catch (error) {
             console.error('Erro ao adicionar registro de saúde:', error);
             showToast('Erro ao salvar registro', 'error');

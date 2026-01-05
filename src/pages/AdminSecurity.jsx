@@ -6,6 +6,7 @@ import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianG
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { QRCodeSVG } from 'qrcode.react';
+import LoadingScreen from '../components/ui/LoadingScreen';
 
 const AdminSecurity = () => {
     const { showToast } = useApp();
@@ -13,6 +14,10 @@ const AdminSecurity = () => {
     const [stats, setStats] = useState({ critical: 0, high: 0, medium: 0, low: 0 });
     const [activityData, setActivityData] = useState([]);
     const [loading, setLoading] = useState(true);
+
+    // Pagination for Suspicious Activities
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 4;
 
     // MFA States
     const { enrollMFA, verifyMFA, unenrollMFA, getMFAFactors, mfaEnabled } = useAuth();
@@ -266,11 +271,7 @@ const AdminSecurity = () => {
     };
 
     if (loading) {
-        return (
-            <div className="min-h-screen flex items-center justify-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-            </div>
-        );
+        return <LoadingScreen text="Carregando Dashboard..." fullScreen={false} />;
     }
 
     return (
@@ -501,8 +502,8 @@ const AdminSecurity = () => {
                             <AlertTriangle size={20} className="text-red-600" />
                             <h2 className="text-xl font-bold">Atividades Suspeitas Recentes</h2>
                         </div>
-                        <span className="text-sm text-slate-500">Atualiza a cada 10s</span>
                     </div>
+                    {/* <span className="text-sm text-slate-500">Atualiza a cada 10s</span> */}
                 </CardHeader>
                 <CardContent>
                     {suspiciousActivities.length === 0 ? (
@@ -512,50 +513,76 @@ const AdminSecurity = () => {
                             <p className="text-sm">Sistema funcionando normalmente</p>
                         </div>
                     ) : (
-                        <div className="space-y-3 max-h-[600px] overflow-y-auto">
-                            {suspiciousActivities.map((activity) => (
-                                <div
-                                    key={activity.id}
-                                    className={`p-4 border rounded-xl ${getRiskColor(activity.risk_level)}`}
-                                >
-                                    <div className="flex items-start justify-between mb-2">
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-2xl">{getRiskIcon(activity.risk_level)}</span>
-                                            <div>
-                                                <p className="font-bold text-sm uppercase">{activity.risk_level}</p>
-                                                <p className="text-sm font-medium">{activity.user_email}</p>
+                        <div>
+                            <div className="space-y-3 mb-4">
+                                {suspiciousActivities
+                                    .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+                                    .map((activity) => (
+                                        <div
+                                            key={activity.id}
+                                            className={`p-3 border rounded-lg ${getRiskColor(activity.risk_level)}`}
+                                        >
+                                            <div className="flex items-center justify-between mb-1">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-xl">{getRiskIcon(activity.risk_level)}</span>
+                                                    <div>
+                                                        <div className="flex items-center gap-2">
+                                                            <p className="font-bold text-xs uppercase">{activity.risk_level}</p>
+                                                            <span className="text-xs text-slate-500">• {formatTimeAgo(activity.created_at)}</span>
+                                                        </div>
+                                                        <p className="text-xs font-medium truncate max-w-[200px]">{activity.user_email}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="space-y-1 text-xs pl-8">
+                                                <p className='truncate'><strong>Ação:</strong> <code className="bg-black/10 px-1 py-0.5 rounded">{activity.action}</code></p>
+                                                {activity.ip_address && (
+                                                    <p className="flex items-center gap-1 text-xs">
+                                                        <MapPin size={10} />
+                                                        {activity.ip_address}
+                                                    </p>
+                                                )}
+                                                {activity.metadata && Object.keys(activity.metadata).length > 0 && (
+                                                    <details className="mt-1">
+                                                        <summary className="cursor-pointer font-medium hover:underline text-xs">Ver Detalhes</summary>
+                                                        <pre className="mt-1 text-[10px] bg-black/10 p-2 rounded overflow-x-auto">
+                                                            {JSON.stringify(activity.metadata, null, 2)}
+                                                        </pre>
+                                                    </details>
+                                                )}
                                             </div>
                                         </div>
-                                        <div className="flex items-center gap-2 text-xs text-slate-500">
-                                            <Clock size={14} />
-                                            {formatTimeAgo(activity.created_at)}
-                                        </div>
-                                    </div>
+                                    ))}
+                            </div>
 
-                                    <div className="space-y-1 text-sm">
-                                        <p><strong>Ação:</strong> <code className="bg-black/10 px-2 py-0.5 rounded">{activity.action}</code></p>
-                                        {activity.ip_address && (
-                                            <p className="flex items-center gap-1">
-                                                <MapPin size={14} />
-                                                <strong>IP:</strong> {activity.ip_address}
-                                            </p>
-                                        )}
-                                        {activity.metadata && Object.keys(activity.metadata).length > 0 && (
-                                            <details className="mt-2">
-                                                <summary className="cursor-pointer font-medium">Ver Detalhes</summary>
-                                                <pre className="mt-2 text-xs bg-black/10 p-2 rounded overflow-x-auto">
-                                                    {JSON.stringify(activity.metadata, null, 2)}
-                                                </pre>
-                                            </details>
-                                        )}
-                                    </div>
+                            {/* Pagination Controls */}
+                            {suspiciousActivities.length > itemsPerPage && (
+                                <div className="flex justify-center gap-2 mt-4 pt-2 border-t border-slate-100">
+                                    <button
+                                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                        disabled={currentPage === 1}
+                                        className="px-3 py-1 text-xs rounded-md bg-white border border-slate-200 disabled:opacity-50 hover:bg-slate-50"
+                                    >
+                                        Anterior
+                                    </button>
+                                    <span className="text-xs py-1 text-slate-500">
+                                        Página {currentPage} de {Math.ceil(suspiciousActivities.length / itemsPerPage)}
+                                    </span>
+                                    <button
+                                        onClick={() => setCurrentPage(p => Math.min(Math.ceil(suspiciousActivities.length / itemsPerPage), p + 1))}
+                                        disabled={currentPage === Math.ceil(suspiciousActivities.length / itemsPerPage)}
+                                        className="px-3 py-1 text-xs rounded-md bg-white border border-slate-200 disabled:opacity-50 hover:bg-slate-50"
+                                    >
+                                        Próxima
+                                    </button>
                                 </div>
-                            ))}
+                            )}
                         </div>
                     )}
                 </CardContent>
             </Card>
-        </div>
+        </div >
     );
 };
 

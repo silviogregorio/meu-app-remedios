@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useApp } from '../context/AppContext';
 import { Shield } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import LoadingScreen from './ui/LoadingScreen';
 
 const MFA_LOCKOUT_KEY = 'mfa_lockout_until';
 const MFA_ATTEMPTS_KEY = 'mfa_failed_attempts';
@@ -199,20 +200,7 @@ const ProtectedRoute = ({ children, adminOnly = false, skipProfileCheck = false 
     };
 
     if (!isActuallyReady) {
-        return (
-            <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-white dark:bg-slate-900 animate-in fade-in duration-300">
-                <div className="flex flex-col items-center gap-6">
-                    <div className="relative">
-                        <div className="w-16 h-16 border-4 border-slate-100 dark:border-slate-800 rounded-full"></div>
-                        <div className="absolute top-0 w-16 h-16 border-4 border-[#10b981] border-t-transparent rounded-full animate-spin"></div>
-                    </div>
-                    <div className="flex flex-col items-center gap-2">
-                        <p className="text-xl font-black text-slate-800 dark:text-white tracking-tight">SiG Remédios</p>
-                        <p className="text-sm font-bold text-slate-500 dark:text-slate-400">Verificando segurança...</p>
-                    </div>
-                </div>
-            </div>
-        );
+        return <LoadingScreen text="Verificando segurança..." />;
     }
 
     if (!user) {
