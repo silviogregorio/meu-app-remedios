@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import BiometricSetup from '../components/auth/BiometricSetup';
 import { useApp } from '../context/AppContext';
 import { supabase } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
@@ -528,6 +529,9 @@ const Profile = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Biometric Setup Section */}
+            <BiometricSetup />
 
             {/* Accessibility Settings Section */}
             <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden">

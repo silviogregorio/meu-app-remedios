@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useApp } from '../context/AppContext';
-import { Shield } from 'lucide-react';
+import { Shield, Fingerprint } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import LoadingScreen from './ui/LoadingScreen';
 
@@ -12,10 +12,33 @@ const MAX_ATTEMPTS = 5;
 const LOCKOUT_DURATION_MS = 60000; // 60 seconds
 
 const ProtectedRoute = ({ children, adminOnly = false, skipProfileCheck = false }) => {
-    const { user, loading: authLoading, mfaRequired, mfaChallenge, currentAal, verifyMFA, clearMfaState, refreshMfaChallenge } = useAuth();
+    const { user, loading: authLoading, mfaRequired, mfaChallenge, currentAal, verifyMFA, challengeMFA, verifyPasskey, clearMfaState, refreshMfaChallenge } = useAuth();
     const { showToast } = useApp(); // Get showToast from useApp
 
     const [retryLoading, setRetryLoading] = useState(false);
+
+    // Biometric Handler
+    const handleBiometricVerify = async (factorId) => {
+        try {
+            setMfaLoading(true);
+            setMfaError('');
+
+            // 1. Create a specific challenge for Bio
+            const { data: challenge, error: challengeError } = await challengeMFA(factorId);
+            if (challengeError) throw challengeError;
+
+            // 2. Verify with WebAuthn
+            const { error: verifyError } = await verifyPasskey(factorId, challenge.id);
+            if (verifyError) throw verifyError;
+
+            // Success is handled by verifiesPasskey updating context
+        } catch (err) {
+            console.error(err);
+            setMfaError('Erro na biometria. Tente novamente ou use o código.');
+            setMfaLoading(false);
+        }
+    };
+
 
     // NEW: Robust Loading State
     // We must wait if Auth is loading OR if we are still checking MFA requirement (mfaRequired === null)
@@ -254,40 +277,69 @@ const ProtectedRoute = ({ children, adminOnly = false, skipProfileCheck = false 
                             </button>
                         </div>
                     ) : (
-                        <form onSubmit={handleMfaSubmit} className="flex flex-col gap-4">
-                            {mfaError && (
-                                <div className="p-3 bg-red-50 text-red-600 text-sm rounded-lg text-center font-semibold">
-                                    {mfaError}
-                                    {lockoutSeconds > 0 && (
-                                        <div className="text-lg font-bold mt-2">
-                                            ⏱️ {lockoutSeconds}s
-                                        </div>
-                                    )}
+                        <div className="space-y-6">
+                            <form onSubmit={handleMfaSubmit} className="flex flex-col gap-4">
+                                {mfaError && (
+                                    <div className="p-3 bg-red-50 text-red-600 text-sm rounded-lg text-center font-semibold animate-shake">
+                                        {mfaError}
+                                        {lockoutSeconds > 0 && (
+                                            <div className="text-lg font-bold mt-2">
+                                                ⏱️ {lockoutSeconds}s
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                <input
+                                    ref={inputRef}
+                                    type="text"
+                                    maxLength="6"
+                                    placeholder="000000"
+                                    value={mfaCode}
+                                    onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, ''))}
+                                    className="w-full text-center text-3xl tracking-[0.3em] font-mono py-4 border-2 border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-white focus:border-blue-500 outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                    autoFocus
+                                    required
+                                    id="mfa-code-input"
+                                    disabled={lockoutSeconds > 0}
+                                />
+
+                                <div className="flex flex-col gap-3">
+                                    <button
+                                        type="submit"
+                                        disabled={mfaLoading || mfaCode.length !== 6 || lockoutSeconds > 0}
+                                        className="w-full py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 disabled:opacity-50 transition-all shadow-lg shadow-blue-500/20"
+                                    >
+                                        {lockoutSeconds > 0 ? `Aguarde ${lockoutSeconds}s` : (mfaLoading ? 'Verificando...' : 'Confirmar Código')}
+                                    </button>
+
+                                    {/* WebAuthn / Biometrics Button */}
+                                    {(() => {
+                                        const webAuthnFactor = user?.factors?.find(f => f.factor_type === 'webauthn' && f.status === 'verified');
+                                        if (webAuthnFactor) {
+                                            return (
+                                                <button
+                                                    type="button"
+                                                    disabled={lockoutSeconds > 0}
+                                                    onClick={async () => {
+                                                        const { challengeMFA, verifyPasskey } = await import('../context/AuthContext').then(m => ({ challengeMFA: useAuth().challengeMFA, verifyPasskey: useAuth().verifyPasskey }));
+                                                        // Note: We need to access these from the hook instance, this inline import is messy. 
+                                                        // Let's rely on the props passed or context available in scope.
+                                                        // FIX: Use the useAuth() context variables already available in scope.
+                                                        handleBiometricVerify(webAuthnFactor.id);
+                                                    }}
+                                                    className="w-full py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-500/20 flex items-center justify-center gap-2"
+                                                >
+                                                    <Fingerprint size={20} />
+                                                    <span>Usar Biometria</span>
+                                                </button>
+                                            );
+                                        }
+                                        return null;
+                                    })()}
                                 </div>
-                            )}
-
-                            <input
-                                ref={inputRef}
-                                type="text"
-                                maxLength="6"
-                                placeholder="000000"
-                                value={mfaCode}
-                                onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, ''))}
-                                className="w-full text-center text-3xl tracking-[0.3em] font-mono py-4 border-2 border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-white focus:border-blue-500 outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                                autoFocus
-                                required
-                                id="mfa-code-input"
-                                disabled={lockoutSeconds > 0}
-                            />
-
-                            <button
-                                type="submit"
-                                disabled={mfaLoading || mfaCode.length !== 6 || lockoutSeconds > 0}
-                                className="w-full py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 disabled:opacity-50 transition-all"
-                            >
-                                {lockoutSeconds > 0 ? `Aguarde ${lockoutSeconds}s` : (mfaLoading ? 'Verificando...' : 'Confirmar Código')}
-                            </button>
-                        </form>
+                            </form>
+                        </div>
                     )}
                 </div>
             </div>

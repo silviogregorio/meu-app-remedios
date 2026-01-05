@@ -407,8 +407,72 @@ export const AuthProvider = ({ children }) => {
         mfaEnabled: user?.factors?.some(f => f.status === 'verified') || false
     };
 
+    // --- WebAuthn / Passkeys Implementation (Native Biometrics) ---
+
+    /**
+     * Enrolls a new Passkey/Biometric credential for the user.
+     * @param {string} friendlyName - e.g. "iPhone de Silvio"
+     */
+    const enrollPasskey = async (friendlyName = 'Biometria') => {
+        try {
+            console.log('🔐 WebAuthn: Iniciando cadastro de biometria...');
+
+            // 1. Initialize Enrollment - This asks Supabase to start the ceremony
+            const { data, error } = await supabase.auth.mfa.enroll({
+                factorType: 'webauthn',
+                friendlyName
+            });
+
+            if (error) throw error;
+            console.log('🔐 WebAuthn: Biometria cadastrada com sucesso!', data);
+
+            // 2. We should ideally invalidate/refresh current user factors immediately
+            await supabase.auth.mfa.listFactors();
+
+            return { data, error: null };
+        } catch (error) {
+            console.error('🔐 WebAuthn Enroll Error:', error);
+            return { data: null, error };
+        }
+    };
+
+    /**
+     * Verifies the user using a registered Passkey.
+     * This moves the session to AAL2 (Authenticated Level 2).
+     */
+    const verifyPasskey = async (factorId, challengeId) => {
+        try {
+            console.log('🔐 WebAuthn: Solicitando digital...');
+            const { data, error } = await supabase.auth.mfa.verify({
+                factorId,
+                challengeId,
+                webAuthn: true // Critical: Tells SDK to use browser's WebAuthn API
+            });
+
+            if (error) throw error;
+            console.log('🔐 WebAuthn: Verificado com sucesso!');
+
+            // Update local state immediately
+            setCurrentAal('aal2');
+            setMfaRequired(false);
+            setMfaChallenge(null);
+
+            return { data, error: null };
+        } catch (error) {
+            console.error('🔐 WebAuthn Verify Error:', error);
+            return { data: null, error };
+        }
+    };
+
+    // Updated value object with new methods
+    const extendedValue = {
+        ...value,
+        enrollPasskey,
+        verifyPasskey
+    };
+
     return (
-        <AuthContext.Provider value={value}>
+        <AuthContext.Provider value={extendedValue}>
             {children}
         </AuthContext.Provider>
     );
