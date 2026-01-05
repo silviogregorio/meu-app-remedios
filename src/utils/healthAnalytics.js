@@ -200,3 +200,102 @@ export const formatHealthValue = (item, category) => {
     }
     return Math.round(val);
 };
+/**
+ * Advanced Insights Analysis
+ * Detects patterns like "Weekend Spikes", "Nightly Highs", or "Stability".
+ */
+export const analyzeHealthTrends = (logs, category) => {
+    if (!logs || logs.length < 5) return []; // Need minimum data
+
+    const insights = [];
+    const categoryLogs = logs.filter(l => l.category === category).sort((a, b) => new Date(a.measured_at) - new Date(b.measured_at));
+
+    if (categoryLogs.length < 5) return [];
+
+    // 1. Weekend Effect (Check if values are higher on Sat/Sun)
+    const weekendLogs = categoryLogs.filter(l => {
+        const day = new Date(l.measured_at).getDay();
+        return day === 0 || day === 6; // Sun or Sat
+    });
+    const weekdayLogs = categoryLogs.filter(l => {
+        const day = new Date(l.measured_at).getDay();
+        return day > 0 && day < 6;
+    });
+
+    if (weekendLogs.length > 2 && weekdayLogs.length > 2) {
+        const getAvg = (arr) => arr.reduce((acc, curr) => acc + Number(curr.value), 0) / arr.length;
+        const weekendAvg = getAvg(weekendLogs);
+        const weekdayAvg = getAvg(weekdayLogs);
+
+        // If weekend is > 10% higher than weekday
+        if (weekendAvg > weekdayAvg * 1.1) {
+            insights.push({
+                type: 'warning',
+                title: 'Padrão de Fim de Semana',
+                description: 'Seus níveis tendem a subir aos sábados e domingos. Cuidado com exageros nestes dias.',
+                icon: 'Calendar'
+            });
+        }
+    }
+
+    // 2. Time of Day Analysis (Morning vs Night)
+    const morningLogs = categoryLogs.filter(l => {
+        const hour = new Date(l.measured_at).getHours();
+        return hour >= 6 && hour < 12;
+    });
+    const nightLogs = categoryLogs.filter(l => {
+        const hour = new Date(l.measured_at).getHours();
+        return hour >= 18 && hour <= 23;
+    });
+
+    if (morningLogs.length > 2 && nightLogs.length > 2) {
+        const getAvg = (arr) => arr.reduce((acc, curr) => acc + Number(curr.value), 0) / arr.length;
+        const morningAvg = getAvg(morningLogs);
+        const nightAvg = getAvg(nightLogs);
+
+        if (nightAvg > morningAvg * 1.15) {
+            insights.push({
+                type: 'info',
+                title: 'Oscilação Noturna',
+                description: 'Seus valores costumam ser mais altos à noite. Verifique se o cansaço do dia está influenciando.',
+                icon: 'Moon'
+            });
+        }
+    }
+
+    // 3. Consistency/Engagement Reward
+    const last7Days = categoryLogs.filter(l => {
+        const sevenDaysAgo = subDays(new Date(), 7);
+        return new Date(l.measured_at) >= sevenDaysAgo;
+    });
+
+    if (last7Days.length >= 5) {
+        insights.push({
+            type: 'success',
+            title: 'Disciplina Exemplar',
+            description: `Você registrou ${last7Days.length} medições na última semana. Manter esse histórico ajuda muito seu médico!`,
+            icon: 'Award'
+        });
+    }
+
+    // 4. Stability Check (Low Standard Deviation)
+    // Only if we haven't found a major negative trend already
+    if (insights.length === 0 && categoryLogs.length > 5) {
+        const values = categoryLogs.map(l => Number(l.value));
+        const avg = values.reduce((a, b) => a + b, 0) / values.length;
+        const variance = values.reduce((a, b) => a + Math.pow(b - avg, 2), 0) / values.length;
+        const stdDev = Math.sqrt(variance);
+
+        // Coefficient of variation < 10% is usually very stable
+        if ((stdDev / avg) < 0.10) {
+            insights.push({
+                type: 'success',
+                title: 'Estabilidade Total',
+                description: 'Seus índices estão muito constantes, sem grandes picos ou quedas. Ótimo sinal de controle.',
+                icon: 'Activity'
+            });
+        }
+    }
+
+    return insights;
+};

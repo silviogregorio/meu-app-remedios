@@ -1,28 +1,21 @@
 import React from 'react';
-import { Pill } from 'lucide-react';
 
 const LoadingScreen = () => {
     return (
-        <div className="fixed inset-0 bg-slate-50 dark:bg-slate-900 flex flex-col items-center justify-center z-50 transition-opacity duration-300">
-            <div className="relative">
-                {/* Glow/Blur Behind */}
-                <div className="absolute inset-0 bg-blue-500/20 blur-xl rounded-full animate-pulse"></div>
+        <div className="fixed inset-0 bg-slate-50 dark:bg-slate-900 flex items-center justify-center z-50">
+            <div className="relative flex items-center justify-center">
+                {/* Subtle Pulse Background */}
+                <div className="absolute w-24 h-24 bg-blue-500/10 rounded-full animate-[ping_3s_cubic-bezier(0,0,0.2,1)_infinite]"></div>
+                <div className="absolute w-20 h-20 bg-blue-500/20 rounded-full animate-[ping_2s_cubic-bezier(0,0,0.2,1)_infinite]"></div>
 
-                {/* Icon Container */}
-                <div className="relative bg-white dark:bg-slate-800 p-6 rounded-3xl shadow-xl border border-slate-100 dark:border-slate-700">
-                    <Pill size={48} className="text-blue-600 dark:text-blue-400 animate-bounce" />
+                {/* Logo */}
+                <div className="relative z-10 p-3 bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
+                    <img
+                        src="/assets/logo.png"
+                        alt="Loading..."
+                        className="w-12 h-12 object-contain animate-pulse"
+                    />
                 </div>
-            </div>
-
-            <div className="mt-8 flex flex-col items-center gap-3">
-                <div className="h-1.5 w-48 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
-                    <div className="h-full bg-gradient-to-r from-blue-500 to-indigo-600 w-1/2 animate-[shimmer_1s_infinite_linear] text-center relative overflow-hidden">
-                        <div className="absolute inset-0 bg-white/30 skew-x-12 animate-[spin_1s_linear_infinite]"></div>
-                    </div>
-                    {/* Simple indeterminate bar using standard tailwind if custom anims missing */}
-                    <div className="h-full bg-blue-500 animate-pulse w-full origin-left bg-gradient-to-r from-blue-400 to-blue-600"></div>
-                </div>
-                <p className="text-sm font-bold text-slate-400 uppercase tracking-widest animate-pulse">Carregando...</p>
             </div>
         </div>
     );

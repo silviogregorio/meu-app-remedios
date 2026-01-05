@@ -1,3 +1,5 @@
+https://www.mindluster.com
+
 Observações importantes para próximos aplicativos:
 
 O Firebase no app é v12.7.0, mas o Service Worker usa v10.8.0. Essa incompatibilidade causa o erro. Vou atualizar o Service Worker para usar a versão correta. Todo dia vou ter que pedir para verificar ?
@@ -57,25 +59,24 @@ Com o sistema estável na versão v1.6.16 e com o Diário de Saúde polido, aqui
 
 1. 🚀 Performance e Otimização (Técnico)
 Durante o deploy, notei um aviso: Some chunks are larger than 1000 kB.
-
 O que fazer: Implementar Lazy Loading (carregamento sob demanda) nas rotas.
 Por que: Atualmente, o app carrega toda a área administrativa, relatórios e configurações assim que o usuário entra. Podemos dividir isso para que o carregamento inicial seja instantâneo, especialmente em celulares mais lentos (comum no público idoso).
+
 2. 🧠 Inteligência de Dados (Premium)
 Já temos os gráficos, agora podemos dar "o próximo passo".
-
 O que fazer: Criar Insights Avançados.
 Ex: "Sua pressão tende a subir nos finais de semana."
 Ex: "Você esquece mais remédios à noite do que de manhã."
 Relatório PDF para Médico: Um botão "Gerar Relatório Médico" no card de tendências que baixa um PDF limpo com os gráficos e tabelas dos últimos 30 dias para levar na consulta.
+
 3. 🏆 Gamificação 2.0 (Engajamento)
 A barra de "Energia/Bateria" é ótima. Podemos expandir.
-
 O que fazer: Sistema de Conquistas (Badges).
 Medalhas visuais para: "Semana Perfeita" (100% de adesão), "Guerreiro" (30 dias seguidos), "Vigilante" (medir pressão todo dia por uma semana).
 Criar uma tela de "Galeria de Troféus". Isso aumenta muito a retenção.
+
 4. 🛡️ Auditoria Visual (Segurança)
 Mexemos bastante no compartilhamento de contas.
-
 O que fazer: Um Log de Acessos visível para o usuário.
 Uma tela onde ele vê: "Cuidador Maria visualizou seu Diário hoje às 14:00".
 Isso traz uma sensação enorme de controle e segurança sobre os dados.

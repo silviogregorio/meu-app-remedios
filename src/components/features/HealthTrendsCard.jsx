@@ -1,16 +1,23 @@
 import React, { useState, useMemo } from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Legend } from 'recharts';
-import { Activity, TrendingUp, TrendingDown, Minus, Info, Calendar, HeartPulse, Droplets, Scale, Thermometer, Heart, Wind } from 'lucide-react';
-import { groupLogsByDay, getTrendInsight, formatHealthValue, getVitalStatus } from '../../utils/healthAnalytics';
+import { Activity, TrendingUp, TrendingDown, Minus, Info, Calendar, HeartPulse, Droplets, Scale, Thermometer, Heart, Wind, FileText, Download } from 'lucide-react';
+import { groupLogsByDay, getTrendInsight, formatHealthValue, getVitalStatus, analyzeHealthTrends } from '../../utils/healthAnalytics';
+import { generateMedicalReport } from '../../utils/pdfGenerator';
+import { useApp } from '../../context/AppContext'; // To get patient name
 import Card, { CardContent } from '../ui/Card';
 import { clsx } from 'clsx';
 import { format } from 'date-fns';
+import PatientSelectorModal from './PatientSelectorModal';
 
 const HealthTrendsCard = ({ logs, className }) => {
     const [activeCategory, setActiveCategory] = useState('pressure'); // 'pressure' | 'glucose' | 'weight' | 'temperature' | 'heart'
 
+    const { user, patients, healthLogs, prescriptions, medications } = useApp(); // Get full context
+    const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+    const [showPatientSelector, setShowPatientSelector] = useState(false);
+
     const chartData = useMemo(() => {
-        return groupLogsByDay(logs, activeCategory, 14); // 14 days lookback
+        return groupLogsByDay(logs, activeCategory, 30); // 30 days lookback for better insights
     }, [logs, activeCategory]);
 
     const lastLiteralEntry = useMemo(() => {
@@ -45,6 +52,95 @@ const HealthTrendsCard = ({ logs, className }) => {
         }
         return trendData;
     }, [chartData, activeCategory, lastLiteralEntry]);
+
+    const advancedInsights = useMemo(() => {
+        return analyzeHealthTrends(logs || [], activeCategory);
+    }, [logs, activeCategory]);
+
+    const handleDownloadClick = () => {
+        setShowPatientSelector(true);
+    };
+
+    const handlePatientSelect = async (selectedProfile) => {
+        setShowPatientSelector(false);
+        setIsGeneratingPdf(true);
+
+        try {
+            // 1. Logs Filtering
+            // 'patient_id' is usually null for the main user, or matches the profile ID for dependents
+            // We check both camelCase and snake_case to be safe with data usage
+            const targetId = selectedProfile.isSelf ? null : selectedProfile.id;
+
+            const patientLogs = (healthLogs || []).filter(l => {
+                const pId = l.patientId || l.patient_id;
+                // If target is null (Self), we want logs where pId is null OR pId equals user.id (if explicitly set)
+                if (selectedProfile.isSelf) {
+                    return !pId || pId === user.id;
+                }
+                return pId === targetId;
+            });
+
+            // 2. Medications Filtering via Prescriptions
+            let activeMeds = [];
+            let inactiveMeds = [];
+
+            if (prescriptions) {
+                const allPatientPrescriptions = prescriptions.filter(p => {
+                    const pId = p.patientId || p.patient_id;
+                    if (selectedProfile.isSelf) return !pId || pId === user.id;
+                    return pId === targetId;
+                });
+
+                // Sort by date (newest first)
+                allPatientPrescriptions.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+                allPatientPrescriptions.forEach(p => {
+                    const med = medications.find(m => m.id === p.medicationId || m.id === p.medication_id);
+                    const medData = {
+                        name: med ? med.name : 'Medicamento',
+                        dosage: p.dosage,
+                        unit: p.unit,
+                        frequency: p.frequency,
+                        startDate: p.startDate,
+                        endDate: p.endDate,
+                        status: p.status
+                    };
+
+                    if (p.status === 'active') {
+                        activeMeds.push(medData);
+                    } else {
+                        inactiveMeds.push(medData);
+                    }
+                });
+            }
+
+            // 3. Prepare Patient Data object with all details
+            const reportPatient = {
+                name: selectedProfile.name,
+                birthDate: selectedProfile.birth_date || selectedProfile.birthDate,
+                age: selectedProfile.age, // Pass pre-calculated age if available
+                bloodType: selectedProfile.blood_type || selectedProfile.bloodType,
+                allergies: selectedProfile.allergies, // New Field
+                email: selectedProfile.email,
+                phone: selectedProfile.phone,
+                responsibleName: selectedProfile.isSelf ? 'O Próprio' : (user?.user_metadata?.full_name || user?.email), // New Field
+                responsiblePhone: selectedProfile.isSelf ? selectedProfile.phone : (user?.phone || user?.user_metadata?.phone) // Optional
+            };
+
+            await generateMedicalReport({
+                patient: reportPatient,
+                logs: patientLogs,
+                activeMedications: activeMeds,
+                inactiveMedications: inactiveMeds,
+                periodLabel: "Histórico Completo"
+            });
+        } catch (error) {
+            console.error("Error generating PDF", error);
+            alert("Erro ao gerar PDF. Tente novamente.");
+        } finally {
+            setIsGeneratingPdf(false);
+        }
+    };
 
     // If no logs at all, show invite to start tracking
     const hasAnyLogs = logs && logs.length > 0;
@@ -98,10 +194,30 @@ const HealthTrendsCard = ({ logs, className }) => {
                         </div>
                         <div>
                             <h3 className="font-black text-slate-900 dark:text-white leading-tight">Tendências de Saúde</h3>
-                            <p className="text-xs text-slate-500 font-medium tracking-wide uppercase">Últimos 14 dias</p>
+                            <p className="text-xs text-slate-500 font-medium tracking-wide uppercase">Últimos 30 dias</p>
                         </div>
                     </div>
+
+                    <button
+                        onClick={handleDownloadClick}
+                        disabled={isGeneratingPdf}
+                        className="flex items-center gap-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 text-white rounded-xl transition-all shadow-sm hover:shadow active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        {isGeneratingPdf ? (
+                            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        ) : (
+                            <FileText size={18} />
+                        )}
+                        <span className="font-medium text-sm">Relatório Médico</span>
+                    </button>
                 </div>
+
+                {/* Patient Selector Modal */}
+                <PatientSelectorModal
+                    isOpen={showPatientSelector}
+                    onClose={() => setShowPatientSelector(false)}
+                    onSelect={handlePatientSelect}
+                />
 
                 {/* Legend & Stats - Prominent and Clear */}
                 <div className="grid grid-cols-2 gap-3 mt-4">
@@ -131,12 +247,12 @@ const HealthTrendsCard = ({ logs, className }) => {
                 {/* Category Grid - Compact and Intuitive */}
                 <div className="mt-4 grid grid-cols-3 gap-1.5">
                     {[
-                        { id: 'pressure', label: 'Pressão', icon: HeartPulse },
-                        { id: 'glucose', label: 'Glicemia', icon: Droplets },
-                        { id: 'weight', label: 'Peso', icon: Scale },
-                        { id: 'temperature', label: 'Temp.', icon: Thermometer },
-                        { id: 'heart_rate', label: 'Freq.', icon: Heart },
-                        { id: 'oxygen', label: 'Sat.', icon: Wind }
+                        { id: 'pressure', label: 'Pressão', fullLabel: 'Pressão', icon: HeartPulse },
+                        { id: 'glucose', label: 'Glicemia', fullLabel: 'Glicemia', icon: Droplets },
+                        { id: 'weight', label: 'Peso', fullLabel: 'Peso', icon: Scale },
+                        { id: 'temperature', label: 'Temp.', fullLabel: 'Temperatura', icon: Thermometer },
+                        { id: 'heart_rate', label: 'Freq.', fullLabel: 'Frequência', icon: Heart },
+                        { id: 'oxygen', label: 'Sat.', fullLabel: 'Saturação', icon: Wind }
                     ].map(cat => (
                         <button
                             key={cat.id}
@@ -149,8 +265,9 @@ const HealthTrendsCard = ({ logs, className }) => {
                             )}
                         >
                             <cat.icon size={16} className={activeCategory === cat.id ? 'text-white' : 'text-slate-400'} />
-                            <span className="text-[9px] font-bold uppercase tracking-tighter">
-                                {cat.label}
+                            <span className="text-[9px] md:text-xs font-bold uppercase tracking-tighter">
+                                <span className="md:hidden">{cat.label}</span>
+                                <span className="hidden md:inline">{cat.fullLabel}</span>
                             </span>
                         </button>
                     ))}
@@ -175,8 +292,8 @@ const HealthTrendsCard = ({ logs, className }) => {
                     // Show recent logs list for sparse data (< 3 different days)
                     <div className="h-full flex flex-col gap-4 py-4">
                         <div className="text-center">
-                            <p className="text-sm font-bold text-slate-700 dark:text-slate-300">Últimos Registros</p>
-                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Adicione registros em mais dias para ver o gráfico de tendência</p>
+                            <p className="text-sm md:text-base font-bold text-slate-700 dark:text-slate-300">Últimos Registros</p>
+                            <p className="text-xs md:text-sm text-slate-500 dark:text-slate-400 mt-1">Adicione registros em mais dias para ver o gráfico de tendência</p>
                         </div>
                         <div className="space-y-2">
                             {logs
@@ -187,22 +304,22 @@ const HealthTrendsCard = ({ logs, className }) => {
                                     const status = getVitalStatus(activeCategory, log.value, log.value_secondary);
                                     return (
                                         <div key={idx} className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-3 border border-slate-200 dark:border-slate-700 flex items-center gap-2">
-                                            <div className="text-[10px] text-slate-500 font-medium shrink-0">
+                                            <div className="text-[10px] md:text-xs text-slate-500 font-medium shrink-0">
                                                 {format(new Date(log.measured_at || log.created_at), 'dd/MM HH:mm')}
                                             </div>
                                             <div className="flex items-center gap-1 flex-1 min-w-0">
                                                 {activeCategory === 'pressure' ? (
                                                     <>
-                                                        <span className="text-base font-black text-blue-600">{Math.round(log.value)}</span>
-                                                        <span className="text-xs text-slate-400">/</span>
-                                                        <span className="text-base font-black text-emerald-600">{Math.round(log.value_secondary)}</span>
+                                                        <span className="text-base md:text-lg font-black text-blue-600">{Math.round(log.value)}</span>
+                                                        <span className="text-xs md:text-sm text-slate-400">/</span>
+                                                        <span className="text-base md:text-lg font-black text-emerald-600">{Math.round(log.value_secondary)}</span>
                                                     </>
                                                 ) : (
-                                                    <span className="text-base font-black text-blue-600">{formatHealthValue(log, activeCategory)}</span>
+                                                    <span className="text-base md:text-lg font-black text-blue-600">{formatHealthValue(log, activeCategory)}</span>
                                                 )}
                                             </div>
                                             {status.status && (
-                                                <div className={`text-[8px] font-bold px-1.5 py-0.5 rounded shrink-0 ${status.level === 'normal' ? 'bg-green-100 text-green-700' :
+                                                <div className={`text-[10px] md:text-xs font-bold px-2 py-0.5 md:py-1 rounded-md shrink-0 ${status.level === 'normal' ? 'bg-green-100 text-green-700' :
                                                     status.level === 'warning' ? 'bg-yellow-100 text-yellow-700' :
                                                         'bg-red-100 text-red-700'
                                                     }`}>
@@ -292,7 +409,38 @@ const HealthTrendsCard = ({ logs, className }) => {
                         </ResponsiveContainer>
                     </div>
                 )}
+
+
             </CardContent>
+
+            {/* AI Insights Section */}
+            {
+                advancedInsights.length > 0 && (
+                    <div className="px-6 pb-4">
+                        <div className="space-y-3">
+                            {advancedInsights.map((insight, idx) => (
+                                <div key={idx} className={clsx(
+                                    "p-3 rounded-xl border flex gap-3 items-start",
+                                    insight.type === 'warning' ? "bg-amber-50 border-amber-100 text-amber-800" :
+                                        insight.type === 'success' ? "bg-emerald-50 border-emerald-100 text-emerald-800" :
+                                            "bg-blue-50 border-blue-100 text-blue-800"
+                                )}>
+                                    <div className="mt-0.5 shrink-0">
+                                        {insight.icon === 'Calendar' && <Calendar size={18} />}
+                                        {insight.icon === 'Moon' && <div className="w-4 h-4 rounded-full bg-current opacity-50" />}
+                                        {insight.icon === 'Award' && <div className="w-4 h-4 rounded-full bg-current opacity-50" />}
+                                        {insight.icon === 'Activity' && <Activity size={18} />}
+                                    </div>
+                                    <div>
+                                        <h4 className="text-xs font-bold uppercase tracking-wide opacity-80">{insight.title}</h4>
+                                        <p className="text-sm font-medium leading-snug mt-0.5">{insight.description}</p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )
+            }
 
             <div className="px-6 py-4 bg-slate-50 dark:bg-slate-900/50 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
@@ -309,7 +457,7 @@ const HealthTrendsCard = ({ logs, className }) => {
                                     activeCategory === 'oxygen' ? 'Valores em %' : 'Valores em bpm'}
                 </p>
             </div>
-        </Card>
+        </Card >
     );
 };
 

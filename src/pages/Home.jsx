@@ -321,10 +321,10 @@ const Home = () => {
                             <span className="w-8 h-1 bg-primary rounded-full"></span>
                             <span className="text-[10px] font-bold uppercase tracking-wider text-primary">Painel de Saúde</span>
                         </div>
-                        <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+                        <h1 className="text-3xl md:text-4xl font-black text-slate-900 dark:text-white tracking-tight">
                             Olá, <span className="text-primary">{user?.user_metadata?.full_name?.split(' ')[0] || 'Visitante'}</span>
                         </h1>
-                        <p className="text-slate-500 dark:text-slate-400 font-medium italic mt-1">
+                        <p className="text-slate-500 dark:text-slate-400 font-medium italic mt-1 md:text-lg">
                             Vamos cuidar da sua saúde hoje?
                         </p>
                     </div>
@@ -485,16 +485,16 @@ const Home = () => {
                                                                 />
                                                             </div>
                                                             <div className="min-w-0 flex-1">
-                                                                <h3 className="text-3xl sm:text-4xl font-black leading-tight break-words">{nextDose.medicationName}</h3>
-                                                                <p className="text-blue-100 text-xl sm:text-2xl font-bold mt-1">
+                                                                <h3 className="text-3xl sm:text-4xl md:text-5xl font-black leading-tight break-words">{nextDose.medicationName}</h3>
+                                                                <p className="text-blue-100 text-xl sm:text-2xl md:text-3xl font-bold mt-1">
                                                                     {Number(nextDose.doseAmount)} {nextDose.medicationType} {nextDose.dosage}
                                                                 </p>
                                                             </div>
                                                         </div>
                                                     </div>
                                                     <div className="text-left sm:text-right shrink-0">
-                                                        <div className="text-3xl sm:text-4xl font-bold tracking-tight">{nextDose.time}</div>
-                                                        <div className="text-blue-200 font-medium text-base sm:text-lg">{timeText}</div>
+                                                        <div className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight">{nextDose.time}</div>
+                                                        <div className="text-blue-200 font-medium text-base sm:text-lg md:text-xl">{timeText}</div>
                                                     </div>
                                                 </div>
                                                 <div className="flex items-start gap-2 text-base text-white bg-white/20 p-3.5 rounded-xl backdrop-blur-sm">
@@ -527,10 +527,10 @@ const Home = () => {
 
                                                             {/* Text Overlay */}
                                                             <div className="absolute bottom-0 left-0 right-0 p-6 text-center">
-                                                                <h3 className="text-2xl font-bold text-white mb-2 drop-shadow-md">
+                                                                <h3 className="text-2xl md:text-3xl font-bold text-white mb-2 drop-shadow-md">
                                                                     {allTaken ? 'Parabéns, tudo tomado!' : 'Sem mais doses hoje'}
                                                                 </h3>
-                                                                <p className="text-blue-100 font-medium text-lg leading-relaxed drop-shadow-sm max-w-xs mx-auto">
+                                                                <p className="text-blue-100 font-medium text-lg md:text-xl leading-relaxed drop-shadow-sm max-w-xs mx-auto">
                                                                     {allTaken ? 'Você completou seu dia.' : 'Curta seu dia com paz, tranquilidade e saúde.'}
                                                                 </p>
                                                             </div>

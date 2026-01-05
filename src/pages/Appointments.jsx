@@ -748,14 +748,14 @@ const Appointments = () => {
                                 </div>
                             )}
 
-                            <div className="mt-4 flex flex-col sm:flex-row gap-2 pt-1">
+                            <div className="mt-4 flex flex-wrap items-center justify-between gap-2 pt-1">
                                 {app.address && (
                                     <div className="flex-1 flex gap-2">
                                         <a
                                             href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(app.address + (app.locationName ? ' ' + app.locationName : ''))}`}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="flex-1 flex items-center justify-center gap-1.5 text-[10px] font-bold py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-200 transition-colors"
+                                            className="flex-1 flex items-center justify-center gap-1.5 text-xs font-bold py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-200 transition-colors"
                                             title="Abrir no Google Maps"
                                         >
                                             <MapPinIcon size={14} />
@@ -765,7 +765,7 @@ const Appointments = () => {
                                             href={`https://waze.com/ul?q=${encodeURIComponent(app.address)}&navigate=yes`}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="flex-1 flex items-center justify-center gap-1.5 text-[10px] font-bold py-2 rounded-lg bg-[#33ccff]/10 text-[#0582ad] border border-[#33ccff]/30 hover:bg-[#33ccff]/20 transition-colors"
+                                            className="flex-1 flex items-center justify-center gap-1.5 text-xs font-bold py-2 rounded-lg bg-[#33ccff]/10 text-[#0582ad] border border-[#33ccff]/30 hover:bg-[#33ccff]/20 transition-colors"
                                             title="Abrir no Waze"
                                         >
                                             <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
@@ -779,18 +779,13 @@ const Appointments = () => {
                                     {app.status === 'scheduled' && hasManagementPermission(app.patientId) && (
                                         <button
                                             onClick={() => updateAppointment(app.id, { status: 'completed' })}
-                                            className="flex-1 flex items-center justify-center gap-1.5 text-[10px] font-bold py-2 px-3 rounded-lg bg-emerald-50 dark:bg-emerald-900/10 text-emerald-600 border border-emerald-100 dark:border-emerald-900/30 hover:bg-emerald-100 transition-colors whitespace-nowrap"
+                                            className="flex-1 flex items-center justify-center gap-1.5 text-xs font-bold py-2 px-3 rounded-lg bg-emerald-50 dark:bg-emerald-900/10 text-emerald-600 border border-emerald-100 dark:border-emerald-900/30 hover:bg-emerald-100 transition-colors whitespace-nowrap"
                                         >
                                             <CheckCircle2 size={14} />
                                             Realizada
                                         </button>
                                     )}
-                                    <button
-                                        onClick={() => handleOpenModal(app)}
-                                        className="flex items-center justify-center p-2 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-500 hover:bg-slate-100 transition-colors border border-slate-100 dark:border-slate-700"
-                                    >
-                                        <ChevronRight size={18} />
-                                    </button>
+
                                 </div>
                             </div>
                         </div>
