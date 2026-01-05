@@ -7,7 +7,11 @@ import { StockService } from '../../services/stockService';
 import QuickRefillModal from '../features/QuickRefillModal';
 
 const NotificationsModal = ({ isOpen, onClose }) => {
-    const { pendingShares, acceptShare, rejectShare, medications, prescriptions } = useApp();
+    const {
+        pendingShares, acceptShare, rejectShare,
+        pendingAccountShares, acceptAccountShare, rejectAccountShare,
+        medications, prescriptions
+    } = useApp();
     const [refillMed, setRefillMed] = useState(null);
 
     // Calculate low stock medications
@@ -15,7 +19,7 @@ const NotificationsModal = ({ isOpen, onClose }) => {
         return StockService.getLowStockMedications(medications, prescriptions, 7);
     }, [medications, prescriptions]);
 
-    const totalNotifications = pendingShares.length + lowStockMeds.length;
+    const totalNotifications = pendingShares.length + pendingAccountShares.length + lowStockMeds.length;
 
     // Helper to format days remaining in clear text
     const formatDaysRemaining = (days) => {
@@ -60,8 +64,8 @@ const NotificationsModal = ({ isOpen, onClose }) => {
                                     <button
                                         onClick={() => setRefillMed(med)}
                                         className={`w-full mt-3 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-colors ${med.level === 'critical'
-                                                ? 'bg-rose-500 text-white hover:bg-rose-600'
-                                                : 'bg-amber-500 text-white hover:bg-amber-600'
+                                            ? 'bg-rose-500 text-white hover:bg-rose-600'
+                                            : 'bg-amber-500 text-white hover:bg-amber-600'
                                             }`}
                                     >
                                         <ShoppingCart size={16} />
@@ -105,6 +109,47 @@ const NotificationsModal = ({ isOpen, onClose }) => {
                                                     variant="outline"
                                                     className="text-red-600 border-red-200 hover:bg-red-50"
                                                     onClick={() => rejectShare(share.id)}
+                                                >
+                                                    <X size={16} className="mr-1" /> Recusar
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
+                    {/* Pending Account Shares Section */}
+                    {pendingAccountShares.length > 0 && (
+                        <div className="space-y-2">
+                            <div className="flex items-center gap-2 text-indigo-600 mb-2">
+                                <UserPlus size={16} />
+                                <span className="text-sm font-bold">Convites de Conta SiG</span>
+                            </div>
+                            {pendingAccountShares.map(share => (
+                                <div key={share.id} className="bg-indigo-50 border border-indigo-100 rounded-xl p-4">
+                                    <div className="flex items-start gap-3">
+                                        <div className="w-10 h-10 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center shrink-0">
+                                            <UserPlus size={20} />
+                                        </div>
+                                        <div className="flex-1">
+                                            <p className="text-sm text-slate-900">
+                                                <span className="font-semibold">{share.owner?.full_name || share.owner?.email || 'Usuário'}</span> quer compartilhar o acesso <span className="font-bold underline">TOTAL</span> à conta SiG Remédios com você.
+                                            </p>
+                                            <div className="flex gap-2 mt-3">
+                                                <Button
+                                                    size="sm"
+                                                    className="bg-indigo-600 hover:bg-indigo-700 text-white"
+                                                    onClick={() => acceptAccountShare(share.id)}
+                                                >
+                                                    <Check size={16} className="mr-1" /> Aceitar Conta
+                                                </Button>
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    className="text-red-600 border-red-200 hover:bg-red-50"
+                                                    onClick={() => rejectAccountShare(share.id)}
                                                 >
                                                     <X size={16} className="mr-1" /> Recusar
                                                 </Button>

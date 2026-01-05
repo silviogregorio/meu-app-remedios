@@ -28,13 +28,16 @@ import WeeklySummaryCard from '../components/features/WeeklySummaryCard';
 import FamilyDashboard from '../components/features/FamilyDashboard';
 import HealthTips from '../components/features/HealthTips';
 import LowStockAlert from '../components/features/LowStockAlert';
+import HealthTrendsCard from '../components/features/HealthTrendsCard';
+
 
 
 const ITEMS_PER_PAGE = 6;
 
 const Home = () => {
     const navigate = useNavigate();
-    const { user, prescriptions, medications, patients, consumptionLog, logConsumption, removeConsumption, pendingShares, calculateStockDays, appointments, updateUserPreferences, userPreferences } = useApp();
+    const { user, prescriptions, medications, patients, consumptionLog, logConsumption, removeConsumption, pendingShares, calculateStockDays, healthLogs, appointments, updateUserPreferences, userPreferences } = useApp();
+
     const { permission, requestPermission } = useNotifications();
     const [todaysSchedule, setTodaysSchedule] = useState([]);
     const [offersError, setOffersError] = useState(null);
@@ -373,6 +376,10 @@ const Home = () => {
 
             {/* Low Stock Alert - Premium Component with Quick Refill */}
             <LowStockAlert />
+
+            {/* Health Trends Dashboard - INSIGHTS 📈 */}
+            <HealthTrendsCard logs={healthLogs} className="mt-2" />
+
 
             {pendingShares && pendingShares.length > 0 && (
                 <div className="bg-gradient-to-r from-violet-600 to-indigo-600 rounded-xl p-4 shadow-lg animate-in slide-in-from-top-2 text-white">

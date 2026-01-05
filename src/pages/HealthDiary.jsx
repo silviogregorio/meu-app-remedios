@@ -28,9 +28,12 @@ import {
     Legend,
     ResponsiveContainer
 } from 'recharts';
+import { getVitalStatus, formatHealthValue } from '../utils/healthAnalytics';
 
 const HealthDiary = () => {
     const { patients, healthLogs, addHealthLog, updateHealthLog, deleteHealthLog, user, showToast, prescriptions, consumptionLog, medications, logConsumption, removeConsumption, symptomLogs, removeSymptom } = useApp();
+
+
 
     const [showForm, setShowForm] = useState(false);
     const [activeTab, setActiveTab] = useState('adherence'); // 'adherence' | 'list' | 'charts' | 'symptoms'
@@ -45,7 +48,7 @@ const HealthDiary = () => {
     const [filterCategory, setFilterCategory] = useState('all');
     const [currentPage, setCurrentPage] = useState(1);
     const [symptomCurrentPage, setSymptomCurrentPage] = useState(1);
-    const ITEMS_PER_PAGE = 6;
+    const ITEMS_PER_PAGE = 4;
     const SYMPTOMS_PER_PAGE = 3;
 
     const [viewDate, setViewDate] = useState(format(new Date(), 'yyyy-MM-dd'));
@@ -56,6 +59,14 @@ const HealthDiary = () => {
     const [symptomToDelete, setSymptomToDelete] = useState(null);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [deleteLogId, setDeleteLogId] = useState(null);
+    const [formData, setFormData] = useState({
+        patientId: '',
+        category: 'pressure',
+        value: '',
+        valueSecondary: '',
+        measuredAt: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
+        notes: ''
+    });
 
 
     // Auto-scroll e Reset de Filtros ao Mudar Aba
@@ -161,18 +172,6 @@ const HealthDiary = () => {
     const [sendingEmail, setSendingEmail] = useState(false);
 
 
-
-
-
-    const [formData, setFormData] = useState({
-        patientId: '',
-        category: 'pressure',
-        value: '',
-        valueSecondary: '',
-        measuredAt: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
-        notes: ''
-    });
-
     const maxDate = format(new Date(), "yyyy-MM-dd'T'HH:mm");
 
     const categories = [
@@ -181,6 +180,7 @@ const HealthDiary = () => {
         { id: 'weight', label: 'Peso', emoji: '⚖️', unit: 'kg', icon: Weight, color: '#fbbf24' },
         { id: 'temperature', label: 'Temperatura', emoji: '🌡️', unit: '°C', icon: Thermometer, color: '#f97316' },
         { id: 'heart_rate', label: 'Batimentos', emoji: '💓', unit: 'bpm', icon: Heart, color: '#ec4899' },
+        { id: 'oxygen', label: 'Saturação O₂', emoji: '🫁', unit: '%', icon: Activity, color: '#06b6d4' },
     ];
 
     const getCategoryInfo = (catId) => categories.find(c => c.id === catId) || { label: 'Outro', unit: '', icon: Activity, color: '#64748b' };
@@ -809,36 +809,42 @@ const HealthDiary = () => {
                                 </select>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4">
+                            {formData.category === 'pressure' && (
+                                <div className="col-span-2 bg-blue-50 border border-blue-100 p-2.5 rounded-lg flex items-start gap-2 mb-2">
+                                    <Info size={16} className="text-blue-600 shrink-0 mt-0.5" />
+                                    <p className="text-[11px] text-blue-700 leading-tight">
+                                        <strong>Dica:</strong> Use valores como <strong>120</strong> e <strong>80</strong> (mmHg). Se o seu medidor mostrar 12/8, multiplique por 10.
+                                    </p>
+                                </div>
+                            )}
+                            <div>
+                                <label htmlFor="value-input" className="text-sm font-bold text-slate-700">Valor Principal</label>
+                                <Input
+                                    id="value-input"
+                                    name="value"
+                                    type="number"
+                                    step="0.1"
+                                    placeholder="Ex: 120"
+                                    value={formData.value}
+                                    onChange={e => setFormData({ ...formData, value: e.target.value })}
+                                    required
+                                />
+                            </div>
+                            {formData.category === 'pressure' && (
                                 <div>
-                                    <label htmlFor="value-input" className="text-sm font-bold text-slate-700">Valor Principal</label>
+                                    <label htmlFor="value-secondary-input" className="text-sm font-bold text-slate-700">Valor Secundário</label>
                                     <Input
-                                        id="value-input"
-                                        name="value"
+                                        id="value-secondary-input"
+                                        name="valueSecondary"
                                         type="number"
                                         step="0.1"
-                                        placeholder="Ex: 120 (Sistólica) ou 98 (Glicemia)"
-                                        value={formData.value}
-                                        onChange={e => setFormData({ ...formData, value: e.target.value })}
+                                        placeholder="Ex: 80"
+                                        value={formData.valueSecondary}
+                                        onChange={e => setFormData({ ...formData, valueSecondary: e.target.value })}
                                         required
                                     />
                                 </div>
-                                {formData.category === 'pressure' && (
-                                    <div>
-                                        <label htmlFor="value-secondary-input" className="text-sm font-bold text-slate-700">Valor Secundário</label>
-                                        <Input
-                                            id="value-secondary-input"
-                                            name="valueSecondary"
-                                            type="number"
-                                            step="0.1"
-                                            placeholder="Ex: 80 (Diastólica)"
-                                            value={formData.valueSecondary}
-                                            onChange={e => setFormData({ ...formData, valueSecondary: e.target.value })}
-                                            required
-                                        />
-                                    </div>
-                                )}
-                            </div>
+                            )}
 
                             <Input
                                 id="measured-at-input"
@@ -913,7 +919,7 @@ const HealthDiary = () => {
                                                                 l.measured_at.startsWith(viewDate) &&
                                                                 (selectedPatientId === 'all' || l.patient_id === selectedPatientId)
                                                             ).length > 0 ? (
-                                                                <div className="flex flex-col gap-2 max-h-[300px] overflow-y-auto pr-1">
+                                                                <div className="flex flex-col gap-2 max-h-[500px] overflow-y-auto pr-1">
                                                                     {healthLogs.filter(l =>
                                                                         l.measured_at.startsWith(viewDate) &&
                                                                         (selectedPatientId === 'all' || l.patient_id === selectedPatientId)
@@ -923,62 +929,41 @@ const HealthDiary = () => {
                                                                         const patientName = patients.find(p => p.id === log.patient_id)?.name || 'Desconhecido';
 
                                                                         return (
-                                                                            <div key={log.id} className="bg-white p-2.5 rounded-lg border border-slate-100 shadow-sm flex flex-col gap-1.5 relative overflow-hidden">
-                                                                                {/* Patient Name Header - Centered */}
-                                                                                <div className="flex justify-center border-b border-slate-50 pb-1 mb-1">
-                                                                                    <span className="text-[13px] font-bold text-primary bg-primary/10 px-5 py-0.5 rounded-full text-center truncate max-w-full">
-                                                                                        {patientName}
-                                                                                    </span>
+                                                                            <div key={log.id} className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4">
+                                                                                {/* Row 1: Value + Status */}
+                                                                                <div className="flex items-center justify-between mb-2">
+                                                                                    <div className="flex items-center gap-2">
+                                                                                        <Icon size={18} style={{ color: info.color }} />
+                                                                                        <span className="text-xl font-black" style={{ color: info.color }}>
+                                                                                            {formatHealthValue(log, log.category)} {info.unit}
+                                                                                        </span>
+                                                                                    </div>
+                                                                                    {(() => {
+                                                                                        const status = getVitalStatus(log.category, log.value, log.value_secondary);
+                                                                                        return status && status.status && (
+                                                                                            <span className={`text-[10px] font-bold px-2 py-1 rounded text-center ${status.bg} ${status.color}`}>
+                                                                                                {status.status}
+                                                                                            </span>
+                                                                                        );
+                                                                                    })()}
                                                                                 </div>
-
-                                                                                <div className="flex items-start justify-between gap-3">
-                                                                                    <div className="flex items-start gap-3 min-w-0 flex-1">
-                                                                                        <div className="p-2 rounded-full bg-slate-50 text-slate-500 shrink-0 mt-0.5">
-                                                                                            <Icon size={16} />
-                                                                                        </div>
-                                                                                        <div className="min-w-0 flex-1">
-                                                                                            <div className="font-bold text-slate-700 text-sm leading-tight break-words">
-                                                                                                {info.label}
-                                                                                            </div>
-                                                                                            <div className="text-xs text-slate-400 mt-0.5 font-medium">
-                                                                                                {formatTime(log.measured_at)}
-                                                                                            </div>
-                                                                                        </div>
+                                                                                {/* Row 2: Label + Time + Actions */}
+                                                                                <div className="flex items-center justify-between text-xs text-slate-500">
+                                                                                    <div>
+                                                                                        <span className="font-bold">{info.label}</span>
+                                                                                        <span className="mx-2">•</span>
+                                                                                        <span>{formatTime(log.measured_at)}</span>
                                                                                     </div>
-
-                                                                                    <div className="flex items-start gap-2 shrink-0 pl-2">
-                                                                                        <div className="text-right">
-                                                                                            <div className="font-bold whitespace-nowrap text-sm" style={{ color: info.color }}>
-                                                                                                {log.value}
-                                                                                                <span className="text-[10px] text-slate-400 mx-1">{info.unit}</span>
-                                                                                                {log.value_secondary && <span className="text-xs text-slate-400">/ {log.value_secondary}</span>}
-                                                                                            </div>
+                                                                                    {(user?.id === log.user_id) && (
+                                                                                        <div className="flex gap-2">
+                                                                                            <button onClick={() => handleEdit(log)} className="text-blue-600 hover:text-blue-800"><Edit size={14} /></button>
+                                                                                            <button onClick={() => handleDeleteClick(log.id)} className="text-rose-500 hover:text-rose-700"><Trash2 size={14} /></button>
                                                                                         </div>
-                                                                                        {(user?.id === log.user_id) && (
-                                                                                            <div className="flex flex-col gap-1 items-center justify-center">
-                                                                                                <button
-                                                                                                    onClick={() => handleEdit(log)}
-                                                                                                    className="text-slate-500 hover:text-slate-700 p-1"
-                                                                                                    title="Editar"
-                                                                                                >
-                                                                                                    <Edit size={12} />
-                                                                                                </button>
-                                                                                                <button
-                                                                                                    onClick={() => handleDeleteClick(log.id)}
-                                                                                                    className="text-rose-500 hover:text-rose-700 p-1"
-                                                                                                    title="Excluir"
-                                                                                                >
-                                                                                                    <Trash2 size={12} />
-                                                                                                </button>
-                                                                                            </div>
-                                                                                        )}
-                                                                                    </div>
+                                                                                    )}
                                                                                 </div>
-                                                                                {log.notes && (
-                                                                                    <div className="text-xs text-slate-500 bg-slate-50 p-2 rounded border border-slate-100 italic mt-1 leading-relaxed">
-                                                                                        {log.notes}
-                                                                                    </div>
-                                                                                )}
+                                                                                {/* Row 3: Patient name (subtle) */}
+                                                                                <div className="text-[10px] text-slate-400 mt-1">{patientName}</div>
+                                                                                {log.notes && <div className="text-xs text-slate-500 italic mt-2 pt-2 border-t border-slate-100">{log.notes}</div>}
                                                                             </div>
                                                                         );
                                                                     })}
@@ -1168,13 +1153,22 @@ const HealthDiary = () => {
                                                 <div className="flex-1">
                                                     <div className="flex justify-between items-start">
                                                         <div>
-                                                            <h4 className="font-bold text-slate-900">{info.emoji} {info.label}</h4>
+                                                            <div className="flex items-center gap-2">
+                                                                <h4 className="font-bold text-slate-900">{info.emoji} {info.label}</h4>
+                                                                {(() => {
+                                                                    const status = getVitalStatus(log.category, log.value, log.value_secondary);
+                                                                    return status && status.status && (
+                                                                        <span className={`text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded ${status.bg} ${status.color} border ${status.border}`}>
+                                                                            {status.status}
+                                                                        </span>
+                                                                    );
+                                                                })()}
+                                                            </div>
                                                             <p className="text-xs text-slate-500">{formatDateTime(log.measured_at)}</p>
                                                         </div>
                                                         <div className="text-right">
                                                             <div className="text-xl font-bold" style={{ color: info.color }}>
-                                                                {log.value}
-                                                                {log.value_secondary && <span className="text-sm opacity-75">/{log.value_secondary}</span>}
+                                                                {formatHealthValue(log, log.category)}
                                                                 <span className="text-sm ml-1 text-slate-400 font-normal">{info.unit}</span>
                                                             </div>
                                                         </div>

@@ -29,12 +29,15 @@ export const AppProvider = ({ children }) => {
     const [appointments, setAppointments] = useState([]);
     const [specialties, setSpecialties] = useState([]);
     const [consumptionLog, setConsumptionLog] = useState([]);
+    const [healthLogs, setHealthLogs] = useState([]); // New state for vital signs
+
 
     // Dados 'menos críticos' ou que mudam muito rápido podem ficar sem cache ou cache simples
     const [pendingShares, setPendingShares] = useState([]);
+    const [pendingAccountShares, setPendingAccountShares] = useState([]); // New state
     const [accountShares, setAccountShares] = useState([]);
-    const [healthLogs, setHealthLogs] = useState([]);
     const [symptomLogs, setSymptomLogs] = useState([]); // New state for symptoms
+
     const [toast, setToast] = useState(null);
     const [loadingData, setLoadingData] = useState(false);
     const [accessibility, setAccessibility] = useState({
@@ -83,20 +86,14 @@ export const AppProvider = ({ children }) => {
     const fetchPendingShares = async () => {
         if (!user) return;
         try {
-            const { data, error } = await supabase
-                .from('patient_shares')
-                .select(`
-                    id,
-                    permission,
-                    created_at,
-                    owner:profiles!owner_id (full_name, email),
-                    patient:patients!patient_id (name)
-                `)
-                .ilike('shared_with_email', user.email)
-                .is('accepted_at', null);
+            // 1. Convites de Pacientes
+            const patientResults = await SharingService.fetchPendingShares(user.email);
+            setPendingShares(patientResults);
 
-            if (error) throw error;
-            setPendingShares(data || []);
+            // 2. Convites de Conta (Novo)
+            const accountResults = await SharingService.fetchPendingAccountShares(user.email);
+            setPendingAccountShares(accountResults);
+
         } catch (error) {
             console.error('Erro ao buscar compartilhamentos pendentes:', error);
         }
@@ -161,75 +158,49 @@ export const AppProvider = ({ children }) => {
                 console.warn('Erro ao buscar consultas ou especialidades:', appError.message);
             }
 
-            // 5. Buscar Compartilhamentos Pendentes (Pacientes específicos)
+            // 6. Compartilhamentos Pendentes
             await fetchPendingShares();
 
-            // 6. Buscar Compartilhamentos de Conta (Quem eu compartilhei)
+            // 7. Compartilhamentos de Conta
             const { data: sharesData, error: sharesError } = await supabase
                 .from('account_shares')
                 .select('*')
                 .eq('owner_id', user.id);
 
-            if (sharesError) throw sharesError; // Se a tabela não existir ainda, vai dar erro, mas o toast avisa
-            setAccountShares(sharesData || []);
+            if (!sharesError) setAccountShares(sharesData || []);
 
-            // 7. Buscar Diário de Saúde
+            // 8. Diário de Saúde
             const { data: healthData, error: healthError } = await supabase
                 .from('health_logs')
                 .select('*, profiles:user_id(full_name)')
                 .order('measured_at', { ascending: false });
 
-            if (healthError) {
-                console.warn('Tabela health_logs pode não existir ainda:', healthError.message);
-            } else {
-                setHealthLogs(healthData);
-            }
+            if (!healthError) setHealthLogs(healthData);
 
-            // 7.1 Buscar Diário de Sintomas
+            // 9. Diário de Sintomas
             const { data: symptomData, error: symptomError } = await supabase
                 .from('symptom_logs')
                 .select('*')
                 .order('created_at', { ascending: false });
 
-            if (symptomError) {
-                console.warn('Tabela symptom_logs pode não existir ainda:', symptomError.message);
-            } else {
-                setSymptomLogs(symptomData);
+            if (!symptomError) setSymptomLogs(symptomData);
+
+            // 10. Perfil e Preferências
+            const { data: profileData, error: profileError } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', user.id)
+                .maybeSingle();
+
+            if (!profileError && profileData) {
+                setAccessibility(profileData.accessibility_config || {
+                    highContrast: false,
+                    largeText: false,
+                    voiceEnabled: false,
+                    fontSize: 100
+                });
+                setVacationMode(profileData.vacation_mode || false);
             }
-
-            // 8. Buscar Configurações de Acessibilidade (Safe Fetch)
-            if (user?.id) {
-                try {
-                    // Buscando configurações de acessibilidade silenciosamente
-                    const { data: profileData, error: profileError } = await supabase
-                        .from('profiles')
-                        .select('*')
-                        .eq('id', user.id)
-                        .single();
-
-                    if (profileError) {
-                        throw profileError;
-                    }
-
-                    if (profileData) {
-                        if (profileData.accessibility_settings) {
-                            setAccessibility(prev => ({ ...prev, ...profileData.accessibility_settings }));
-                        }
-                        if (profileData.vacation_mode !== undefined) {
-                            setVacationMode(profileData.vacation_mode);
-                        }
-                        // Load User Preferences (Elderly Mode, etc)
-                        if (profileData.preferences) {
-                            setUserPreferences(profileData.preferences);
-                        }
-                    }
-                } catch (accError) {
-                    console.warn('Aviso: Erro ao carregar perfil extra.', accError);
-                    // Silently fail to defaults
-                }
-            }
-
-
         } catch (error) {
             console.error('Erro ao buscar dados:', error);
             showToast('Erro ao carregar dados', 'error');
@@ -237,6 +208,9 @@ export const AppProvider = ({ children }) => {
             if (!isBackground) setLoadingData(false);
         }
     };
+
+
+
 
     // Assinaturas Realtime
     useEffect(() => {
@@ -259,6 +233,7 @@ export const AppProvider = ({ children }) => {
             .on('postgres_changes', { event: '*', schema: 'public', table: 'prescriptions' }, () => fetchAllData(true))
             .on('postgres_changes', { event: '*', schema: 'public', table: 'consumption_log' }, () => fetchAllData(true))
             .on('postgres_changes', { event: '*', schema: 'public', table: 'health_logs' }, () => fetchAllData(true))
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'symptom_logs' }, () => fetchAllData(true))
             .on('postgres_changes', { event: '*', schema: 'public', table: 'patient_shares', filter: `shared_with_email=eq.${user.email.toLowerCase()}` }, (payload) => {
                 // Se alguém me convidou, removeram meu acesso ou mudaram permissão:
                 console.log('⚡ Mudança em patient_shares:', payload.eventType);
@@ -790,6 +765,29 @@ export const AppProvider = ({ children }) => {
         }
     };
 
+    const acceptAccountShare = async (shareId) => {
+        try {
+            await SharingService.acceptAccountShare(shareId, user.id);
+            showToast('Acesso à conta aceito!', 'success');
+            fetchPendingShares();
+            fetchAllData();
+        } catch (error) {
+            console.error('Erro ao aceitar compartilhamento de conta:', error);
+            showToast('Erro ao aceitar convite', 'error');
+        }
+    };
+
+    const rejectAccountShare = async (shareId) => {
+        try {
+            await SharingService.rejectAccountShare(shareId);
+            showToast('Convite de conta recusado.', 'info');
+            fetchPendingShares();
+        } catch (error) {
+            console.error('Erro ao rejeitar compartilhamento de conta:', error);
+            showToast('Erro ao recusar convite', 'error');
+        }
+    };
+
     // Perfil
     const updateProfile = async (profileData) => {
         if (!user) return;
@@ -1013,6 +1011,7 @@ export const AppProvider = ({ children }) => {
             vacationMode, updateVacationMode,
 
             accountShares, shareAccount, unshareAccount,
+            pendingAccountShares, acceptAccountShare, rejectAccountShare,
             healthLogs, addHealthLog, updateHealthLog, deleteHealthLog,
             // Sintomas
             symptomLogs, logSymptom, removeSymptom,

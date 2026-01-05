@@ -7,6 +7,9 @@ import { ptBR } from 'date-fns/locale';
 import PillIcon from '../ui/PillIcon';
 import ConfirmationModal from '../ui/ConfirmationModal';
 import { getISODate, parseISODate } from '../../utils/dateFormatter';
+import { groupLogsByDay, getTrendInsight } from '../../utils/healthAnalytics';
+import HealthTrendsCard from './HealthTrendsCard';
+
 
 const SimplifiedHome = () => {
     const {
@@ -16,9 +19,11 @@ const SimplifiedHome = () => {
         patients,
         consumptionLog,
         logConsumption,
+        healthLogs,
         updateUserPreferences,
         userPreferences
     } = useApp();
+
     const navigate = useNavigate();
 
     const [nextMedication, setNextMedication] = useState(null);
@@ -330,7 +335,38 @@ const SimplifiedHome = () => {
                     </div>
                 )}
 
+                {/* 1.5. Health Insight (Amigável para Sênior) */}
+                {(() => {
+                    const pressureData = groupLogsByDay(healthLogs, 'pressure', 7);
+                    const glucoseData = groupLogsByDay(healthLogs, 'glucose', 7);
+
+                    const pInsight = getTrendInsight(pressureData);
+                    const gInsight = getTrendInsight(glucoseData);
+
+                    const hasData = pressureData.some(d => d.value !== null) || glucoseData.some(d => d.value !== null);
+
+                    return (
+                        <>
+                            {hasData && (
+                                <div className="w-full bg-white rounded-[2rem] p-6 shadow-sm border border-slate-100 flex items-center gap-4">
+                                    <div className="bg-blue-50 p-4 rounded-2xl">
+                                        <Activity size={32} className="text-blue-600" />
+                                    </div>
+                                    <div className="flex-1">
+                                        <h3 className="text-xl font-black text-slate-800">Sua Saúde</h3>
+                                        <p className="text-slate-600 font-medium leading-tight">
+                                            {pInsight.trend !== 'stable' ? pInsight.message : gInsight.message}
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+                            <HealthTrendsCard logs={healthLogs} className="rounded-[2rem] shadow-sm border-slate-100" />
+                        </>
+                    );
+                })()}
+
                 {/* 2. Secondary Actions Grid */}
+
                 <div className="grid grid-cols-2 gap-4">
                     {/* SOS Button */}
                     <button

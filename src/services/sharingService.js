@@ -41,13 +41,40 @@ export const fetchAccountShares = async (userId) => {
     try {
         const { data, error } = await supabase
             .from('account_shares')
-            .select('*')
+            .select(`
+                *,
+                shared_user:profiles!shared_with_id (full_name, email)
+            `)
             .eq('owner_id', userId);
 
         if (error) throw error;
         return data || [];
     } catch (error) {
         console.error('Erro ao buscar compartilhamentos de conta:', error);
+        return [];
+    }
+};
+
+/**
+ * Buscar Convites de Conta Pendentes (Convites que EU recebi)
+ */
+export const fetchPendingAccountShares = async (userEmail) => {
+    if (!userEmail) return [];
+    try {
+        const { data, error } = await supabase
+            .from('account_shares')
+            .select(`
+                id,
+                created_at,
+                owner_id
+            `)
+            .ilike('shared_with_email', userEmail)
+            .is('accepted_at', null);
+
+        if (error) throw error;
+        return data || [];
+    } catch (error) {
+        console.error('Erro ao buscar convites de conta pendentes:', error);
         return [];
     }
 };
@@ -207,11 +234,43 @@ export const acceptShare = async (shareId, userId) => {
 };
 
 /**
- * Rejeitar convite de compartilhamento
+ * Rejeitar convite de compartilhamento de paciente
  */
 export const rejectShare = async (shareId) => {
     const { error } = await supabase
         .from('patient_shares')
+        .delete()
+        .eq('id', shareId);
+
+    if (error) throw error;
+
+    return { success: true };
+};
+
+/**
+ * Aceitar convite de compartilhamento de conta
+ */
+export const acceptAccountShare = async (shareId, userId) => {
+    const { error } = await supabase
+        .from('account_shares')
+        .update({
+            accepted_at: new Date().toISOString(),
+            shared_with_id: userId,
+            status: 'accepted'
+        })
+        .eq('id', shareId);
+
+    if (error) throw error;
+
+    return { success: true };
+};
+
+/**
+ * Rejeitar convite de compartilhamento de conta
+ */
+export const rejectAccountShare = async (shareId) => {
+    const { error } = await supabase
+        .from('account_shares')
         .delete()
         .eq('id', shareId);
 

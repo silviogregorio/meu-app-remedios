@@ -80,7 +80,7 @@ const Profile = () => {
             try {
                 const { data, error } = await supabase
                     .from('profiles')
-                    .select('*')
+                    .select('id, full_name, phone, cep, city, state, ibge_code, emergency_contact_name, emergency_contact_phone, emergency_contact_email, street, number, neighborhood')
                     .eq('id', user.id)
                     .single();
 
