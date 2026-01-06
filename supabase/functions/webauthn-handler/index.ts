@@ -29,17 +29,13 @@ serve(async (req) => {
 
         console.log(`🔐 Auth header present: ${!!authHeader}, token length: ${token.length}`)
 
+        // Only fetch user, don't throw 401 globally
         const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token)
-
-        if (userError || !user) {
-            console.error('❌ WebAuthn Auth Error:', userError?.message || 'No user found')
-            return new Response(JSON.stringify({ error: 'Unauthorized', details: userError?.message || 'No valid session' }), {
-                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-                status: 401,
-            })
+        if (user) {
+            console.log(`🔐 Session found for user: ${user.id}`)
+        } else {
+            console.log(`🔐 No active session (Anonymous request)`)
         }
-
-        console.log(`🔐 User authenticated: ${user.id}`)
 
         const hostname = origin ? new URL(origin).hostname : 'sigremedios.vercel.app'
 
@@ -69,6 +65,12 @@ serve(async (req) => {
 
         // --- REGISTRO (ENROLLMENT) ---
         if (action === 'register-options') {
+            if (!user) {
+                return new Response(JSON.stringify({ error: 'Unauthorized', details: 'Login necessário para cadastrar' }), {
+                    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                    status: 401,
+                })
+            }
             console.log('📡 Generating registration options...')
             const options = await SimpleWebAuthnServer.generateRegistrationOptions({
                 rpName: 'SiG Remédios',
@@ -89,6 +91,12 @@ serve(async (req) => {
         }
 
         if (action === 'register-verify') {
+            if (!user) {
+                return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+                    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                    status: 401,
+                })
+            }
             const { body, challenge } = await req.json()
             console.log('📡 Verifying registration response...')
 
@@ -99,8 +107,6 @@ serve(async (req) => {
                     expectedOrigin,
                     expectedRPID: rpID,
                 })
-
-                console.log(`✅ Verification result: ${verification.verified}`)
 
                 if (verification.verified && verification.registrationInfo) {
                     const { credentialID, credentialPublicKey, counter } = verification.registrationInfo
@@ -115,10 +121,7 @@ serve(async (req) => {
                             counter: counter
                         })
 
-                    if (dbError) {
-                        console.error('❌ DB Insert Error:', dbError)
-                        throw dbError
-                    }
+                    if (dbError) throw dbError
 
                     console.log('✅ Credential saved to DB')
                     return new Response(JSON.stringify({ verified: true }), {
@@ -126,9 +129,9 @@ serve(async (req) => {
                         status: 200,
                     })
                 }
-                throw new Error('Falha na verificação do registro (biometria rejeitada)')
+                throw new Error('Falha na verificação do registro')
             } catch (vErr) {
-                console.error('❌ verifyRegistrationResponse Exception:', vErr)
+                console.error('❌ Registration Verification Error:', vErr)
                 throw vErr
             }
         }
@@ -136,22 +139,29 @@ serve(async (req) => {
         // --- LOGIN (VERIFY) ---
         if (action === 'login-options') {
             console.log('📡 Generating login options...')
-            const { data: credentials, error: credError } = await supabaseClient
-                .from('webauthn_credentials')
-                .select('credential_id')
-                .eq('user_id', user.id)
+            let allowCredentials = undefined
 
-            if (credError) console.error('❌ DB Select Error:', credError)
+            // If user is already logged in (MFA flow), restrict to their credentials
+            if (user) {
+                const { data: credentials } = await supabaseClient
+                    .from('webauthn_credentials')
+                    .select('credential_id')
+                    .eq('user_id', user.id)
+
+                if (credentials && credentials.length > 0) {
+                    allowCredentials = credentials.map(c => ({
+                        id: Uint8Array.from(atob(c.credential_id), c => c.charCodeAt(0)),
+                        type: 'public-key',
+                    }))
+                }
+            }
 
             const options = await SimpleWebAuthnServer.generateAuthenticationOptions({
                 rpID,
-                allowCredentials: credentials?.map(c => ({
-                    id: Uint8Array.from(atob(c.credential_id), c => c.charCodeAt(0)),
-                    type: 'public-key',
-                })),
+                allowCredentials,
                 userVerification: 'preferred',
             })
-            console.log(`✅ Login options generated (${credentials?.length || 0} credentials)`)
+            console.log(`✅ Login options generated (${allowCredentials ? allowCredentials.length : 'all'} credentials allowed)`)
             return new Response(JSON.stringify(options), {
                 headers: { ...corsHeaders, 'Content-Type': 'application/json' },
                 status: 200,
@@ -169,8 +179,8 @@ serve(async (req) => {
                 .single()
 
             if (credError || !credential) {
-                console.error('❌ Credential not found in DB:', credError || 'Not found')
-                throw new Error('Credencial não encontrada no servidor')
+                console.error('❌ Credential not found in DB:', body.id)
+                throw new Error('Biometria não cadastrada. Por favor, entre com sua senha primeiro e cadastre no perfil.')
             }
 
             try {
@@ -186,22 +196,24 @@ serve(async (req) => {
                     },
                 })
 
-                console.log(`✅ Login verification: ${verification.verified}`)
-
                 if (verification.verified) {
                     await supabaseClient
                         .from('webauthn_credentials')
                         .update({ counter: verification.authenticationInfo.newCounter })
                         .eq('id', credential.id)
 
-                    return new Response(JSON.stringify({ verified: true }), {
+                    // Return user ID so the frontend knows who just logged in
+                    return new Response(JSON.stringify({
+                        verified: true,
+                        user_id: credential.user_id
+                    }), {
                         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
                         status: 200,
                     })
                 }
                 throw new Error('Falha na verificação da biometria')
             } catch (vErr) {
-                console.error('❌ verifyAuthenticationResponse Exception:', vErr)
+                console.error('❌ Login Verification Error:', vErr)
                 throw vErr
             }
         }
