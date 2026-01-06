@@ -34,14 +34,22 @@ serve(async (req) => {
         const url = new URL(req.url)
         const action = url.searchParams.get('action')
         const origin = req.headers.get('origin') || ''
+        const hostname = origin ? new URL(origin).hostname : 'sigremedios.vercel.app'
 
-        // Dynamic RP ID based on origin
-        const rpID = origin.includes('localhost') ? 'localhost' : 'sigremedios.vercel.app'
+        // Dynamic RP ID based on actual hostname
+        const rpID = hostname
         const expectedOrigin = [
             'https://sigremedios.vercel.app',
+            'https://sigremedios-novo.vercel.app',
+            'https://sigremedios-novo-o8lreu3br-silviogregorios-projects.vercel.app',
             'http://localhost:5173',
             'http://127.0.0.1:5173'
         ]
+
+        // Add actual origin if it matches vercel pattern to allow preview branches
+        if (origin.includes('.vercel.app') && !expectedOrigin.includes(origin)) {
+            expectedOrigin.push(origin)
+        }
 
         console.log(`🔐 WebAuthn Action: ${action} | Origin: ${origin} | RPID: ${rpID}`)
 
