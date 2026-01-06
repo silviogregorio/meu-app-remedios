@@ -13,6 +13,12 @@ serve(async (req) => {
     }
 
     try {
+        const url = new URL(req.url)
+        const action = url.searchParams.get('action')
+        const origin = req.headers.get('origin') || ''
+
+        console.log(`🔐 WebAuthn Request: action=${action} origin=${origin}`)
+
         const supabaseClient = createClient(
             Deno.env.get('SUPABASE_URL') ?? '',
             Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
@@ -21,19 +27,20 @@ serve(async (req) => {
         const authHeader = req.headers.get('Authorization')
         const token = authHeader?.replace('Bearer ', '') ?? ''
 
+        console.log(`🔐 Auth header present: ${!!authHeader}, token length: ${token.length}`)
+
         const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token)
 
         if (userError || !user) {
-            console.error('❌ WebAuthn Auth Error:', userError)
-            return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+            console.error('❌ WebAuthn Auth Error:', userError?.message || 'No user found')
+            return new Response(JSON.stringify({ error: 'Unauthorized', details: userError?.message || 'No valid session' }), {
                 headers: { ...corsHeaders, 'Content-Type': 'application/json' },
                 status: 401,
             })
         }
 
-        const url = new URL(req.url)
-        const action = url.searchParams.get('action')
-        const origin = req.headers.get('origin') || ''
+        console.log(`🔐 User authenticated: ${user.id}`)
+
         const hostname = origin ? new URL(origin).hostname : 'sigremedios.vercel.app'
 
         // Dynamic RP ID based on actual hostname
