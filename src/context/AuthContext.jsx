@@ -284,7 +284,7 @@ export const AuthProvider = ({ children }) => {
 
         return () => subscription.unsubscribe();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [checkMfaRequirement, checkManualPasskeys]); // Added checkManualPasskeys to deps
+    }, []); // CRITICAL: Empty deps to prevent infinite loop. checkMfaRequirement and checkManualPasskeys should NOT reinitialize the auth listener
 
     // Periodic session validation (every 60 seconds)
     useEffect(() => {
