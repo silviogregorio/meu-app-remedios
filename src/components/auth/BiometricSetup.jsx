@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useApp } from '../../context/AppContext';
 
 const BiometricSetup = () => {
-    const { enrollPasskey, user } = useAuth();
+    const { enrollPasskey, user, hasManualPasskey } = useAuth();
     const { showToast } = useApp();
     const [loading, setLoading] = useState(false);
     const [success, setSuccess] = useState(false);
@@ -71,7 +71,7 @@ const BiometricSetup = () => {
                         </div>
                     )}
 
-                    {!success ? (
+                    {!(success || hasManualPasskey) ? (
                         <button
                             onClick={handleEnroll}
                             disabled={loading}

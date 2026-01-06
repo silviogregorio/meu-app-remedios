@@ -17,6 +17,8 @@ O "Coração" (Heartbeat): Criei uma animação que faz a imagem escalar (aument
 A "Aura" (Glow Azul): Usei uma borda azul translúcida combinada com uma sombra brilhante (box-shadow) para criar esse efeito de luz neon em volta do círculo branco.
 O "Radar" (Ondas de Fundo): Aqueles círculos que saem de trás? São apenas elementos transparentes onde apliquei um efeito de "Ping" (eco), fazendo eles crescerem e desaparecerem em loop.
 
+use tailwind.css
+
 Parte de segurança:
 
 Proteção contra OWASP Top 10

@@ -12,29 +12,35 @@ const MAX_ATTEMPTS = 5;
 const LOCKOUT_DURATION_MS = 60000; // 60 seconds
 
 const ProtectedRoute = ({ children, adminOnly = false, skipProfileCheck = false }) => {
-    const { user, loading: authLoading, mfaRequired, mfaChallenge, currentAal, verifyMFA, challengeMFA, verifyPasskey, clearMfaState, refreshMfaChallenge } = useAuth();
+    const { user, loading: authLoading, mfaRequired, mfaChallenge, currentAal, verifyMFA, challengeMFA, verifyPasskey, clearMfaState, refreshMfaChallenge, hasManualPasskey } = useAuth();
     const { showToast } = useApp(); // Get showToast from useApp
 
     const [retryLoading, setRetryLoading] = useState(false);
 
     // Biometric Handler
-    const handleBiometricVerify = async (factorId) => {
+    // Biometric Handler (Manual or Native)
+    const handleBiometricVerify = async (providedFactorId = null) => {
         try {
             setMfaLoading(true);
             setMfaError('');
 
-            // 1. Create a specific challenge for Bio
-            const { data: challenge, error: challengeError } = await challengeMFA(factorId);
-            if (challengeError) throw challengeError;
+            // Priority: Manual Passkey flow
+            if (hasManualPasskey) {
+                const { error: verifyError } = await verifyPasskey();
+                if (verifyError) throw verifyError;
+            } else if (providedFactorId) {
+                // Legacy / Native Fallback - Note: verifyPasskey in Context now only handles manual
+                // If we really need native verification, we'd need a separate function.
+                // But since it's disabled in dashboard, we focus on manual.
+                throw new Error('Biometria nativa desativada. Por favor, re-cadastre sua biometria.');
+            } else {
+                throw new Error('Nenhuma credencial biométrica encontrada.');
+            }
 
-            // 2. Verify with WebAuthn
-            const { error: verifyError } = await verifyPasskey(factorId, challenge.id);
-            if (verifyError) throw verifyError;
-
-            // Success is handled by verifiesPasskey updating context
+            // Success is handled by verifyPasskey updating context state
         } catch (err) {
-            console.error(err);
-            setMfaError('Erro na biometria. Tente novamente ou use o código.');
+            console.error('🔐 Biometric Verify Error:', err);
+            setMfaError(err.message || 'Erro na biometria. Tente novamente ou use o código.');
             setMfaLoading(false);
         }
     };
@@ -316,18 +322,12 @@ const ProtectedRoute = ({ children, adminOnly = false, skipProfileCheck = false 
                                     {/* WebAuthn / Biometrics Button */}
                                     {(() => {
                                         const webAuthnFactor = user?.factors?.find(f => f.factor_type === 'webauthn' && f.status === 'verified');
-                                        if (webAuthnFactor) {
+                                        if (webAuthnFactor || hasManualPasskey) {
                                             return (
                                                 <button
                                                     type="button"
                                                     disabled={lockoutSeconds > 0}
-                                                    onClick={async () => {
-                                                        const { challengeMFA, verifyPasskey } = await import('../context/AuthContext').then(m => ({ challengeMFA: useAuth().challengeMFA, verifyPasskey: useAuth().verifyPasskey }));
-                                                        // Note: We need to access these from the hook instance, this inline import is messy. 
-                                                        // Let's rely on the props passed or context available in scope.
-                                                        // FIX: Use the useAuth() context variables already available in scope.
-                                                        handleBiometricVerify(webAuthnFactor.id);
-                                                    }}
+                                                    onClick={() => handleBiometricVerify(webAuthnFactor?.id)}
                                                     className="w-full py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-500/20 flex items-center justify-center gap-2"
                                                 >
                                                     <Fingerprint size={20} />

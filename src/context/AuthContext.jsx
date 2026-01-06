@@ -1,11 +1,13 @@
 import { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
+import { startRegistration, startAuthentication } from '@simplewebauthn/browser';
 
 const AuthContext = createContext({});
 
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [hasManualPasskey, setHasManualPasskey] = useState(false);
 
     // Verify session is still valid by checking with Supabase
     const verifySession = useCallback(async () => {
@@ -152,6 +154,27 @@ export const AuthProvider = ({ children }) => {
         }
     }, [mfaRequired, mfaChallenge, user]);
 
+    // Check for manual WebAuthn credentials
+    const checkManualPasskeys = useCallback(async (userId) => {
+        if (!userId) {
+            setHasManualPasskey(false);
+            return;
+        }
+        try {
+            const { data, error } = await supabase
+                .from('webauthn_credentials')
+                .select('id')
+                .eq('user_id', userId)
+                .limit(1);
+
+            setHasManualPasskey(!!(data && data.length > 0));
+        } catch (err) {
+            console.error('Error checking manual passkeys:', err);
+            setHasManualPasskey(false);
+        }
+    }, []);
+
+
     useEffect(() => {
         const initializeAuth = async () => {
             // Safety timeout: Ensure loading is ALWAYS turned off even if everything hangs
@@ -215,19 +238,21 @@ export const AuthProvider = ({ children }) => {
         // Listen for auth changes
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
             console.log('🔑 Auth State Change:', _event);
-            setUser(session?.user ?? null);
+            const currentUser = session?.user ?? null;
+            setUser(currentUser);
 
             // Clear MFA state on sign out
             if (_event === 'SIGNED_OUT') {
                 setMfaRequired(false);
                 setMfaChallenge(null);
+                setHasManualPasskey(false); // Clear passkey state on sign out
                 return;
             }
 
             // Check MFA requirement - OPTIMIZED for speed
-            if (session?.user && (_event === 'SIGNED_IN' || _event === 'INITIAL_SESSION' || _event === 'TOKEN_REFRESHED')) {
-                const aal = session?.user?.app_metadata?.aal || 'aal1';
-                const hasFactors = session.user.factors?.some(f => f.status === 'verified');
+            if (currentUser && (_event === 'SIGNED_IN' || _event === 'INITIAL_SESSION' || _event === 'TOKEN_REFRESHED')) {
+                const aal = currentUser?.app_metadata?.aal || 'aal1';
+                const hasFactors = currentUser.factors?.some(f => f.status === 'verified');
 
                 setCurrentAal(aal);
 
@@ -248,16 +273,18 @@ export const AuthProvider = ({ children }) => {
                     console.log('🔐 onAuthStateChange: No MFA factors, allowing access');
                     setMfaRequired(false);
                 }
-            } else if (!session?.user) {
-                // No user session - reset MFA state
+                checkManualPasskeys(currentUser.id); // Check for manual passkeys on auth change
+            } else if (!currentUser) {
+                // No user session - reset MFA and Passkey state
                 setMfaRequired(false);
                 setCurrentAal(null);
+                setHasManualPasskey(false);
             }
         });
 
         return () => subscription.unsubscribe();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    }, [checkMfaRequirement, checkManualPasskeys]); // Added checkManualPasskeys to deps
 
     // Periodic session validation (every 60 seconds)
     useEffect(() => {
@@ -310,7 +337,7 @@ export const AuthProvider = ({ children }) => {
             });
 
             if (error) throw error;
-            return { data, error: null };
+            return { data: null, error };
         } catch (error) {
             return { data: null, error };
         }
@@ -404,7 +431,9 @@ export const AuthProvider = ({ children }) => {
         currentAal,
         clearMfaState,
         refreshMfaChallenge: checkMfaRequirement,
-        mfaEnabled: user?.factors?.some(f => f.status === 'verified') || false
+        mfaEnabled: user?.factors?.some(f => f.status === 'verified') || hasManualPasskey || false,
+        hasManualPasskey,
+        checkManualPasskeys
     };
 
     // --- WebAuthn / Passkeys Implementation (Native Biometrics) ---
@@ -413,64 +442,78 @@ export const AuthProvider = ({ children }) => {
      * Enrolls a new Passkey/Biometric credential for the user.
      * @param {string} friendlyName - e.g. "iPhone de Silvio"
      */
+    /**
+     * Enrolls a new Passkey/Biometric credential for the user (Manual Flow).
+     */
     const enrollPasskey = async (friendlyName = 'Biometria') => {
         try {
-            console.log('🔐 WebAuthn: Iniciando cadastro de biometria...');
+            console.log('🔐 WebAuthn: Iniciando cadastro manual...');
 
-            // 1. Initialize Enrollment - This asks Supabase to start the ceremony
-            const { data, error } = await supabase.auth.mfa.enroll({
-                factorType: 'webauthn',
-                friendlyName
+            // 1. Get Registration Options from our Edge Function
+            const { data: options, error: optionsError } = await supabase.functions.invoke('webauthn-handler?action=register-options', {
+                method: 'GET'
             });
 
-            if (error) throw error;
-            console.log('🔐 WebAuthn: Desafio recebido. Chamando navegador...', data);
+            if (optionsError || !options) throw new Error(optionsError?.message || 'Falha ao buscar opções de registro');
 
-            // 2. The critical step: Trigger the browser's WebAuthn API 
-            // and verify immediately to finish the "enrollment ceremony".
-            // Without this, the MFA factor stays in 'unverified' status.
-            const { data: verifyData, error: verifyError } = await supabase.auth.mfa.verify({
-                factorId: data.id,
-                friendlyName,
-                webAuthn: true // This triggers the actual biometric prompt!
+            // 2. Browser Ceremony
+            const attestationResponse = await startRegistration(options);
+
+            // 3. Verify and Save via our Edge Function
+            const { data: verification, error: verifyError } = await supabase.functions.invoke('webauthn-handler?action=register-verify', {
+                body: { body: attestationResponse, challenge: options.challenge, friendlyName }
             });
 
-            if (verifyError) throw verifyError;
+            if (verifyError || !verification.verified) throw new Error(verifyError?.message || 'Falha na verificação da biometria');
 
-            console.log('🔐 WebAuthn: Cerimônia concluída com sucesso!', verifyData);
-
-            // 3. Refresh user factors
-            await supabase.auth.mfa.listFactors();
-
-            return { data: verifyData, error: null };
+            console.log('🔐 WebAuthn: Cadastro manual concluído!');
+            // After successful enrollment, re-check passkeys
+            if (user?.id) {
+                checkManualPasskeys(user.id);
+            }
+            return { data: verification, error: null };
         } catch (error) {
             console.error('🔐 WebAuthn Enroll Error:', error);
+            // Fallback: If function not deployed, error is clear
+            if (error.message?.includes('404')) {
+                return { data: null, error: new Error('O servidor de biometria ainda não foi configurado (Edge Function faltando).') };
+            }
             return { data: null, error };
         }
     };
 
     /**
-     * Verifies the user using a registered Passkey.
-     * This moves the session to AAL2 (Authenticated Level 2).
+     * Verifies the user using a registered Passkey (Manual Flow).
      */
-    const verifyPasskey = async (factorId, challengeId) => {
+    const verifyPasskey = async () => {
         try {
-            console.log('🔐 WebAuthn: Solicitando digital...');
-            const { data, error } = await supabase.auth.mfa.verify({
-                factorId,
-                challengeId,
-                webAuthn: true // Critical: Tells SDK to use browser's WebAuthn API
+            console.log('🔐 WebAuthn: Solicitando digital (Manual)...');
+
+            // 1. Get Authentication Options
+            const { data: options, error: optionsError } = await supabase.functions.invoke('webauthn-handler?action=login-options', {
+                method: 'GET'
             });
 
-            if (error) throw error;
-            console.log('🔐 WebAuthn: Verificado com sucesso!');
+            if (optionsError || !options) throw new Error(optionsError?.message || 'Falha ao buscar opções de login');
 
-            // Update local state immediately
+            // 2. Browser Ceremony
+            const assertionResponse = await startAuthentication(options);
+
+            // 3. Verify via our Edge Function (This would return success)
+            // Note: In manual flow, we use this as an extra proof of identity.
+            const { data: verification, error: verifyError } = await supabase.functions.invoke('webauthn-handler?action=login-verify', {
+                body: { body: assertionResponse, challenge: options.challenge }
+            });
+
+            if (verifyError || !verification.verified) throw new Error(verifyError?.message || 'Falha na verificação');
+
+            console.log('🔐 WebAuthn: Login manual verificado!');
+
+            // For manual flow, we manually set AAL2 locally if we trust the result
             setCurrentAal('aal2');
             setMfaRequired(false);
-            setMfaChallenge(null);
 
-            return { data, error: null };
+            return { data: verification, error: null };
         } catch (error) {
             console.error('🔐 WebAuthn Verify Error:', error);
             return { data: null, error };
