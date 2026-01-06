@@ -22,5 +22,14 @@ CREATE POLICY "Users can manage their own credentials"
     USING (auth.uid() = user_id)
     WITH CHECK (auth.uid() = user_id);
 
+-- Service Role Policy (for Edge Functions)
+DROP POLICY IF EXISTS "Service role can manage all credentials" ON public.webauthn_credentials;
+CREATE POLICY "Service role can manage all credentials"
+    ON public.webauthn_credentials
+    FOR ALL
+    TO service_role
+    USING (true)
+    WITH CHECK (true);
+
 -- index for performance
 CREATE INDEX IF NOT EXISTS idx_webauthn_user_id ON public.webauthn_credentials(user_id);
