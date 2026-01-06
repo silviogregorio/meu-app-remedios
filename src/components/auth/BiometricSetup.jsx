@@ -71,11 +71,18 @@ const BiometricSetup = () => {
                         </div>
                     )}
 
-                    {!(success || hasManualPasskey) ? (
+                    {hasManualPasskey && !success && (
+                        <div className="flex items-center gap-2 text-green-600 font-bold bg-green-50 dark:bg-green-900/20 px-4 py-2 rounded-lg mb-4">
+                            <CheckCircle2 size={18} />
+                            Biometria Ativada neste navegador
+                        </div>
+                    )}
+
+                    <div className="flex flex-col sm:flex-row gap-3">
                         <button
                             onClick={handleEnroll}
                             disabled={loading}
-                            className="w-full sm:w-auto px-6 py-2.5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold rounded-xl hover:opacity-90 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                            className="px-6 py-2.5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold rounded-xl hover:opacity-90 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                         >
                             {loading ? (
                                 <>
@@ -85,16 +92,28 @@ const BiometricSetup = () => {
                             ) : (
                                 <>
                                     <Fingerprint size={18} />
-                                    <span>Cadastrar Biometria</span>
+                                    <span>{hasManualPasskey ? 'Adicionar Novo Dispositivo' : 'Cadastrar Biometria'}</span>
                                 </>
                             )}
                         </button>
-                    ) : (
-                        <div className="inline-flex items-center gap-2 text-green-600 font-bold bg-green-50 dark:bg-green-900/20 px-4 py-2 rounded-lg">
-                            <CheckCircle2 size={18} />
-                            Biometria Ativada!
-                        </div>
-                    )}
+
+                        {hasManualPasskey && (
+                            <button
+                                onClick={() => {
+                                    localStorage.removeItem('sig_biometric_enabled');
+                                    showToast('Status limpo. Se necessário, recadastre.', 'info');
+                                    window.location.reload();
+                                }}
+                                className="px-4 py-2 text-slate-500 hover:text-red-500 text-sm font-medium transition-colors"
+                            >
+                                Limpar e Recadastrar
+                            </button>
+                        )}
+                    </div>
+
+                    <p className="mt-4 text-[11px] text-slate-400 italic">
+                        * Se você trocou de aparelho ou atualizou o app, clique em "Adicionar Novo Dispositivo" para garantir a compatibilidade.
+                    </p>
                 </div>
             </div>
         </div>
