@@ -60,7 +60,15 @@ serve(async (req) => {
             console.log(`🔐 No active session (Anonymous request)`)
         }
 
-        const hostname = origin ? new URL(origin).hostname : 'sigremedios.vercel.app'
+        let hostname = 'sigremedios.vercel.app';
+        if (origin) {
+            try {
+                hostname = new URL(origin).hostname;
+            } catch (e) {
+                console.warn('⚠️ Invalid origin URL:', origin);
+                hostname = origin.split('://')[1]?.split(':')[0] || origin;
+            }
+        }
         const rpID = hostname
 
         // Base whitelist
@@ -110,8 +118,9 @@ serve(async (req) => {
         if (action === 'register-verify') {
             if (!user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { headers: corsHeaders, status: 401 })
 
-            const { body, challenge } = await req.json()
-            console.log('📡 Verifying registration response...')
+            const json = await req.json()
+            const { body, challenge, friendlyName } = json
+            console.log('📡 Verifying registration response...', { challenge, rpID, origin: origin })
 
             try {
                 const verification = await SimpleWebAuthnServer.verifyRegistrationResponse({
@@ -134,7 +143,7 @@ serve(async (req) => {
                             user_id: user.id,
                             credential_id: encodedID,
                             public_key: encodedPublicKey,
-                            friendly_name: body.friendlyName || 'Meu Dispositivo',
+                            friendly_name: friendlyName || 'Meu Dispositivo',
                             counter: counter
                         })
 
@@ -186,8 +195,9 @@ serve(async (req) => {
         }
 
         if (action === 'login-verify') {
-            const { body, challenge } = await req.json()
-            console.log(`📡 Verifying login response for credential: ${body.id}`)
+            const json = await req.json()
+            const { body, challenge } = json
+            console.log(`📡 Verifying login response for credential: ${body.id}`, { challenge, rpID, origin })
 
             // Match requires searching for the ID. Browsers send Base64URL. 
             // We search for the exact string or the normalized standard Base64 variant to be sure.
