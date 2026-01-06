@@ -498,9 +498,23 @@ export const AuthProvider = ({ children }) => {
                 method: 'GET'
             });
 
+            console.log('🔐 WebAuthn: login-options response:', {
+                hasData: !!options,
+                hasError: !!optionsError,
+                allowCredentials: options?.allowCredentials,
+                allowCredentialsLength: options?.allowCredentials?.length,
+                challenge: options?.challenge?.substring(0, 20) + '...',
+                rpId: options?.rpId
+            });
+
             if (optionsError || !options) throw new Error(optionsError?.message || 'Falha ao buscar opções de login');
 
             // 2. Browser Ceremony
+            console.log('🔐 WebAuthn: Starting browser authentication with options:', {
+                hasAllowCredentials: !!options.allowCredentials,
+                credentialCount: options.allowCredentials?.length || 'all',
+                rpId: options.rpId
+            });
             const assertionResponse = await startAuthentication(options);
 
             // 3. Verify via our Edge Function
