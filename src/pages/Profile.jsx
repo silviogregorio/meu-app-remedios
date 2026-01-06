@@ -747,10 +747,15 @@ const Profile = () => {
                     </CardContent>
                 </Card>
 
-                <Button variant="danger" onClick={async () => { await logout(); window.location.href = '/'; }} className="mt-4">
-                    <LogOut size={20} className="mr-2" />
-                    Sair do App
-                </Button>
+                <div className="flex justify-center mt-12 pb-8">
+                    <button
+                        onClick={async () => { await logout(); window.location.href = '/'; }}
+                        className="flex items-center gap-2 px-6 py-2.5 bg-red-50 hover:bg-red-100 text-red-600 dark:bg-red-900/10 dark:hover:bg-red-900/20 dark:text-red-400 rounded-full font-medium transition-all text-sm border border-red-100 dark:border-red-900/20 shadow-sm"
+                    >
+                        <LogOut size={16} />
+                        Sair do App
+                    </button>
+                </div>
             </div>
 
             {/* Edit Profile Modal */}

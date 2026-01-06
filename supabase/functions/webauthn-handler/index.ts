@@ -57,18 +57,23 @@ serve(async (req) => {
         ]
 
         // Add actual origin if it matches vercel pattern or localhost to allow preview branches
-        if ((origin.includes('.vercel.app') || origin.includes('localhost') || origin.includes('127.0.0.1')) && !expectedOrigin.includes(origin)) {
+        if (origin.includes('.vercel.app') && !expectedOrigin.includes(origin)) {
             expectedOrigin.push(origin)
         }
+        // Special case for sigremedios.vercel.app specifically
+        if (!expectedOrigin.includes('https://sigremedios.vercel.app')) {
+            expectedOrigin.push('https://sigremedios.vercel.app')
+        }
 
-        console.log(`🔐 WebAuthn Action: ${action} | Origin: ${origin} | RPID: ${rpID}`)
+        console.log(`🔐 Config: rpID=${rpID} | expectedOrigin=[${expectedOrigin.join(', ')}]`)
 
         // --- REGISTRO (ENROLLMENT) ---
         if (action === 'register-options') {
+            console.log('📡 Generating registration options...')
             const options = await SimpleWebAuthnServer.generateRegistrationOptions({
                 rpName: 'SiG Remédios',
                 rpID,
-                userID: new TextEncoder().encode(user.id), // MUST BE UINT8ARRAY
+                userID: new TextEncoder().encode(user.id),
                 userName: user.email ?? user.id,
                 attestationType: 'none',
                 authenticatorSelection: {
@@ -76,7 +81,7 @@ serve(async (req) => {
                     userVerification: 'preferred',
                 },
             })
-
+            console.log('✅ Registration options generated')
             return new Response(JSON.stringify(options), {
                 headers: { ...corsHeaders, 'Content-Type': 'application/json' },
                 status: 200,
@@ -85,43 +90,58 @@ serve(async (req) => {
 
         if (action === 'register-verify') {
             const { body, challenge } = await req.json()
+            console.log('📡 Verifying registration response...')
 
-            const verification = await SimpleWebAuthnServer.verifyRegistrationResponse({
-                response: body,
-                expectedChallenge: challenge,
-                expectedOrigin,
-                expectedRPID: rpID,
-            })
-
-            if (verification.verified && verification.registrationInfo) {
-                const { credentialID, credentialPublicKey, counter } = verification.registrationInfo
-
-                const { error: dbError } = await supabaseClient
-                    .from('webauthn_credentials')
-                    .insert({
-                        user_id: user.id,
-                        credential_id: btoa(String.fromCharCode(...new Uint8Array(credentialID))),
-                        public_key: btoa(String.fromCharCode(...new Uint8Array(credentialPublicKey))),
-                        friendly_name: body.friendlyName || 'Meu Dispositivo',
-                        counter: counter
-                    })
-
-                if (dbError) throw dbError
-
-                return new Response(JSON.stringify({ verified: true }), {
-                    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-                    status: 200,
+            try {
+                const verification = await SimpleWebAuthnServer.verifyRegistrationResponse({
+                    response: body,
+                    expectedChallenge: challenge,
+                    expectedOrigin,
+                    expectedRPID: rpID,
                 })
+
+                console.log(`✅ Verification result: ${verification.verified}`)
+
+                if (verification.verified && verification.registrationInfo) {
+                    const { credentialID, credentialPublicKey, counter } = verification.registrationInfo
+
+                    const { error: dbError } = await supabaseClient
+                        .from('webauthn_credentials')
+                        .insert({
+                            user_id: user.id,
+                            credential_id: btoa(String.fromCharCode(...new Uint8Array(credentialID))),
+                            public_key: btoa(String.fromCharCode(...new Uint8Array(credentialPublicKey))),
+                            friendly_name: body.friendlyName || 'Meu Dispositivo',
+                            counter: counter
+                        })
+
+                    if (dbError) {
+                        console.error('❌ DB Insert Error:', dbError)
+                        throw dbError
+                    }
+
+                    console.log('✅ Credential saved to DB')
+                    return new Response(JSON.stringify({ verified: true }), {
+                        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                        status: 200,
+                    })
+                }
+                throw new Error('Falha na verificação do registro (biometria rejeitada)')
+            } catch (vErr) {
+                console.error('❌ verifyRegistrationResponse Exception:', vErr)
+                throw vErr
             }
-            throw new Error('Falha na verificação do registro')
         }
 
         // --- LOGIN (VERIFY) ---
         if (action === 'login-options') {
-            const { data: credentials } = await supabaseClient
+            console.log('📡 Generating login options...')
+            const { data: credentials, error: credError } = await supabaseClient
                 .from('webauthn_credentials')
                 .select('credential_id')
                 .eq('user_id', user.id)
+
+            if (credError) console.error('❌ DB Select Error:', credError)
 
             const options = await SimpleWebAuthnServer.generateAuthenticationOptions({
                 rpID,
@@ -131,7 +151,7 @@ serve(async (req) => {
                 })),
                 userVerification: 'preferred',
             })
-
+            console.log(`✅ Login options generated (${credentials?.length || 0} credentials)`)
             return new Response(JSON.stringify(options), {
                 headers: { ...corsHeaders, 'Content-Type': 'application/json' },
                 status: 200,
@@ -140,39 +160,50 @@ serve(async (req) => {
 
         if (action === 'login-verify') {
             const { body, challenge } = await req.json()
+            console.log(`📡 Verifying login response for credential: ${body.id}`)
 
-            const { data: credential } = await supabaseClient
+            const { data: credential, error: credError } = await supabaseClient
                 .from('webauthn_credentials')
                 .select('*')
                 .eq('credential_id', body.id)
                 .single()
 
-            if (!credential) throw new Error('Credencial não encontrada')
-
-            const verification = await SimpleWebAuthnServer.verifyAuthenticationResponse({
-                response: body,
-                expectedChallenge: challenge,
-                expectedOrigin,
-                expectedRPID: rpID,
-                authenticator: {
-                    credentialID: Uint8Array.from(atob(credential.credential_id), c => c.charCodeAt(0)),
-                    credentialPublicKey: Uint8Array.from(atob(credential.public_key), c => c.charCodeAt(0)),
-                    counter: Number(credential.counter),
-                },
-            })
-
-            if (verification.verified) {
-                await supabaseClient
-                    .from('webauthn_credentials')
-                    .update({ counter: verification.authenticationInfo.newCounter })
-                    .eq('id', credential.id)
-
-                return new Response(JSON.stringify({ verified: true }), {
-                    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-                    status: 200,
-                })
+            if (credError || !credential) {
+                console.error('❌ Credential not found in DB:', credError || 'Not found')
+                throw new Error('Credencial não encontrada no servidor')
             }
-            throw new Error('Falha na verificação da assinatura')
+
+            try {
+                const verification = await SimpleWebAuthnServer.verifyAuthenticationResponse({
+                    response: body,
+                    expectedChallenge: challenge,
+                    expectedOrigin,
+                    expectedRPID: rpID,
+                    authenticator: {
+                        credentialID: Uint8Array.from(atob(credential.credential_id), c => c.charCodeAt(0)),
+                        credentialPublicKey: Uint8Array.from(atob(credential.public_key), c => c.charCodeAt(0)),
+                        counter: Number(credential.counter),
+                    },
+                })
+
+                console.log(`✅ Login verification: ${verification.verified}`)
+
+                if (verification.verified) {
+                    await supabaseClient
+                        .from('webauthn_credentials')
+                        .update({ counter: verification.authenticationInfo.newCounter })
+                        .eq('id', credential.id)
+
+                    return new Response(JSON.stringify({ verified: true }), {
+                        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                        status: 200,
+                    })
+                }
+                throw new Error('Falha na verificação da biometria')
+            } catch (vErr) {
+                console.error('❌ verifyAuthenticationResponse Exception:', vErr)
+                throw vErr
+            }
         }
 
         return new Response(JSON.stringify({ error: 'Action not found' }), {
@@ -181,8 +212,12 @@ serve(async (req) => {
         })
 
     } catch (error) {
-        console.error('❌ WebAuthn Function Error:', error)
-        return new Response(JSON.stringify({ error: error.message }), {
+        console.error('❌ CRITICAL WebAuthn Error:', error.message, error.stack)
+        return new Response(JSON.stringify({
+            error: error.message,
+            stack: error.stack,
+            timestamp: new Date().toISOString()
+        }), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             status: 400,
         })
