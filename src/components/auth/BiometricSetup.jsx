@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Fingerprint, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
+import { Fingerprint, ShieldCheck, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useApp } from '../../context/AppContext';
 
