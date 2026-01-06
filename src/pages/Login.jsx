@@ -23,21 +23,43 @@ const Login = () => {
     }, []);
 
     const handleBiometricLogin = async () => {
-        setLoading(true);
-        // Simulação de acesso rápido baseada no último email utilizado
-        setTimeout(() => {
-            if (window.confirm('Usar Acesso Rápido? (Modo de conveniência)')) {
-                const savedEmail = localStorage.getItem('sig_last_email');
-                if (savedEmail) {
-                    setEmail(savedEmail);
-                    showToast('Credenciais preenchidas!', 'success');
-                    showToast('Por favor, confirme sua senha para entrar.', 'info');
+        try {
+            setLoading(true);
+            setError('');
+
+            // 1. Trigger the manual biometric ceremony
+            const { error: verifyError } = await verifyPasskey();
+
+            if (verifyError) {
+                // Check if user cancelled to avoid showing scary error
+                if (verifyError.message?.includes('cancelled') || verifyError.name === 'NotAllowedError') {
+                    showToast('Autenticação cancelada.', 'info');
                 } else {
-                    setError('Por favor, entre com email e senha a primeira vez.');
+                    throw verifyError;
                 }
+                return;
             }
+
+            // 2. If successful, we need the stored email to complete the login
+            const savedEmail = localStorage.getItem('sig_last_email');
+            if (savedEmail) {
+                setEmail(savedEmail);
+                showToast('Identidade confirmada!', 'success');
+                // The user is actually already 'verified' in terms of AAL if verifyPasskey worked,
+                // but on the Login page we don't have a session yet.
+                // NOTE: Biometric Login without an active session requires a different strategy 
+                // (e.g., storing a token or re-authenticating).
+                // For now, we use it as a "Quick Fill + Proof of Intent" as per the user's current logic.
+                showToast('Por favor, digite sua senha para entrar com segurança.', 'info');
+            } else {
+                setError('Por favor, entre com email e senha a primeira vez para vincular sua biometria.');
+            }
+        } catch (err) {
+            console.error('🔐 Login Biometric Error:', err);
+            setError(err.message || 'Erro na autenticação biométrica.');
+        } finally {
             setLoading(false);
-        }, 800);
+        }
     };
 
     const handleGoogleLogin = async () => {
@@ -146,7 +168,6 @@ const Login = () => {
                         {loading ? 'Entrando...' : 'Entrar'}
                     </Button>
 
-                    {/* Biometric Login - Temporarily Disabled
                     {hasBiometrics && (
                         <div className="relative my-4">
                             <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-slate-200 dark:border-slate-800"></span></div>
@@ -163,14 +184,13 @@ const Login = () => {
                                 className="w-full py-3 bg-slate-50 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-xl flex items-center justify-center gap-2 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all group"
                             >
                                 <Fingerprint size={24} className="text-slate-400 group-hover:text-[#10b981] transition-colors" />
-                                <span className="text-slate-600 dark:text-slate-300 font-semibold">Usar Acesso Rápido</span>
+                                <span className="text-slate-600 dark:text-slate-300 font-semibold">Usar Biometria</span>
                             </button>
                             <p className="text-[10px] text-center text-slate-400">
                                 Nota: Esta é uma facilidade de preenchimento baseada no seu último acesso neste dispositivo.
                             </p>
                         </div>
                     )}
-                    */}
                 </form>
 
                 <div className="mt-6 text-center text-sm text-[#64748b]">

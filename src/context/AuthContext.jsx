@@ -467,6 +467,9 @@ export const AuthProvider = ({ children }) => {
             if (verifyError || !verification.verified) throw new Error(verifyError?.message || 'Falha na verificação da biometria');
 
             console.log('🔐 WebAuthn: Cadastro manual concluído!');
+            // Persist biometric status locally for Login screen convenience
+            localStorage.setItem('sig_biometric_enabled', 'true');
+
             // After successful enrollment, re-check passkeys
             if (user?.id) {
                 checkManualPasskeys(user.id);
