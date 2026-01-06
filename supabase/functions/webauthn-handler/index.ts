@@ -41,10 +41,11 @@ serve(async (req) => {
 
         // Dynamic RP ID based on actual hostname
         const rpID = hostname
+
+        // Base whitelist
         const expectedOrigin = [
             'https://sigremedios.vercel.app',
             'https://sigremedios-novo.vercel.app',
-            'https://sigremedios-novo-o8lreu3br-silviogregorios-projects.vercel.app',
             'http://localhost:5173',
             'http://localhost:3000',
             'http://localhost:5174',
@@ -52,16 +53,15 @@ serve(async (req) => {
             'http://127.0.0.1:3000'
         ]
 
-        // Add actual origin if it matches vercel pattern or localhost to allow preview branches
-        if (origin.includes('.vercel.app') && !expectedOrigin.includes(origin)) {
-            expectedOrigin.push(origin)
-        }
-        // Special case for sigremedios.vercel.app specifically
-        if (!expectedOrigin.includes('https://sigremedios.vercel.app')) {
-            expectedOrigin.push('https://sigremedios.vercel.app')
+        // Add received origin if safely valid (Vercel or Localhost)
+        if (origin && !expectedOrigin.includes(origin)) {
+            if (origin.includes('vercel.app') || origin.includes('localhost') || origin.includes('127.0.0.1')) {
+                console.log(`🔐 Dynamically whitelisting origin: ${origin}`)
+                expectedOrigin.push(origin)
+            }
         }
 
-        console.log(`🔐 Config: rpID=${rpID} | expectedOrigin=[${expectedOrigin.join(', ')}]`)
+        console.log(`🔐 WebAuthn Config: rpID=${rpID} | expectedOrigin=[${expectedOrigin.join(', ')}] | receivedOrigin=${origin}`)
 
         // --- REGISTRO (ENROLLMENT) ---
         if (action === 'register-options') {

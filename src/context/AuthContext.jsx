@@ -502,23 +502,30 @@ export const AuthProvider = ({ children }) => {
             // 2. Browser Ceremony
             const assertionResponse = await startAuthentication(options);
 
-            // 3. Verify via our Edge Function (This would return success)
-            // Note: In manual flow, we use this as an extra proof of identity.
+            // 3. Verify via our Edge Function
             const { data: verification, error: verifyError } = await supabase.functions.invoke('webauthn-handler?action=login-verify', {
                 body: { body: assertionResponse, challenge: options.challenge }
             });
 
-            if (verifyError || !verification.verified) throw new Error(verifyError?.message || 'Falha na verificação');
+            if (verifyError) {
+                console.error('🔐 WebAuthn: Error in verify call:', verifyError);
+                throw new Error(`Erro no servidor (Biometria): ${verifyError.message}`);
+            }
+
+            if (!verification || !verification.verified) {
+                throw new Error(verification?.error || 'Biometria recusada pelo servidor');
+            }
 
             console.log('🔐 WebAuthn: Login manual verificado!');
 
-            // For manual flow, we manually set AAL2 locally if we trust the result
+            // Set AAL2 locally for the UI
             setCurrentAal('aal2');
             setMfaRequired(false);
 
             return { data: verification, error: null };
         } catch (error) {
             console.error('🔐 WebAuthn Verify Error:', error);
+            // If the error message is too technical, simplify it for the user but keep it log-able
             return { data: null, error };
         }
     };
