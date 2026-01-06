@@ -8,7 +8,7 @@ import { HeartPulse, Fingerprint } from 'lucide-react';
 
 const Login = () => {
     const navigate = useNavigate();
-    const { signIn, signInWithGoogle, user } = useAuth();
+    const { signIn, signInWithGoogle, user, verifyPasskey } = useAuth();
     const { showToast } = useApp();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
