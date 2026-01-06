@@ -116,19 +116,37 @@ serve(async (req) => {
         }
 
         if (action === 'register-verify') {
-            if (!user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { headers: corsHeaders, status: 401 })
+            console.log('📡 register-verify: START', { user_id: user?.id, has_user: !!user });
+            if (!user) {
+                console.error('❌ register-verify: No authenticated user');
+                return new Response(JSON.stringify({ error: 'Unauthorized' }), { headers: corsHeaders, status: 401 })
+            }
 
-            const json = await req.json()
+            let json;
+            try {
+                json = await req.json();
+                console.log('📡 register-verify: JSON parsed successfully', { has_body: !!json.body, has_challenge: !!json.challenge });
+            } catch (parseErr) {
+                console.error('❌ register-verify: JSON parse failed', parseErr);
+                return new Response(JSON.stringify({ error: 'Invalid JSON payload' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 });
+            }
+
             const { body, challenge, friendlyName } = json
-            console.log('📡 Verifying registration response...', { challenge, rpID, origin: origin })
+            console.log('📡 register-verify: Verifying registration response...', { challenge, rpID, origin, friendlyName })
 
             try {
+                console.log('📡 register-verify: Calling verifyRegistrationResponse with', {
+                    expectedChallenge: challenge,
+                    expectedOrigin,
+                    expectedRPID: rpID
+                });
                 const verification = await SimpleWebAuthnServer.verifyRegistrationResponse({
                     response: body,
                     expectedChallenge: challenge,
                     expectedOrigin,
                     expectedRPID: rpID,
                 })
+                console.log('✅ register-verify: Verification result', { verified: verification.verified });
 
                 if (verification.verified && verification.registrationInfo) {
                     const { credentialID, credentialPublicKey, counter } = verification.registrationInfo
@@ -136,6 +154,12 @@ serve(async (req) => {
                     // Save using standardized Base64URL
                     const encodedID = bufferToBase64URL(credentialID);
                     const encodedPublicKey = bufferToBase64URL(credentialPublicKey);
+
+                    console.log('📡 register-verify: Saving to DB', {
+                        user_id: user.id,
+                        credential_id_preview: encodedID.substring(0, 10),
+                        friendly_name: friendlyName || 'Meu Dispositivo'
+                    });
 
                     const { error: dbError } = await supabaseClient
                         .from('webauthn_credentials')
@@ -147,7 +171,10 @@ serve(async (req) => {
                             counter: counter
                         })
 
-                    if (dbError) throw dbError
+                    if (dbError) {
+                        console.error('❌ register-verify: DB Error', dbError);
+                        throw dbError;
+                    }
 
                     console.log(`✅ Credential saved to DB: ${encodedID.substring(0, 10)}...`)
                     return new Response(JSON.stringify({ verified: true }), {
@@ -195,6 +222,7 @@ serve(async (req) => {
         }
 
         if (action === 'login-verify') {
+            console.log('📡 login-verify: received request');
             const json = await req.json()
             const { body, challenge } = json
             console.log(`📡 Verifying login response for credential: ${body.id}`, { challenge, rpID, origin })
