@@ -7,6 +7,20 @@ const corsHeaders = {
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+// Helper to convert Uint8Array to Base64URL (no padding)
+function bufferToBase64URL(buffer: Uint8Array): string {
+    const base64 = btoa(String.fromCharCode(...buffer));
+    return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+}
+
+// Helper to convert Base64/Base64URL to Uint8Array
+function base64ToBuffer(base64: string): Uint8Array {
+    // Normalize Base64URL to standard Base64
+    const normalized = base64.replace(/-/g, '+').replace(/_/g, '/');
+    const binary = atob(normalized);
+    return Uint8Array.from(binary, c => c.charCodeAt(0));
+}
+
 serve(async (req) => {
     if (req.method === 'OPTIONS') {
         return new Response('ok', { headers: corsHeaders })
@@ -27,10 +41,8 @@ serve(async (req) => {
         const authHeader = req.headers.get('Authorization')
         const token = authHeader?.replace('Bearer ', '') ?? ''
 
-        console.log(`🔐 Auth header present: ${!!authHeader}, token length: ${token.length}`)
-
         // Only fetch user, don't throw 401 globally
-        const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token)
+        const { data: { user } } = await supabaseClient.auth.getUser(token)
         if (user) {
             console.log(`🔐 Session found for user: ${user.id}`)
         } else {
@@ -38,8 +50,6 @@ serve(async (req) => {
         }
 
         const hostname = origin ? new URL(origin).hostname : 'sigremedios.vercel.app'
-
-        // Dynamic RP ID based on actual hostname
         const rpID = hostname
 
         // Base whitelist
@@ -65,12 +75,8 @@ serve(async (req) => {
 
         // --- REGISTRO (ENROLLMENT) ---
         if (action === 'register-options') {
-            if (!user) {
-                return new Response(JSON.stringify({ error: 'Unauthorized', details: 'Login necessário para cadastrar' }), {
-                    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-                    status: 401,
-                })
-            }
+            if (!user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { headers: corsHeaders, status: 401 })
+
             console.log('📡 Generating registration options...')
             const options = await SimpleWebAuthnServer.generateRegistrationOptions({
                 rpName: 'SiG Remédios',
@@ -91,12 +97,8 @@ serve(async (req) => {
         }
 
         if (action === 'register-verify') {
-            if (!user) {
-                return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-                    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-                    status: 401,
-                })
-            }
+            if (!user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { headers: corsHeaders, status: 401 })
+
             const { body, challenge } = await req.json()
             console.log('📡 Verifying registration response...')
 
@@ -111,19 +113,23 @@ serve(async (req) => {
                 if (verification.verified && verification.registrationInfo) {
                     const { credentialID, credentialPublicKey, counter } = verification.registrationInfo
 
+                    // Save using standardized Base64URL
+                    const encodedID = bufferToBase64URL(credentialID);
+                    const encodedPublicKey = bufferToBase64URL(credentialPublicKey);
+
                     const { error: dbError } = await supabaseClient
                         .from('webauthn_credentials')
                         .insert({
                             user_id: user.id,
-                            credential_id: btoa(String.fromCharCode(...new Uint8Array(credentialID))),
-                            public_key: btoa(String.fromCharCode(...new Uint8Array(credentialPublicKey))),
+                            credential_id: encodedID,
+                            public_key: encodedPublicKey,
                             friendly_name: body.friendlyName || 'Meu Dispositivo',
                             counter: counter
                         })
 
                     if (dbError) throw dbError
 
-                    console.log('✅ Credential saved to DB')
+                    console.log(`✅ Credential saved to DB: ${encodedID.substring(0, 10)}...`)
                     return new Response(JSON.stringify({ verified: true }), {
                         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
                         status: 200,
@@ -150,7 +156,7 @@ serve(async (req) => {
 
                 if (credentials && credentials.length > 0) {
                     allowCredentials = credentials.map(c => ({
-                        id: Uint8Array.from(atob(c.credential_id), c => c.charCodeAt(0)),
+                        id: base64ToBuffer(c.credential_id),
                         type: 'public-key',
                     }))
                 }
@@ -172,15 +178,20 @@ serve(async (req) => {
             const { body, challenge } = await req.json()
             console.log(`📡 Verifying login response for credential: ${body.id}`)
 
+            // Match requires searching for the ID. Browsers send Base64URL. 
+            // We search for the exact string or the normalized standard Base64 variant to be sure.
+            const searchId = body.id;
+            const altId = body.id.replace(/-/g, '+').replace(/_/g, '/');
+
             const { data: credential, error: credError } = await supabaseClient
                 .from('webauthn_credentials')
                 .select('*')
-                .eq('credential_id', body.id)
-                .single()
+                .or(`credential_id.eq."${searchId}",credential_id.eq."${altId}"`)
+                .maybeSingle()
 
             if (credError || !credential) {
-                console.error('❌ Credential not found in DB:', body.id)
-                throw new Error('Biometria não cadastrada. Por favor, entre com sua senha primeiro e cadastre no perfil.')
+                console.error('❌ Credential not found in DB:', searchId)
+                throw new Error('Biometria não reconhecida. Por favor, entre com senha e cadastre novamente no perfil.')
             }
 
             try {
@@ -190,8 +201,8 @@ serve(async (req) => {
                     expectedOrigin,
                     expectedRPID: rpID,
                     authenticator: {
-                        credentialID: Uint8Array.from(atob(credential.credential_id), c => c.charCodeAt(0)),
-                        credentialPublicKey: Uint8Array.from(atob(credential.public_key), c => c.charCodeAt(0)),
+                        credentialID: base64ToBuffer(credential.credential_id),
+                        credentialPublicKey: base64ToBuffer(credential.public_key),
                         counter: Number(credential.counter),
                     },
                 })
@@ -202,7 +213,6 @@ serve(async (req) => {
                         .update({ counter: verification.authenticationInfo.newCounter })
                         .eq('id', credential.id)
 
-                    // Return user ID so the frontend knows who just logged in
                     return new Response(JSON.stringify({
                         verified: true,
                         user_id: credential.user_id
@@ -224,10 +234,9 @@ serve(async (req) => {
         })
 
     } catch (error) {
-        console.error('❌ CRITICAL WebAuthn Error:', error.message, error.stack)
+        console.error('❌ CRITICAL WebAuthn Error:', error.message)
         return new Response(JSON.stringify({
             error: error.message,
-            stack: error.stack,
             timestamp: new Date().toISOString()
         }), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
