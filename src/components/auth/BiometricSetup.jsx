@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
-import { Fingerprint, ShieldCheck, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Fingerprint, ShieldCheck, CheckCircle2, AlertCircle, Loader2, Smartphone, Monitor, Trash2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useApp } from '../../context/AppContext';
+import { supabase } from '../../lib/supabase';
 
 const BiometricSetup = () => {
     const { enrollPasskey, user, hasManualPasskey } = useAuth();
@@ -9,6 +10,35 @@ const BiometricSetup = () => {
     const [loading, setLoading] = useState(false);
     const [success, setSuccess] = useState(false);
     const [error, setError] = useState(null);
+    const [devices, setDevices] = useState([]);
+    const [loadingDevices, setLoadingDevices] = useState(true);
+
+    // Fetch registered devices
+    useEffect(() => {
+        const fetchDevices = async () => {
+            if (!user?.id) {
+                setLoadingDevices(false);
+                return;
+            }
+
+            try {
+                const { data, error } = await supabase
+                    .from('webauthn_credentials')
+                    .select('id, friendly_name, created_at')
+                    .eq('user_id', user.id)
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+                setDevices(data || []);
+            } catch (err) {
+                console.error('Erro ao buscar dispositivos:', err);
+            } finally {
+                setLoadingDevices(false);
+            }
+        };
+
+        fetchDevices();
+    }, [user?.id, success]); // Refetch after successful enrollment
 
     const handleEnroll = async () => {
         setLoading(true);
@@ -49,6 +79,40 @@ const BiometricSetup = () => {
         }
     };
 
+    const handleRemoveDevice = async (deviceId, deviceName) => {
+        if (!confirm(`Remover "${deviceName}"?\n\nVocê não poderá mais usar este dispositivo para login biométrico.`)) {
+            return;
+        }
+
+        try {
+            const { error } = await supabase
+                .from('webauthn_credentials')
+                .delete()
+                .eq('id', deviceId)
+                .eq('user_id', user.id);
+
+            if (error) throw error;
+
+            setDevices(devices.filter(d => d.id !== deviceId));
+            showToast('Dispositivo removido com sucesso', 'success');
+
+            // If no devices left, clear local storage
+            if (devices.length === 1) {
+                localStorage.removeItem('sig_biometric_enabled');
+            }
+        } catch (err) {
+            console.error('Erro ao remover dispositivo:', err);
+            showToast('Erro ao remover dispositivo', 'error');
+        }
+    };
+
+    const getDeviceIcon = (name) => {
+        if (name.toLowerCase().includes('celular') || name.toLowerCase().includes('android') || name.toLowerCase().includes('iphone')) {
+            return <Smartphone size={18} />;
+        }
+        return <Monitor size={18} />;
+    };
+
     return (
         <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm border border-slate-100 dark:border-slate-700">
             <div className="flex items-start gap-4">
@@ -71,7 +135,43 @@ const BiometricSetup = () => {
                         </div>
                     )}
 
-                    {hasManualPasskey && !success && (
+                    {/* Device List */}
+                    {!loadingDevices && devices.length > 0 && (
+                        <div className="mb-4 space-y-2">
+                            <p className="text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">
+                                Dispositivos cadastrados ({devices.length})
+                            </p>
+                            {devices.map(device => (
+                                <div
+                                    key={device.id}
+                                    className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg border border-slate-200 dark:border-slate-600"
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <div className="text-slate-600 dark:text-slate-300">
+                                            {getDeviceIcon(device.friendly_name)}
+                                        </div>
+                                        <div>
+                                            <p className="text-sm font-medium text-slate-800 dark:text-white">
+                                                {device.friendly_name}
+                                            </p>
+                                            <p className="text-xs text-slate-500 dark:text-slate-400">
+                                                Cadastrado em {new Date(device.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <button
+                                        onClick={() => handleRemoveDevice(device.id, device.friendly_name)}
+                                        className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                                        title="Remover dispositivo"
+                                    >
+                                        <Trash2 size={16} />
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
+                    {hasManualPasskey && !success && devices.length === 0 && (
                         <div className="flex items-center gap-2 text-indigo-600 font-bold bg-indigo-50 dark:bg-indigo-900/20 px-4 py-2 rounded-lg mb-4 text-sm border border-indigo-100 dark:border-indigo-800">
                             <ShieldCheck size={18} />
                             Biometria registrada no servidor
