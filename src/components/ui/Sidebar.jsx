@@ -90,7 +90,7 @@ const Sidebar = ({ isOpen, onClose, isPinned, onTogglePin }) => {
             <aside
                 ref={sidebarRef}
                 className={clsx(
-                    "fixed top-0 left-0 h-full w-64 bg-slate-50 dark:bg-slate-900 shadow-2xl z-50 transform transition-transform duration-300 ease-in-out border-r border-transparent dark:border-slate-800 flex flex-col",
+                    "fixed top-0 left-0 h-full w-72 bg-slate-50 dark:bg-slate-900 shadow-2xl z-50 transform transition-transform duration-300 ease-in-out border-r border-transparent dark:border-slate-800 flex flex-col",
                     isOpen ? "translate-x-0" : (isPinned ? "md:translate-x-0 -translate-x-full" : "-translate-x-full")
                 )}
                 role="navigation"
@@ -145,7 +145,7 @@ const Sidebar = ({ isOpen, onClose, isPinned, onTogglePin }) => {
                                                 onClick={onClose}
                                                 id={`tour-nav-${path.replace('/', '').replace(/\//g, '-')}`}
                                                 className={({ isActive }) => clsx(
-                                                    "flex items-center gap-4 px-5 py-3.5 rounded-xl transition-all duration-200 min-h-[52px] text-base focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/50",
+                                                    "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 min-h-[48px] text-sm focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/50",
                                                     isActive
                                                         ? "bg-white dark:bg-slate-800 text-[#10b981] font-black shadow-md"
                                                         : "text-slate-700 dark:text-slate-300 hover:bg-white/60 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-slate-100 font-medium"
@@ -154,8 +154,8 @@ const Sidebar = ({ isOpen, onClose, isPinned, onTogglePin }) => {
                                             >
                                                 {({ isActive }) => (
                                                     <>
-                                                        <Icon size={22} className={clsx(isActive ? "text-[#10b981]" : "text-slate-500 dark:text-slate-400")} aria-hidden="true" />
-                                                        <span>{label}</span>
+                                                        <Icon size={20} className={clsx(isActive ? "text-[#10b981]" : "text-slate-500 dark:text-slate-400")} aria-hidden="true" />
+                                                        <span className="truncate whitespace-nowrap">{label}</span>
                                                     </>
                                                 )}
                                             </NavLink>
