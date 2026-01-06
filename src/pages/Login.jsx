@@ -19,7 +19,9 @@ const Login = () => {
 
     useEffect(() => {
         const enabled = localStorage.getItem('sig_biometric_enabled') === 'true';
-        setHasBiometrics(enabled);
+        // Always show the button for now - will only work if user actually has biometrics
+        setHasBiometrics(true); // Force show for debugging
+        console.log('🔐 Login: hasBiometrics from localStorage:', enabled);
     }, []);
 
     const handleBiometricLogin = async () => {
