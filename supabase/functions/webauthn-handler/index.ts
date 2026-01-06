@@ -41,8 +41,19 @@ serve(async (req) => {
         const authHeader = req.headers.get('Authorization')
         const token = authHeader?.replace('Bearer ', '') ?? ''
 
-        // Only fetch user, don't throw 401 globally
-        const { data: { user } } = await supabaseClient.auth.getUser(token)
+        // Safe user fetch
+        let user = null;
+        if (token) {
+            try {
+                const { data: authData, error: authError } = await supabaseClient.auth.getUser(token)
+                if (!authError && authData) {
+                    user = authData.user;
+                }
+            } catch (e) {
+                console.log('🔐 Auth token check failed (likely expired/invalid)')
+            }
+        }
+
         if (user) {
             console.log(`🔐 Session found for user: ${user.id}`)
         } else {
