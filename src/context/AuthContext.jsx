@@ -424,12 +424,25 @@ export const AuthProvider = ({ children }) => {
             });
 
             if (error) throw error;
-            console.log('🔐 WebAuthn: Biometria cadastrada com sucesso!', data);
+            console.log('🔐 WebAuthn: Desafio recebido. Chamando navegador...', data);
 
-            // 2. We should ideally invalidate/refresh current user factors immediately
+            // 2. The critical step: Trigger the browser's WebAuthn API 
+            // and verify immediately to finish the "enrollment ceremony".
+            // Without this, the MFA factor stays in 'unverified' status.
+            const { data: verifyData, error: verifyError } = await supabase.auth.mfa.verify({
+                factorId: data.id,
+                friendlyName,
+                webAuthn: true // This triggers the actual biometric prompt!
+            });
+
+            if (verifyError) throw verifyError;
+
+            console.log('🔐 WebAuthn: Cerimônia concluída com sucesso!', verifyData);
+
+            // 3. Refresh user factors
             await supabase.auth.mfa.listFactors();
 
-            return { data, error: null };
+            return { data: verifyData, error: null };
         } catch (error) {
             console.error('🔐 WebAuthn Enroll Error:', error);
             return { data: null, error };
