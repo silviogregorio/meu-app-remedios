@@ -145,16 +145,25 @@ const Sidebar = ({ isOpen, onClose, isPinned, onTogglePin }) => {
                                                 onClick={onClose}
                                                 id={`tour-nav-${path.replace('/', '').replace(/\//g, '-')}`}
                                                 className={({ isActive }) => clsx(
-                                                    "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 min-h-[48px] text-sm focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/50",
+                                                    "group flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 ease-out min-h-[48px] text-sm focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/50 transform",
                                                     isActive
-                                                        ? "bg-white dark:bg-slate-800 text-[#10b981] font-black shadow-md"
-                                                        : "text-slate-700 dark:text-slate-300 hover:bg-white/60 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-slate-100 font-medium"
+                                                        ? "bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 text-emerald-700 dark:text-emerald-400 font-black shadow-lg shadow-emerald-500/20 dark:shadow-emerald-500/10 scale-[1.02]"
+                                                        : "text-slate-700 dark:text-slate-300 hover:bg-gradient-to-r hover:from-slate-100/80 hover:to-white/80 dark:hover:from-slate-800/80 dark:hover:to-slate-700/80 hover:text-slate-900 dark:hover:text-white hover:shadow-md hover:shadow-slate-400/20 dark:hover:shadow-slate-900/30 font-medium hover:scale-[1.04] active:scale-[0.98]"
                                                 )}
                                                 aria-current={({ isActive }) => isActive ? 'page' : undefined}
                                             >
                                                 {({ isActive }) => (
                                                     <>
-                                                        <Icon size={20} className={clsx(isActive ? "text-[#10b981]" : "text-slate-500 dark:text-slate-400")} aria-hidden="true" />
+                                                        <Icon
+                                                            size={20}
+                                                            className={clsx(
+                                                                "transition-all duration-300 ease-out",
+                                                                isActive
+                                                                    ? "text-emerald-600 dark:text-emerald-400 drop-shadow-sm"
+                                                                    : "text-slate-500 dark:text-slate-400 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 group-hover:drop-shadow-sm group-hover:scale-110"
+                                                            )}
+                                                            aria-hidden="true"
+                                                        />
                                                         <span className="truncate whitespace-nowrap">{label}</span>
                                                     </>
                                                 )}
