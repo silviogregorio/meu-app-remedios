@@ -43,11 +43,14 @@ serve(async (req) => {
             'https://sigremedios-novo.vercel.app',
             'https://sigremedios-novo-o8lreu3br-silviogregorios-projects.vercel.app',
             'http://localhost:5173',
-            'http://127.0.0.1:5173'
+            'http://localhost:3000',
+            'http://localhost:5174',
+            'http://127.0.0.1:5173',
+            'http://127.0.0.1:3000'
         ]
 
-        // Add actual origin if it matches vercel pattern to allow preview branches
-        if (origin.includes('.vercel.app') && !expectedOrigin.includes(origin)) {
+        // Add actual origin if it matches vercel pattern or localhost to allow preview branches
+        if ((origin.includes('.vercel.app') || origin.includes('localhost') || origin.includes('127.0.0.1')) && !expectedOrigin.includes(origin)) {
             expectedOrigin.push(origin)
         }
 
