@@ -451,7 +451,8 @@ export const AuthProvider = ({ children }) => {
 
             // 1. Get Registration Options from our Edge Function
             const { data: options, error: optionsError } = await supabase.functions.invoke('webauthn-handler?action=register-options', {
-                method: 'POST' // Use POST to ensure auth header is sent reliably
+                method: 'POST', // Use POST to ensure auth header is sent reliably
+                body: {} // Add empty body for standard POST compatibility
             });
 
             if (optionsError || !options) throw new Error(optionsError?.message || 'Falha ao buscar opções de registro');
