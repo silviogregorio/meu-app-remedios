@@ -489,58 +489,78 @@ export const AuthProvider = ({ children }) => {
     /**
      * Verifies the user using a registered Passkey (Manual Flow).
      */
-    const verifyPasskey = async () => {
+    const verifyPasskey = async (email = null) => {
         try {
-            console.log('🔐 WebAuthn: Solicitando digital (Manual)...');
+            console.log('🔐 WebAuthn: Solicitando digital (Manual)...', email ? `Email: ${email}` : 'Sem email');
 
             // 1. Get Authentication Options
-            const { data: options, error: optionsError } = await supabase.functions.invoke('webauthn-handler?action=login-options', {
+            const functionUrl = email
+                ? `webauthn-handler?action=login-options&email=${encodeURIComponent(email)}`
+                : 'webauthn-handler?action=login-options';
+
+            const { data: options, error: optionsError } = await supabase.functions.invoke(functionUrl, {
                 method: 'GET'
             });
 
+            const debugData = options?.debug || {};
             console.log('🔐 WebAuthn: login-options response:', {
                 hasData: !!options,
                 hasError: !!optionsError,
-                allowCredentials: options?.allowCredentials,
                 allowCredentialsLength: options?.allowCredentials?.length,
                 challenge: options?.challenge?.substring(0, 20) + '...',
-                rpId: options?.rpId
+                rpId: options?.rpId,
+                debug: debugData
             });
 
-            if (optionsError || !options) throw new Error(optionsError?.message || 'Falha ao buscar opções de login');
+            if (optionsError || !options) {
+                const err = new Error(optionsError?.message || 'Falha ao buscar opções de login');
+                err.debug = debugData;
+                throw err;
+            }
 
             // 2. Browser Ceremony
             console.log('🔐 WebAuthn: Starting browser authentication with options:', {
                 hasAllowCredentials: !!options.allowCredentials,
-                credentialCount: options.allowCredentials?.length || 'all',
-                rpId: options.rpId
-            });
-            const assertionResponse = await startAuthentication(options);
-
-            // 3. Verify via our Edge Function
-            const { data: verification, error: verifyError } = await supabase.functions.invoke('webauthn-handler?action=login-verify', {
-                body: { body: assertionResponse, challenge: options.challenge }
+                credentialCount: options.allowCredentials?.length || 'any (discovery flow)',
+                rpId: options.rpId,
+                userVerification: options.userVerification
             });
 
-            if (verifyError) {
-                console.error('🔐 WebAuthn: Error in verify call:', verifyError);
-                throw new Error(`Erro no servidor (Biometria): ${verifyError.message}`);
+            try {
+                const assertionResponse = await startAuthentication(options);
+
+                // 3. Verify via our Edge Function
+                const { data: verification, error: verifyError } = await supabase.functions.invoke('webauthn-handler?action=login-verify', {
+                    body: { body: assertionResponse, challenge: options.challenge }
+                });
+
+                if (verifyError) {
+                    console.error('🔐 WebAuthn: Error in verify call:', verifyError);
+                    const err = new Error(`Erro no servidor (Biometria): ${verifyError.message}`);
+                    err.debug = debugData;
+                    throw err;
+                }
+
+                if (!verification || !verification.verified) {
+                    const err = new Error(verification?.error || 'Biometria recusada pelo servidor');
+                    err.debug = debugData;
+                    throw err;
+                }
+
+                console.log('🔐 WebAuthn: Login manual verificado!');
+
+                // Set AAL2 locally for the UI
+                setCurrentAal('aal2');
+                setMfaRequired(false);
+
+                return { data: verification, error: null };
+            } catch (err) {
+                // Attach debug info to browser errors too
+                err.debug = debugData;
+                throw err;
             }
-
-            if (!verification || !verification.verified) {
-                throw new Error(verification?.error || 'Biometria recusada pelo servidor');
-            }
-
-            console.log('🔐 WebAuthn: Login manual verificado!');
-
-            // Set AAL2 locally for the UI
-            setCurrentAal('aal2');
-            setMfaRequired(false);
-
-            return { data: verification, error: null };
         } catch (error) {
             console.error('🔐 WebAuthn Verify Error:', error);
-            // If the error message is too technical, simplify it for the user but keep it log-able
             return { data: null, error };
         }
     };

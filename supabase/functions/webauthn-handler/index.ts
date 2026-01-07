@@ -104,7 +104,7 @@ serve(async (req) => {
                 userName: user.email ?? user.id,
                 attestationType: 'none',
                 authenticatorSelection: {
-                    residentKey: 'preferred',
+                    residentKey: 'required',
                     userVerification: 'preferred',
                 },
             })
@@ -191,14 +191,13 @@ serve(async (req) => {
 
         // --- LOGIN (VERIFY) ---
         if (action === 'login-options') {
-            console.log('📡 Generating login options (user authenticated:', !!user, ')')
+            const email = url.searchParams.get('email')
+            console.log(`📡 Generating login options (user auth: ${!!user}, email provided: ${!!email})`)
 
-            // IMPORTANT: During initial login, user will be null
-            // We set allowCredentials to undefined to let the browser find any registered passkey
-            // The browser will only show passkeys registered for this domain (rpID)
             let allowCredentials = undefined
+            let debugInfo: any = { rpID, origin, emailProvided: !!email };
 
-            // If user is already logged in (e.g., MFA flow or adding device), restrict to their credentials
+            // If user is already logged in (MFA)
             if (user) {
                 console.log('📡 User authenticated, fetching their credentials...')
                 const { data: credentials } = await supabaseClient
@@ -211,10 +210,38 @@ serve(async (req) => {
                         id: base64ToBuffer(c.credential_id),
                         type: 'public-key',
                     }))
-                    console.log(`📡 Found ${credentials.length} credential(s) for user`)
+                    debugInfo.credentialsFound = credentials.length;
                 }
-            } else {
-                console.log('📡 No authenticated user - allowing any domain passkey')
+            }
+            // OR if email is provided (Login flow)
+            else if (email) {
+                console.log(`📡 Email provided (${email}), looking up credentials...`)
+
+                // Fetch user directly by email using admin API
+                const { data: userData } = await supabaseClient.auth.admin.listUsers()
+                const targetUser = userData?.users?.find(u => u.email?.toLowerCase() === email.toLowerCase())
+
+                if (targetUser) {
+                    debugInfo.userFound = true;
+                    const { data: credentials } = await supabaseClient
+                        .from('webauthn_credentials')
+                        .select('credential_id')
+                        .eq('user_id', targetUser.id)
+
+                    if (credentials && credentials.length > 0) {
+                        allowCredentials = credentials.map(c => ({
+                            id: base64ToBuffer(c.credential_id),
+                            type: 'public-key',
+                        }))
+                        console.log(`📡 Found ${credentials.length} credential(s) for email ${email}`)
+                        debugInfo.credentialsFound = credentials.length;
+                    } else {
+                        debugInfo.credentialsFound = 0;
+                    }
+                } else {
+                    console.log('📡 No user found with this email')
+                    debugInfo.userFound = false;
+                }
             }
 
             const options = await SimpleWebAuthnServer.generateAuthenticationOptions({
@@ -222,8 +249,11 @@ serve(async (req) => {
                 allowCredentials,
                 userVerification: 'preferred',
             })
+
             console.log(`✅ Login options generated (${allowCredentials ? allowCredentials.length : 'any domain'} credentials allowed)`)
-            return new Response(JSON.stringify(options), {
+
+            // Return options with added debug info
+            return new Response(JSON.stringify({ ...options, debug: debugInfo }), {
                 headers: { ...corsHeaders, 'Content-Type': 'application/json' },
                 status: 200,
             })

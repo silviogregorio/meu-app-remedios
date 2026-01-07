@@ -29,20 +29,26 @@ const Login = () => {
             setLoading(true);
             setError('');
 
-            // 1. Trigger the manual biometric ceremony
-            const { data, error: verifyError } = await verifyPasskey();
+            // 1. Trigger the manual biometric ceremony with the last used email if available
+            const savedEmail = localStorage.getItem('sig_last_email');
+            const { data, error: verifyError } = await verifyPasskey(savedEmail);
 
             if (verifyError) {
                 // Show detailed error information for debugging
+                const debugInfo = verifyError.debug ? JSON.stringify(verifyError.debug, null, 2) : 'Não disponível';
                 const errorDetails = `
 Erro: ${verifyError.message}
 Nome: ${verifyError.name || 'N/A'}
+
+DEBUG INFO:
+${debugInfo}
                 `.trim();
 
                 console.error('🔐 Login Biometric Error Details:', {
                     message: verifyError.message,
                     name: verifyError.name,
-                    stack: verifyError.stack
+                    stack: verifyError.stack,
+                    debug: verifyError.debug
                 });
 
                 // Check if user cancelled to avoid showing scary error
@@ -62,7 +68,6 @@ Nome: ${verifyError.name || 'N/A'}
             }
 
             // 2. If successful, we need the stored email to complete the login
-            const savedEmail = localStorage.getItem('sig_last_email');
             if (savedEmail) {
                 setEmail(savedEmail);
                 showToast('Identidade confirmada!', 'success');
