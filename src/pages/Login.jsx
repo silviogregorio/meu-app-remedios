@@ -30,12 +30,31 @@ const Login = () => {
             setError('');
 
             // 1. Trigger the manual biometric ceremony
-            const { error: verifyError } = await verifyPasskey();
+            const { data, error: verifyError } = await verifyPasskey();
 
             if (verifyError) {
+                // Show detailed error information for debugging
+                const errorDetails = `
+Erro: ${verifyError.message}
+Nome: ${verifyError.name || 'N/A'}
+                `.trim();
+
+                console.error('🔐 Login Biometric Error Details:', {
+                    message: verifyError.message,
+                    name: verifyError.name,
+                    stack: verifyError.stack
+                });
+
                 // Check if user cancelled to avoid showing scary error
-                if (verifyError.message?.includes('cancelled') || verifyError.name === 'NotAllowedError') {
+                if (verifyError.message?.includes('cancelled') ||
+                    verifyError.message?.includes('não autorizado') ||
+                    verifyError.name === 'NotAllowedError') {
                     showToast('Autenticação cancelada.', 'info');
+                } else if (verifyError.message?.includes('nenhuma chave') ||
+                    verifyError.message?.includes('no passkey') ||
+                    verifyError.message?.includes('No credentials')) {
+                    // No passkeys found - show helpful message
+                    setError('❌ Nenhuma biometria encontrada neste dispositivo.\n\n📱 Para usar login biométrico:\n1. Faça login com email/senha\n2. Vá em Perfil → Biometria\n3. Cadastre sua digital/face\n\nDetalhes técnicos:\n' + errorDetails);
                 } else {
                     throw verifyError;
                 }
