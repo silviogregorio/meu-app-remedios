@@ -1,7 +1,7 @@
 {
   "name": "remedios",
   "private": true,
-  "version": "1.6.52",
+  "version": "1.6.53",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/sigremedios/lista-remedios-app.git"
